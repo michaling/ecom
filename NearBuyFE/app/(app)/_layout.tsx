@@ -4,7 +4,7 @@ export default function AppLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: true,
+        headerShown: false,
         tabBarActiveTintColor: '#007AFF', // iOS blue
         tabBarLabelStyle: { fontSize: 14 },
       }}
