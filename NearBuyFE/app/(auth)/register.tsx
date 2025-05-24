@@ -8,9 +8,10 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [phoneNumber, setNumber] = useState('');
 
   const handleRegister = async () => {
-    if (!email || !password || !confirmPassword) {
+    if (!email || !password || !confirmPassword || !phoneNumber) {
       Alert.alert('Error', 'Please fill out all fields.');
       return;
     }
@@ -40,6 +41,13 @@ export default function RegisterScreen() {
         onChangeText={setEmail}
       />
       <TextInput
+        placeholder="Phone number"
+        secureTextEntry
+        style={styles.input}
+        value={phoneNumber}
+        onChangeText={setNumber}
+      />
+      <TextInput
         placeholder="Password"
         secureTextEntry
         style={styles.input}
@@ -54,9 +62,9 @@ export default function RegisterScreen() {
         onChangeText={setConfirmPassword}
       />
 
-      <View style={styles.button}>
-        <Button title="Register" onPress={handleRegister} />
-      </View>
+      <Pressable style={styles.button} onPress={() => { /* handle register */ }}>
+        <Text style={styles.buttonText}>REGISTER</Text>
+      </Pressable>
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Already have an account?</Text>
@@ -69,8 +77,19 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#fff' },
-  title: { fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 24, color: '#333' },
+  container: { 
+    flex: 1,
+    justifyContent: 'center', 
+    padding: 24, 
+    backgroundColor: '#FAFAFA'
+  },
+  title: { 
+    fontSize: 28, 
+    fontWeight: 'bold', 
+    textAlign: 'center', 
+    marginBottom: 24, 
+    color: '#333' 
+  },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
@@ -79,8 +98,40 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 16,
   },
-  button: { marginVertical: 8 },
-  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 16 },
-  footerText: { fontSize: 14, color: '#555' },
-  footerLink: { fontSize: 14, color: '#007AFF', fontWeight: '500' },
+  button: {
+    backgroundColor: '#a8dadc', // 🔁 Change to your preferred color
+    borderRadius: 50,           // Fully rounded
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  
+    // Shadow for iOS
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
+  
+    // Shadow for Android
+    elevation: 5,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  footer: { 
+    flexDirection: 'row', 
+    justifyContent: 'center', 
+    marginTop: 16 
+  },
+  footerText: { 
+    fontSize: 14, 
+    color: '#555' 
+  },
+  footerLink: { 
+    fontSize: 14, 
+    color: '#007AFF', 
+    fontWeight: '500' 
+  },
 });
