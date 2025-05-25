@@ -18,61 +18,75 @@ def user_has_global_geo_alert(user_id: str) -> bool:
     )
     return bool(prof.data and prof.data.get("geo_alert"))
 
+def get_profile_geo(user_id: str) -> bool:
+    """Return the user-level default (TRUE/FALSE)."""
+    res = (supabase.table("user_profiles")
+                    .select("geo_alert")
+                    .eq("user_id", user_id)
+                    .single()
+                    .execute())
+    # Handle case where profile might not exist or geo_alert is None
+    if not res.data or res.data.get("geo_alert") is None:
+        return False
+    return bool(res.data["geo_alert"])
+
+def convert_datetime_to_iso(value):
+    """Convert datetime object to ISO string if needed."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return value
+
 # -------------------------------------------------------------------------- #
 @app.post("/lists/")
 def create_list(user_id: str, user_list: UserList):
     now = datetime.utcnow().isoformat()
 
-    force_geo = user_has_global_geo_alert(user_id)
-    list_geo   = True if force_geo else user_list.geo_alert
+    # 1️⃣  default comes from profile
+    default_geo = get_profile_geo(user_id)
+
+    # 2️⃣  list-level value:  explicit > default
+    list_geo = user_list.geo_alert if user_list.geo_alert is not None else default_geo
 
     # Convert deadline to ISO string if it's a datetime object
-    deadline_str = None
-    if user_list.deadline:
-        if isinstance(user_list.deadline, datetime):
-            deadline_str = user_list.deadline.isoformat()
-        else:
-            deadline_str = user_list.deadline
+    deadline_str = convert_datetime_to_iso(user_list.deadline)
 
-    # ---------- insert list ------------------------------------------------ #
-    list_payload = {
-        "user_id": user_id,
-        "name": user_list.name,
-        "created_at": now,
-        "last_update": now,
-        "is_deleted": False,
-        "deadline": deadline_str,
-        "geo_alert": list_geo
-    }
-    list_res = supabase.table("lists").insert(list_payload).execute()
-    if not list_res.data or not list_res.data[0].get("list_id"):
-        raise HTTPException(status_code=500, detail="Failed to insert list")
+    # insert list ---------------------------------------------------------
+    list_res = (supabase.table("lists")
+                  .insert({
+                      "user_id": user_id,
+                      "name": user_list.name,
+                      "created_at": now,
+                      "last_update": now,
+                      "deadline": deadline_str,
+                      "geo_alert": list_geo        # ⬅ save it
+                  })
+                  .execute())
+
+    if not list_res.data:
+        raise HTTPException(500, "Failed to insert list")
+
     list_id = list_res.data[0]["list_id"]
 
-    # ---------- insert items ---------------------------------------------- #
-    items = []
-    for item in user_list.items:
-        item_geo = True if force_geo else item.geo_alert
+    # items ---------------------------------------------------------------
+    items_payload = []
+    for it in user_list.items:
+        item_geo = it.geo_alert if it.geo_alert is not None else list_geo
+        item_deadline_str = convert_datetime_to_iso(it.deadline)
         
-        # Convert item deadline to ISO string if it's a datetime object
-        item_deadline_str = None
-        if item.deadline:
-            if isinstance(item.deadline, datetime):
-                item_deadline_str = item.deadline.isoformat()
-            else:
-                item_deadline_str = item.deadline
-        
-        items.append({
-            "list_id": list_id,
-            "name": item.name,
-            "is_checked": item.is_checked,
-            "checked_at": now if item.is_checked else None,
-            "created_at": now,
-            "is_deleted": False,
-            "deadline": item_deadline_str,
-            "geo_alert": item_geo
+        items_payload.append({
+            "list_id":      list_id,
+            "name":         it.name,
+            "is_checked":   it.is_checked,
+            "checked_at":   now if it.is_checked else None,
+            "created_at":   now,
+            "deadline":     item_deadline_str,
+            "geo_alert":    item_geo,
         })
-    supabase.table("lists_items").insert(items).execute()
+
+    supabase.table("lists_items").insert(items_payload).execute()
+
     return {"list_id": list_id, "message": "List created"}
 
 # -------------------------------------------------------------------------- #
@@ -144,61 +158,48 @@ def get_list(list_id: str):
 def update_list(list_id: str, user_list: UserList):
     now = datetime.utcnow().isoformat()
 
-    # must we force geo_alert?
-    list_row = (
-        supabase.table("lists").select("user_id").eq("list_id", list_id).single().execute().data
-    )
-    if not list_row:
+    # fetch owner to get default
+    res = supabase.table("lists").select("user_id").eq("list_id", list_id).single().execute()
+    if not res.data:
         raise HTTPException(status_code=404, detail="List not found")
-    user_id   = list_row["user_id"]
-    force_geo = user_has_global_geo_alert(user_id)
-    list_geo  = True if force_geo else user_list.geo_alert
+    
+    user_id = res.data["user_id"]
+    default_geo = get_profile_geo(user_id)
 
-    # Convert deadline to ISO string if it's a datetime object
-    deadline_str = None
-    if user_list.deadline:
-        if isinstance(user_list.deadline, datetime):
-            deadline_str = user_list.deadline.isoformat()
-        else:
-            deadline_str = user_list.deadline
+    list_geo = user_list.geo_alert if user_list.geo_alert is not None else default_geo
+    deadline_str = convert_datetime_to_iso(user_list.deadline)
 
-    # ---------- update list ----------------------------------------------- #
+    # update list header
     supabase.table("lists").update({
-        "name": user_list.name,
-        "last_update": now,
-        "deadline": deadline_str,
-        "geo_alert": list_geo
+        "name":        user_list.name,
+        "deadline":    deadline_str,
+        "geo_alert":   list_geo,
+        "last_update": now
     }).eq("list_id", list_id).execute()
 
-    # ---------- replace items --------------------------------------------- #
+    # soft-delete old items (unchanged)
     supabase.table("lists_items").update({
         "is_deleted": True,
         "deleted_at": now
     }).eq("list_id", list_id).execute()
 
-    new_items = []
-    for item in user_list.items:
-        item_geo = True if force_geo else item.geo_alert
+    # insert new items
+    items_payload = []
+    for it in user_list.items:
+        item_geo = it.geo_alert if it.geo_alert is not None else list_geo
+        item_deadline_str = convert_datetime_to_iso(it.deadline)
         
-        # Convert item deadline to ISO string if it's a datetime object
-        item_deadline_str = None
-        if item.deadline:
-            if isinstance(item.deadline, datetime):
-                item_deadline_str = item.deadline.isoformat()
-            else:
-                item_deadline_str = item.deadline
-        
-        new_items.append({
-            "list_id": list_id,
-            "name": item.name,
-            "is_checked": item.is_checked,
-            "checked_at": now if item.is_checked else None,
+        items_payload.append({
+            "list_id":    list_id,
+            "name":       it.name,
+            "is_checked": it.is_checked,
+            "checked_at": now if it.is_checked else None,
             "created_at": now,
-            "is_deleted": False,
-            "deadline": item_deadline_str,
-            "geo_alert": item_geo                     # NEW ❸
+            "deadline":   item_deadline_str,
+            "geo_alert":  item_geo
         })
-    supabase.table("lists_items").insert(new_items).execute()
+    supabase.table("lists_items").insert(items_payload).execute()
+
     return {"message": "List updated"}
 
 # -------------------------------------------------------------------------- #
