@@ -1,0 +1,213 @@
+import { useState } from 'react';
+import { View, Text, TextInput, Button, StyleSheet, Pressable, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Switch } from 'react-native';
+import * as SecureStore from 'expo-secure-store'; // For saving login state later
+
+export default function RegisterScreen() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [phoneNumber, setNumber] = useState('');
+  const [userName, setUserName] = useState('');
+  const [isLocationEnabled, setIsLocationEnabled] = useState(true); // default: ON
+
+  //Email format check
+  const isValidEmail = (email: string) => {
+    return /\S+@\S+\.\S+/.test(email);
+  };
+
+  //Phone number format (digits only, 9–15 digits)
+  const isValidPhone = (phone: string) => {
+    return /^\d{9,15}$/.test(phone);
+  };
+  //do we want strong password?
+
+
+
+  //check inputs validations
+  const handleRegister = async () => {
+    if (!email || !password || !confirmPassword || !phoneNumber || !userName) {
+      Alert.alert('Error', 'Please fill out all fields.');
+      return;
+    }
+  
+    if (!isValidEmail(email)) {
+      Alert.alert('Error', 'Please enter a valid email address.');
+      return;
+    }
+  
+    if (!isValidPhone(phoneNumber)) {
+      Alert.alert('Error', 'Please enter a valid phone number.');
+      return;
+    } 
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match.');
+      return;
+    }
+
+    if (isLocationEnabled) {
+      // 🔐 Request location permissions and set up alerts ?
+      
+    }
+
+    // 💡 This is where you'd usually call your backend API to create the user.
+
+    // Navigate to home screen after "successful" registration
+    router.replace('/home');
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Create Account</Text>
+      <TextInput
+        placeholder="Name"
+        style={styles.input}
+        keyboardType="default" //capitalize first letter of names
+        autoCapitalize="words"
+        value={userName}
+        onChangeText={setUserName}
+      />
+      <TextInput
+        placeholder="Email"
+        style={styles.input}
+        autoCapitalize="none"
+        keyboardType="email-address"
+        value={email}
+        onChangeText={setEmail}
+      />
+      <TextInput
+        placeholder="Phone number"
+        keyboardType="phone-pad"
+        style={styles.input}
+        value={phoneNumber}
+        onChangeText={setNumber}
+      />
+      <TextInput
+        placeholder="Password"
+        secureTextEntry
+        style={styles.input}
+        value={password}
+        onChangeText={setPassword}
+      />
+      <TextInput
+        placeholder="Confirm Password"
+        secureTextEntry
+        style={styles.input}
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+      />
+
+      <View style={styles.toggleContainer}>
+        <Text style={styles.toggleLabel}>Want to turn on location-based notifications by default?</Text>
+        <Switch
+          value={isLocationEnabled}
+          onValueChange={setIsLocationEnabled}
+          trackColor={{ false: '#ccc', true: '#4CAF50' }}
+          thumbColor={isLocationEnabled ? '#fff' : '#f4f3f4'}
+        />
+      </View>
+
+      <View style={styles.underToggle}> 
+        <Text style={styles.smallerToggleLabel}>Don't worry - you can always turn this off later</Text>
+      </View>
+
+      <Pressable style={styles.button} onPress={() => { /* handle register */ }}>
+        <Text style={styles.buttonText}>REGISTER</Text>
+      </Pressable>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Already have an account?</Text>
+        <Pressable onPress={() => router.push('/login')}>
+          <Text style={styles.footerLink}> Login</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { 
+    flex: 1,
+    justifyContent: 'center', 
+    padding: 24, 
+    backgroundColor: '#FAFAFA'
+  },
+  title: { 
+    fontSize: 28, 
+    fontWeight: 'bold', 
+    textAlign: 'center', 
+    marginBottom: 24, 
+    color: '#333' 
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    fontSize: 16,
+  },
+  button: {
+    backgroundColor: '#D1F0E5', // 🔁 Change to your preferred color
+    borderRadius: 50,           // Fully rounded
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: 10,
+  
+    // Shadow for iOS
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
+  
+    // Shadow for Android
+    elevation: 5,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  footer: { 
+    flexDirection: 'row', 
+    justifyContent: 'center', 
+    marginTop: 16 
+  },
+  footerText: { 
+    fontSize: 14, 
+    color: '#555' 
+  },
+  footerLink: { 
+    fontSize: 14, 
+    color: '#007AFF', 
+    fontWeight: '500' 
+  },
+
+  toggleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    marginRight: 60,
+    marginLeft: 16,
+  },
+  
+  toggleLabel: {
+    fontSize: 14,
+    color: '#333',
+  },
+  underToggle: { 
+    flexDirection: 'row', 
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  smallerToggleLabel: {
+    fontSize: 12,
+    color: '#333',
+  },
+});
