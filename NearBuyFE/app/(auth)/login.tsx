@@ -1,33 +1,58 @@
-import { View, Text, TextInput, Button, StyleSheet, Pressable } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, Pressable, StyleSheet, Alert } from 'react-native';
+import axios, { AxiosError } from 'axios';
 import { useRouter } from 'expo-router';
 
+
 export default function LoginScreen() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const router = useRouter();
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Please fill in both fields');
+      return;
+    }
+  
+    try {
+      //const res = await axios.post('http://10.0.2.2:8000/auth/signin', { email, password }); // for Android emulator
+      const res = await axios.post('http://10.0.0.49:8000/auth/signin', { email, password }); // for Android live via USB - change to your machine's IP (ipconfig -> IPv4 Address)
+      //const res = await axios.post('http://localhost:8000/auth/signin', { email, password }); // for web or iOS simulator
+
+      console.log('[LOGIN SUCCESS]', res.data);
+      router.push('/home');
+    } catch (err) {
+      const error = err as AxiosError;
+      Alert.alert('Login failed', error.response?.data?.detail || 'Unknown error');
+      console.log('Login failed: ', error.response?.data?.detail || 'Unknown error');
+    }
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome to NearBuy </Text>
       <Text style={styles.subtitle}>Login to your account</Text>
 
-      <TextInput placeholder="Email" style={styles.input} keyboardType="email-address" autoCapitalize="none" />
-      <TextInput placeholder="Password" secureTextEntry style={styles.input} />
+      <TextInput
+        placeholder="Email"
+        style={styles.input}
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      <TextInput
+        placeholder="Password"
+        secureTextEntry
+        style={styles.input}
+        value={password}
+        onChangeText={setPassword}
+      />
 
-      <Pressable style={styles.button} onPress={() => { /* handle login */ }}>
+      <Pressable style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>LOGIN</Text>
       </Pressable>
-
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Don't have an account?</Text>
-        <Pressable onPress={() => router.push('/register')}>
-          <Text style={styles.footerLink}> Register</Text>
-        </Pressable>
-      </View>
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Continue without login - </Text>
-        <Pressable onPress={() => router.push('/home')}>
-          <Text style={styles.footerLink}> Home</Text>
-        </Pressable>
-      </View>
     </View>
   );
 }
@@ -61,8 +86,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#C8A2C8', // 🔁 Change to your preferred color
-    borderRadius: 50,           // Fully rounded
+    backgroundColor: '#C8A2C8',
+    borderRadius: 50,
     paddingVertical: 14,
     paddingHorizontal: 24,
     alignItems: 'center',
