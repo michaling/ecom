@@ -1,4 +1,3 @@
-from supabase import create_client
 import pandas as pd
 from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import make_pipeline
@@ -6,7 +5,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
 import joblib
-from globals import *
+from ml_component.globals import *
 import os
 
 response = supabase.table('model_products').select('product_name, category_name').execute()

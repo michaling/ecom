@@ -1,8 +1,8 @@
 from typing import List
 from collections import Counter
-from clustering.embedding_search_engine import EmbeddingSearchEngine
-from globals import *
-from clustering.products_recommender import ProductRecommender
+from ml_component.clustering.embedding_search_engine import EmbeddingSearchEngine
+from ml_component.globals import *
+from ml_component.clustering.products_recommender import ProductRecommender
 
 class ListBasedRecommender:
     def __init__(self, embedding_model_name: str = "all-mpnet-base-v2",

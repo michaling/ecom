@@ -1,10 +1,10 @@
 import supabase
 import pandas as pd
 import random
-from globals import *
+from ml_component.globals import *
 
 # Load the existing CSV with store-product interactions
-df = pd.read_csv("/Users/yanivtzipin/Desktop/CS_major/e-commerce/ecom/data/product_store_interactions.csv")
+df = pd.read_csv("/ml_component/data/product_store_interactions.csv")
 
 # Parameters
 interaction_probability = 0.4

@@ -4,7 +4,7 @@ from surprise import SVD, Dataset, Reader
 from surprise.model_selection import train_test_split
 from surprise import accuracy
 import supabase
-from globals import *
+from ml_component.globals import *
 
 # Fetch store and product names from Supabase
 def fetch_store_and_product_names():
@@ -20,7 +20,7 @@ def fetch_store_and_product_names():
 
 # Load the product-store interaction data
 df = pd.read_csv(
-    "/Users/yanivtzipin/Desktop/CS_major/e-commerce/ecom/matrix_factorization/updated_product_store_interactions.csv")
+    "/ml_component/matrix_factorization/updated_product_store_interactions.csv")
 
 # Map UUIDs to integers for product_id and store_id
 product_id_mapping = {product_id: idx for idx, product_id in enumerate(df['product_id'].unique())}

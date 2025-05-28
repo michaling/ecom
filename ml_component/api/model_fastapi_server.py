@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
-from clustering.products_recommender import ProductRecommender
-from clustering.list_based_recommender import ListBasedRecommender
+from ml_component.clustering.products_recommender import ProductRecommender
+from ml_component.clustering.list_based_recommender import ListBasedRecommender
 
 app = FastAPI()
 
@@ -9,7 +9,8 @@ product_recommender = ProductRecommender()
 list_recommender = ListBasedRecommender()
 
 """
-To set up the server run: uvicorn api.model_fastapi_server:app --reload
+To set up the server run: ml_component.api.model_fastapi_server:app --reload
+You need to be pwd on the same hierarchy as ml_component 
 """
 @app.post("/set_list_recommender")
 def set_list_recommender(k: int = 2, top_k_per_product: int = 1, final_m: int = 10):

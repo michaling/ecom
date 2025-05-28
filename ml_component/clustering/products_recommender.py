@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 import joblib
-from clustering.embedding_search_engine import EmbeddingSearchEngine
-from globals import *
+from ml_component.clustering.embedding_search_engine import EmbeddingSearchEngine
+from ml_component.globals import *
 import os
 
 

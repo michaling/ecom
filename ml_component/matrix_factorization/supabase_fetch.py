@@ -1,4 +1,4 @@
-from globals import *
+from ml_component.globals import *
 import pandas as pd
 
 def get_stores():

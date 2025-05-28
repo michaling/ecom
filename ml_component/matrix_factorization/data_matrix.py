@@ -1,7 +1,7 @@
 import pandas as pd
 import random
 
-csv_file = "/Users/yanivtzipin/Desktop/CS_major/e-commerce/ecom/data/product_store_interactions.csv"
+csv_file = "/ml_component/data/product_store_interactions.csv"
 df = pd.read_csv(csv_file)
 
 def set_pos_interaction(store_id, product_id):
