@@ -1,16 +1,21 @@
 import pandas as pd
 
-# Paths to the CSV files
-existing_file = 'products.csv'  # Replace with your file path
-new_file = 'supermarket_products.csv'  # New file generated
-output_file = 'products.csv'  # The merged file name
 
-# Read both CSV files
-existing_df = pd.read_csv(existing_file)
-new_df = pd.read_csv(new_file)
+def add_empty_product_id_column(input_csv: str, output_csv: str):
+    """
+    Adds an empty 'product_id' column to the start of the CSV and saves the result.
 
-# Append the new file to the existing file
-merged_df = pd.concat([existing_df, new_df], ignore_index=True)
+    Args:
+        input_csv (str): Path to the input CSV.
+        output_csv (str): Path to write the modified CSV.
+    """
+    df = pd.read_csv(input_csv)
 
-# Save the merged DataFrame to a new CSV file
-merged_df.to_csv(output_file, index=False)
+    # Insert empty 'product_id' column at position 0
+    df.insert(0, 'product_id', '')
+
+    df.to_csv(output_csv, index=False)
+
+
+# Example usage
+add_empty_product_id_column('products_with_category_id.csv', 'products_with_category_id.csv')

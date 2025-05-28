@@ -1,10 +1,5 @@
-import supabase
+from globals import *
 import pandas as pd
-
-# Initialize the connection to Supabase
-supabase_url = "https://nallltanfjxhuaxvlwaf.supabase.co"
-supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hbGxsdGFuZmp4aHVheHZsd2FmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3NTA5NzAsImV4cCI6MjA2MTMyNjk3MH0.QJi8v8eKu2QOEGPyRbgGL7Yaaj3zj22Mi8PEDz6WcbE"
-supabase = supabase.create_client(supabase_url, supabase_key)
 
 def get_stores():
     return supabase.table("stores").select("store_id", "name").execute()

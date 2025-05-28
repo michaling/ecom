@@ -4,12 +4,7 @@ from surprise import SVD, Dataset, Reader
 from surprise.model_selection import train_test_split
 from surprise import accuracy
 import supabase
-
-# Initialize Supabase connection (using your URL and API Key)
-supabase_url = "https://nallltanfjxhuaxvlwaf.supabase.co"
-supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hbGxsdGFuZmp4aHVheHZsd2FmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3NTA5NzAsImV4cCI6MjA2MTMyNjk3MH0.QJi8v8eKu2QOEGPyRbgGL7Yaaj3zj22Mi8PEDz6WcbE"
-supabase = supabase.create_client(supabase_url, supabase_key)
-
+from globals import *
 
 # Fetch store and product names from Supabase
 def fetch_store_and_product_names():

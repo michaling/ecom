@@ -1,11 +1,7 @@
 import supabase
 import pandas as pd
 import random
-
-# Initialize the connection to Supabase
-supabase_url = "https://nallltanfjxhuaxvlwaf.supabase.co"
-supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hbGxsdGFuZmp4aHVheHZsd2FmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3NTA5NzAsImV4cCI6MjA2MTMyNjk3MH0.QJi8v8eKu2QOEGPyRbgGL7Yaaj3zj22Mi8PEDz6WcbE"
-supabase = supabase.create_client(supabase_url, supabase_key)
+from globals import *
 
 # Load the existing CSV with store-product interactions
 df = pd.read_csv("/Users/yanivtzipin/Desktop/CS_major/e-commerce/ecom/data/product_store_interactions.csv")
