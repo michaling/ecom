@@ -24,8 +24,11 @@ export default function LoginScreen() {
       router.push('/home');
     } catch (err) {
       const error = err as AxiosError;
-      Alert.alert('Login failed', error.response?.data?.detail || 'Unknown error');
-      console.log('Login failed: ', error.response?.data?.detail || 'Unknown error');
+      const detail = (error.response?.data as { detail?: string })?.detail;
+      Alert.alert('Login failed', detail || 'Unknown error');
+      //Alert.alert('Login failed', error.response?.data?.detail || 'Unknown error');
+      //console.log('Login failed: ', error.response?.data?.detail || 'Unknown error');
+      console.log('Login failed: ', detail || 'Unknown error');
     }
   };
 

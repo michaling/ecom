@@ -23,7 +23,7 @@ export default function HomeScreen() {
   const router = useRouter();
 
   const renderItem = ({ item }: any) => (
-    <Pressable style={styles.cardContainer} onPress={() => {}}>
+    <Pressable style={styles.cardContainer} onPress={() => ("")}>
       <View style={styles.card}>
         <ImageBackground
           source={item.image ? { uri: item.image } : undefined}
