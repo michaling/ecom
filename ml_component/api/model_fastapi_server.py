@@ -9,7 +9,7 @@ product_recommender = ProductRecommender()
 list_recommender = ListBasedRecommender()
 
 """
-To set up the server run: ml_component.api.model_fastapi_server:app --reload
+To set up the server run: uvicorn ml_component.api.model_fastapi_server:app --reload
 You need to be pwd on the same hierarchy as ml_component 
 """
 @app.post("/set_list_recommender")
