@@ -16,8 +16,8 @@ export default function LoginScreen() {
     }
   
     try {
-      //const res = await axios.post('http://10.0.2.2:8000/auth/signin', { email, password }); // for Android emulator
-      const res = await axios.post('http://10.0.0.49:8000/auth/signin', { email, password }); // for Android live via USB - change to your machine's IP (ipconfig -> IPv4 Address)
+      const res = await axios.post('http://10.0.2.2:8000/auth/signin', { email, password }); // for Android emulator
+      //const res = await axios.post('http://10.0.0.49:8000/auth/signin', { email, password }); // for Android live via USB - change to your machine's IP (ipconfig -> IPv4 Address)
       //const res = await axios.post('http://localhost:8000/auth/signin', { email, password }); // for web or iOS simulator
 
       console.log('[LOGIN SUCCESS]', res.data);

@@ -7,4 +7,5 @@ class SignInData(BaseModel):
 class SignUpData(BaseModel):
     email: str
     password: str
-    phone: str | None = None
+    display_name: str
+    geo_alert: bool
