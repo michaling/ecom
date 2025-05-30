@@ -3,13 +3,15 @@ import { View, Text, TextInput, Button, StyleSheet, Pressable, Alert } from 'rea
 import { useRouter } from 'expo-router';
 import { Switch } from 'react-native';
 import * as SecureStore from 'expo-secure-store'; // For saving login state later
+import axios, { AxiosError } from 'axios';
+
 
 export default function RegisterScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [phoneNumber, setNumber] = useState('');
+  //const [phoneNumber, setNumber] = useState(''); // Delete later
   const [userName, setUserName] = useState('');
   const [isLocationEnabled, setIsLocationEnabled] = useState(true); // default: ON
 
@@ -18,17 +20,19 @@ export default function RegisterScreen() {
     return /\S+@\S+\.\S+/.test(email);
   };
 
-  //Phone number format (digits only, 9–15 digits)
-  const isValidPhone = (phone: string) => {
-    return /^\d{9,15}$/.test(phone);
-  };
-  //do we want strong password?
+  //Phone number format (digits only, 9–15 digits) // Delete later
+  // const isValidPhone = (phone: string) => {
+  //   return /^\d{9,15}$/.test(phone);
+  // };
+
+
+  // TODO: Strong password validation
 
 
 
   //check inputs validations
   const handleRegister = async () => {
-    if (!email || !password || !confirmPassword || !phoneNumber || !userName) {
+    if (!email || !password || !confirmPassword || !userName) {
       Alert.alert('Error', 'Please fill out all fields.');
       return;
     }
@@ -38,25 +42,40 @@ export default function RegisterScreen() {
       return;
     }
   
-    if (!isValidPhone(phoneNumber)) {
-      Alert.alert('Error', 'Please enter a valid phone number.');
-      return;
-    } 
-
+    // Delete later
+    // if (!isValidPhone(phoneNumber)) {
+    //   Alert.alert('Error', 'Please enter a valid phone number.');
+    //   return;
+    // }
+  
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match.');
       return;
     }
-
-    if (isLocationEnabled) {
-      // 🔐 Request location permissions and set up alerts ?
-      
+  
+    try {
+      const res = await axios.post(
+        'http://10.0.2.2:8000/auth/signup', // Android emulator
+        // 'http://10.0.0.49:8000/auth/signup', // Android via USB (replace IP if needed)
+        // 'http://localhost:8000/auth/signup',   // Web or iOS simulator
+        {
+          email,
+          password,
+          // phone: "00000000000", // Delete later
+          display_name: userName,
+          geo_alert: isLocationEnabled,
+        }
+      );
+      console.log('[SIGNUP SUCCESS]', res.data);
+      Alert.alert('Success', 'Account created!');
+      router.replace('/home');
+  
+    } catch (err) {
+      const error = err as AxiosError<{ detail: string }>;
+      console.log(error);
+      console.log('[SIGNUP ERROR]', error.response?.data?.detail || 'Unknown error');
+      Alert.alert('Signup failed', error.response?.data?.detail || 'Unknown error');
     }
-
-    // 💡 This is where you'd usually call your backend API to create the user.
-
-    // Navigate to home screen after "successful" registration
-    router.replace('/home');
   };
 
   return (
@@ -78,13 +97,14 @@ export default function RegisterScreen() {
         value={email}
         onChangeText={setEmail}
       />
-      <TextInput
+      {/* Delete later */}
+      {/* <TextInput
         placeholder="Phone number"
         keyboardType="phone-pad"
         style={styles.input}
         value={phoneNumber}
         onChangeText={setNumber}
-      />
+      /> */}
       <TextInput
         placeholder="Password"
         secureTextEntry
@@ -114,7 +134,7 @@ export default function RegisterScreen() {
         <Text style={styles.smallerToggleLabel}>Don't worry - you can always turn this off later</Text>
       </View>
 
-      <Pressable style={styles.button} onPress={() => { /* handle register */ }}>
+      <Pressable style={styles.button} onPress={handleRegister}>
         <Text style={styles.buttonText}>REGISTER</Text>
       </Pressable>
 
