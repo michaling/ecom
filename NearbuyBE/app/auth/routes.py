@@ -8,9 +8,9 @@ router = APIRouter()
 @router.post("/signin")
 def signin_endpoint(data: SignInData):
     try:
-        user = sign_in(data.email, data.password)
+        user, session = sign_in(data.email, data.password)
         print(f"[LOGIN] {user.email} signed in.")
-        return {"message": "Sign-in successful", "user_id": user.id}
+        return {"message": "Sign-in successful", "user_id": user.id, "access_token": session.access_token}
     except AuthError as e:
         raise HTTPException(status_code=401, detail=str(e))
 

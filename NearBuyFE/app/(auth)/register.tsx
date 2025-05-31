@@ -55,19 +55,20 @@ export default function RegisterScreen() {
   
     try {
       const res = await axios.post(
-        'http://10.0.2.2:8000/auth/signup', // Android emulator
-        // 'http://10.0.0.49:8000/auth/signup', // Android via USB (replace IP if needed)
+        //'http://10.0.2.2:8000/auth/signup', // Android emulator
+         'http://10.0.0.49:8000/auth/signup', // Android via USB (replace IP if needed)
         // 'http://localhost:8000/auth/signup',   // Web or iOS simulator
         {
           email,
           password,
-          // phone: "00000000000", // Delete later
+          //phone: phoneNumber, // Delete later
           display_name: userName,
           geo_alert: isLocationEnabled,
         }
       );
       console.log('[SIGNUP SUCCESS]', res.data);
-      Alert.alert('Success', 'Account created!');
+      await SecureStore.setItemAsync('user_id', res.data.user_id); // Save user ID to secure storage
+      await SecureStore.setItemAsync('access_token', res.data.access_token); // Save access token to secure storage
       router.replace('/home');
   
     } catch (err) {
