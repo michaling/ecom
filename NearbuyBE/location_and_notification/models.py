@@ -37,6 +37,7 @@ class ListItem(Base):
     item_id = Column(PGUUID(as_uuid=True), primary_key=True, index=True)
     list_id = Column(PGUUID(as_uuid=True), ForeignKey("lists.list_id", ondelete="CASCADE"), nullable=False)
     geo_alert = Column(Boolean, default=False, nullable=False)
+    name = Column(String, nullable=False)
 
 """
 class Item(Base):
