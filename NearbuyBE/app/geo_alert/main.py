@@ -3,7 +3,7 @@
 import os
 from datetime import datetime, timedelta
 from uuid import UUID
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import FastAPI, Depends, HTTPException, status, Header
 from fastapi.middleware.cors import CORSMiddleware
@@ -104,7 +104,7 @@ class LocationUpdateRequest(BaseModel):
 
 # -------------------- 5. Helper: get all “geo_alert” item IDs for user --------------------
 
-def get_user_geo_alert_item_ids(db: Session, user_id: UUID) -> List[int]:
+def get_user_geo_alert_item_ids(db: Session, user_id: UUID) -> list[int]:
     """
     Return a list of item IDs that appear in ANY of the user's lists,
     but only where list_items.geo_alert == True.
@@ -126,7 +126,7 @@ def get_user_geo_alert_item_ids(db: Session, user_id: UUID) -> List[int]:
 
 # -------------------- 6. Helper: map those item IDs to category IDs --------------------
 
-def get_category_ids_for_items(db: Session, item_ids: List[int]) -> List[int]:
+def get_category_ids_for_items(db: Session, item_ids: list[int]) -> list[int]:
     """
     Given a list of item IDs, return all distinct category IDs from items_categories.
     """
@@ -143,7 +143,7 @@ def get_category_ids_for_items(db: Session, item_ids: List[int]) -> List[int]:
 
 # -------------------- 7. Helper: find stores matching any of these categories --------------------
 
-def get_stores_for_category_ids(db: Session, category_ids: List[int]) -> List[tuple]:
+def get_stores_for_category_ids(db: Session, category_ids: list[int]) -> list[tuple]:
     """
     Given a list of category IDs, return tuples (store_id, store_name, latitude, longitude)
     for any store in stores_categories where store_category.category_id IN category_ids.
@@ -162,7 +162,7 @@ def get_stores_for_category_ids(db: Session, category_ids: List[int]) -> List[tu
 
 # -------------------- 8. Helper: fetch item names matching a store’s categories --------------------
 
-def get_matching_item_names(db: Session, user_id: UUID, store_id: int) -> List[str]:
+def get_matching_item_names(db: Session, user_id: UUID, store_id: int) -> list[str]:
     """
     For a given user and store, return the item names (from the user's geo_alert items)
     that belong to any category of that store.
@@ -323,7 +323,6 @@ async def location_update(
                         for (expo_token,) in tokens:
                             title = f"Store Nearby: {store_name}"
                             data_payload = {
-                                "store_id": store_id,
                                 "store_name": store_name,
                                 "item_names": item_names  # optional deep-link data
                             }
