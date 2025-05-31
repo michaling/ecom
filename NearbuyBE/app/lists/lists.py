@@ -1,10 +1,10 @@
-from fastapi import FastAPI, HTTPException
-from models import UserList, ListItem
-from supabase_client import supabase
+from fastapi import APIRouter, HTTPException, Header
+from app.lists.models import UserList, ListItem
+from app.supabase_client import supabase
 from datetime import datetime
 from typing import List
 
-app = FastAPI()
+router = APIRouter()
 
 # ---------- small helper -------------------------------------------------- #
 def user_has_global_geo_alert(user_id: str) -> bool:
@@ -39,7 +39,7 @@ def convert_datetime_to_iso(value):
     return value
 
 # -------------------------------------------------------------------------- #
-@app.post("/lists/")
+@router.post("/lists/")
 def create_list(user_id: str, user_list: UserList):
     now = datetime.utcnow().isoformat()
 
@@ -90,8 +90,13 @@ def create_list(user_id: str, user_list: UserList):
     return {"list_id": list_id, "message": "List created"}
 
 # -------------------------------------------------------------------------- #
-@app.get("/lists/")
-def get_user_lists(user_id: str):
+@router.get("/lists/")
+def get_user_lists(user_id: str,
+                   token: str = Header(...)): # Tells FastAPI to extract token from the request header
+    # Authorize user session for RLS
+    supabase.postgrest.auth(token)
+
+    print(f"user_id: {user_id}")
     rows = (
         supabase.table("lists")
         .select("*")
@@ -114,17 +119,27 @@ def get_user_lists(user_id: str):
             .data
             or []
         )
+
+        print("before unchecked_items")
+        # Only unchecked items
+        unchecked_items = [
+            item for item in items if not item.get("is_checked", False)
+        ]
+        print("after unchecked_items")
+
         out.append({
             "id": lst["list_id"],
             "name": lst["name"],
             "deadline": lst["deadline"],
-            "geo_alert": lst["geo_alert"],        # NEW ❹
-            "items": items
+            "geo_alert": lst["geo_alert"],
+            "items": items,
+            "unchecked_items": unchecked_items
         })
+        print(f"out: {out}")
     return out
 
 # -------------------------------------------------------------------------- #
-@app.get("/lists/{list_id}")
+@router.get("/lists/{list_id}")
 def get_list(list_id: str):
     lst = (
         supabase.table("lists")
@@ -154,7 +169,7 @@ def get_list(list_id: str):
     }
 
 # -------------------------------------------------------------------------- #
-@app.put("/lists/{list_id}")
+@router.put("/lists/{list_id}")
 def update_list(list_id: str, user_list: UserList):
     now = datetime.utcnow().isoformat()
 
@@ -203,7 +218,7 @@ def update_list(list_id: str, user_list: UserList):
     return {"message": "List updated"}
 
 # -------------------------------------------------------------------------- #
-@app.delete("/lists/{list_id}")
+@router.delete("/lists/{list_id}")
 def delete_list(list_id: str):
     now = datetime.utcnow().isoformat()
     supabase.table("lists").update({"is_deleted": True, "deleted_at": now}).eq("list_id", list_id).execute()
@@ -211,7 +226,7 @@ def delete_list(list_id: str):
     return {"message": "List deleted"}
 
 # -------------------------------------------------------------------------- #
-@app.post("/lists/{list_id}/restore")
+@router.post("/lists/{list_id}/restore")
 def restore_list(list_id: str):
     now = datetime.utcnow().isoformat()
     lst = (

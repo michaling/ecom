@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from app.auth.routes import router as auth_router
+from app.lists.lists import router as lists_router
+from app.lists.cleanup import router as lists_cleanup_router
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -15,3 +17,6 @@ app.add_middleware(
 )
 
 app.include_router(auth_router, prefix="/auth")
+app.include_router(lists_router)
+app.include_router(lists_cleanup_router)
+
