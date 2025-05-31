@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Alert } from 'react-native';
 import axios, { AxiosError } from 'axios';
 import { useRouter } from 'expo-router';
-
+import * as SecureStore from 'expo-secure-store';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -16,11 +16,13 @@ export default function LoginScreen() {
     }
   
     try {
-      const res = await axios.post('http://10.0.2.2:8000/auth/signin', { email, password }); // for Android emulator
-      //const res = await axios.post('http://10.0.0.49:8000/auth/signin', { email, password }); // for Android live via USB - change to your machine's IP (ipconfig -> IPv4 Address)
+      //const res = await axios.post('http://10.0.2.2:8000/auth/signin', { email, password }); // for Android emulator
+      const res = await axios.post('http://10.0.0.49:8000/auth/signin', { email, password }); // for Android live via USB - change to your machine's IP (ipconfig -> IPv4 Address)
       //const res = await axios.post('http://localhost:8000/auth/signin', { email, password }); // for web or iOS simulator
 
       console.log('[LOGIN SUCCESS]', res.data);
+      await SecureStore.setItemAsync('user_id', res.data.user_id);  // Save user ID to secure storage
+      await SecureStore.setItemAsync('access_token', res.data.access_token); // Save access token to secure storage
       router.push('/home');
     } catch (err) {
       const error = err as AxiosError;
