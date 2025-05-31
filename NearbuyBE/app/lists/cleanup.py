@@ -1,7 +1,10 @@
 from datetime import datetime, timedelta
 import supabase
+from fastapi import APIRouter, HTTPException
 
-@app.delete("/cleanup")
+router = APIRouter()
+
+@router.delete("/cleanup")
 def cleanup_old_deleted():
     threshold = (datetime.utcnow() - timedelta(days=30)).isoformat()
 

@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
 import {
   View,
   Text,
@@ -10,30 +12,64 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const CATEGORY_DATA = [
-  { id: '1', title: 'BIRTHDAY PARTY', color: '#FFE3E3', image: null },
-  { id: '2', title: 'MEDICINES', color: '#FFCDB3', image: null },
-  { id: '3', title: 'CLOTHES', color: '#FFEABE', image: null },
-  { id: '4', title: 'GROCERIES', color: '#DAEDCE', image: null },
-  { id: '5', title: 'TECH', color: '#C8E2FC', image: null },
-  { id: '6', title: 'GIFTS', color: '#C8A2C8', image: null },
+const CARD_COLORS = [
+  '#FFE3E3', '#FFCDB3', '#FFEABE',
+  '#DAEDCE', '#C8E2FC', '#C8A2C8'
 ];
+
+const getRandomPastelColor = () => {
+  const hue = Math.floor(Math.random() * 360); // Random hue
+  return `hsl(${hue}, 70%, 85%)`;              // Pastel shade
+}; 
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [lists, setLists] = useState<any[]>([]);
 
-  const renderItem = ({ item }: any) => (
-    <Pressable style={styles.cardContainer} onPress={() => ("")}>
+  useEffect(() => {
+    const fetchLists = async () => {
+      try {
+        const token = await SecureStore.getItemAsync('access_token');
+        const user_id = await SecureStore.getItemAsync('user_id');
+        if (!user_id) return;
+        console.log("TOKEN", token);
+        const res = await axios.get(
+          //'http://10.0.2.2:8000/lists/' // for Android emulator
+          'http://10.0.0.49:8000/lists' // for Android live via USB - change to your machine's IP (ipconfig -> IPv4 Address)
+          //'http://localhost:8000/lists' // for web or iOS simulator
+          , {
+          params: { user_id },
+          headers: { token },
+        });
+        console.log('[FETCH LISTS SUCCESS]', res.data);
+
+        const listsWithColors = res.data.map((item: any, index: number) => ({
+          ...item,
+          color: CARD_COLORS[index % CARD_COLORS.length], // If you want to cycle through predefined colors
+          //color: getRandomPastelColor(), // If you want to choose a random pastel color for each card
+        }));
+        
+        setLists(listsWithColors);
+      } catch (err) {
+        console.error('Error fetching lists', err);
+      }
+    };
+
+    fetchLists();
+  }, []);
+
+  const renderItem = ({ item: list }: any) => (
+    <Pressable style={styles.cardContainer} onPress={() => {}}>
       <View style={styles.card}>
         <ImageBackground
-          source={item.image ? { uri: item.image } : undefined}
+          source={list.image ? { uri: list.image } : undefined}
           resizeMode="cover"
-          style={[styles.imageBackground, { backgroundColor: item.color }]}
+          style={[styles.imageBackground, { backgroundColor: list.color }]}
           imageStyle={styles.imageStyle}
         >
           <View style={styles.textContainer}>
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={styles.cardSubtitle}>0 items</Text>
+            <Text style={styles.cardTitle}>{list.name}</Text>
+            <Text style={styles.cardSubtitle}>{list.unchecked_items.length} items left </Text>
           </View>
         </ImageBackground>
       </View>
@@ -42,24 +78,23 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <View style={styles.logoContainer}>
+        <Text style={styles.logoText}>NearBuy</Text>
+      </View>
 
-    <View style={styles.logoContainer}>
-      {/* In the future you can add an <Image source={...} /> here */}
-      <Text style={styles.logoText}>NearBuy</Text>
-    </View>
-        {/* Tool Buttons (Add/Edit) */}
-    <View style={styles.toolsRow}>
-      <Pressable style={styles.toolButton} onPress={() => {}}>
-        <Text style={styles.toolButtonText}>Edit</Text>
-      </Pressable>
-      <Pressable style={styles.toolButton} onPress={() => {}}>
-        <Text style={styles.toolButtonText}>＋</Text>
-      </Pressable>
-    </View>
+      <View style={styles.toolsRow}>
+        <Pressable style={styles.toolButton} onPress={() => {}}>
+          <Text style={styles.toolButtonText}>Edit</Text>
+        </Pressable>
+        <Pressable style={styles.toolButton} onPress={() => {}}>
+          <Text style={styles.toolButtonText}>＋</Text>
+        </Pressable>
+      </View>
+
       <FlatList
-        data={CATEGORY_DATA}
+        data={lists}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(list) => list.id}
         numColumns={2}
         contentContainerStyle={styles.grid}
         columnWrapperStyle={styles.row}
@@ -70,6 +105,8 @@ export default function HomeScreen() {
 }
 
 const CARD_WIDTH = '48%';
+const COLORS = ['#FFE3E3', '#FFCDB3', '#FFEABE', '#DAEDCE', '#C8E2FC', '#C8A2C8'];
+
 
 const styles = StyleSheet.create({
   container: {
@@ -131,24 +168,6 @@ const styles = StyleSheet.create({
     color: '#444',
     marginTop: 4,
   },
-  addButton: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    zIndex: 10,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: '#333333',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  addButtonText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
   logoContainer: {
     alignItems: 'center',
     marginBottom: 12,
@@ -158,7 +177,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333333',
   },
-  
   toolsRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -166,7 +184,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 12,
   },
-  
   toolButton: {
     backgroundColor: '#fff',
     borderColor: '#444',
@@ -175,7 +192,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  
   toolButtonText: {
     fontSize: 16,
     fontWeight: 'bold',

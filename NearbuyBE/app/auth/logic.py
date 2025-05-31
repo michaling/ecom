@@ -8,7 +8,9 @@ def sign_in(email: str, password: str):
         res = supabase.auth.sign_in_with_password(
             {"email": email, "password": password}
         )
-        return res.user
+        user = res.user
+        session = res.session
+        return user, session
     except Exception as e:
         print("Supabase threw an error:", e)
         raise
