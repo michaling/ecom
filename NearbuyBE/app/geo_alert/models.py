@@ -74,7 +74,7 @@ class StoreCategory(Base):
 
 class Categories(Base):
     __tablename__ = "categories"
-    category_id = Column(PGUUID(as_uuid=True), primary_key=True, insex=True)
+    category_id = Column(PGUUID(as_uuid=True), primary_key=True, index=True)
 
 class DeviceToken(Base):
     __tablename__ = "device_tokens"
