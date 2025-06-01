@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Switch } from 'react-native';
 import * as SecureStore from 'expo-secure-store'; // For saving login state later
 import axios, { AxiosError } from 'axios';
+import * as Utils from '../utils/utils';
 
 
 export default function RegisterScreen() {
@@ -55,9 +56,7 @@ export default function RegisterScreen() {
   
     try {
       const res = await axios.post(
-        //'http://10.0.2.2:8000/auth/signup', // Android emulator
-         'http://10.0.0.49:8000/auth/signup', // Android via USB (replace IP if needed)
-        // 'http://localhost:8000/auth/signup',   // Web or iOS simulator
+         Utils.currentPath + 'auth/signup',
         {
           email,
           password,
@@ -67,13 +66,14 @@ export default function RegisterScreen() {
         }
       );
       console.log('[SIGNUP SUCCESS]', res.data);
-      await SecureStore.setItemAsync('user_id', res.data.user_id); // Save user ID to secure storage
-      await SecureStore.setItemAsync('access_token', res.data.access_token); // Save access token to secure storage
-      router.replace('/home');
+      await Utils.save('user_id', res.data.user_id); // Save user ID to secure storage
+      await Utils.save('access_token', res.data.access_token); // Save access token to secure storage
+      router.push('/(dashboard)/(tabs)/home');
   
     } catch (err) {
       const error = err as AxiosError<{ detail: string }>;
       console.log(error);
+      console.log(err);
       console.log('[SIGNUP ERROR]', error.response?.data?.detail || 'Unknown error');
       Alert.alert('Signup failed', error.response?.data?.detail || 'Unknown error');
     }

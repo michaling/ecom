@@ -39,7 +39,7 @@ def convert_datetime_to_iso(value):
     return value
 
 # -------------------------------------------------------------------------- #
-@router.post("/lists/")
+@router.post("/lists")
 def create_list(user_id: str, user_list: UserList):
     now = datetime.utcnow().isoformat()
 
@@ -90,7 +90,7 @@ def create_list(user_id: str, user_list: UserList):
     return {"list_id": list_id, "message": "List created"}
 
 # -------------------------------------------------------------------------- #
-@router.get("/lists/")
+@router.get("/lists")
 def get_user_lists(user_id: str,
                    token: str = Header(...)):
     # Authorize user session for RLS

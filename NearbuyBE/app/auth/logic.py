@@ -47,7 +47,7 @@ def sign_up(email: str, password: str, display_name: str, geo_alert: bool):
         except AttributeError:
             pass
 
-        return user
+        return user, session
 
     except Exception as e:
         print("Supabase threw an error:", e)
