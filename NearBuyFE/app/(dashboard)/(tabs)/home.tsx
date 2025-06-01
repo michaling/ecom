@@ -8,6 +8,7 @@ import {
   StyleSheet,
   FlatList,
   ImageBackground,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -59,7 +60,14 @@ export default function HomeScreen() {
   }, []);
 
   const renderItem = ({ item: list }: any) => (
-    <Pressable style={styles.cardContainer} onPress={() => {}}>
+    <Pressable style={styles.cardContainer} onPress={() => router.push({
+      pathname: '../(list)/listScreen',
+      params: {
+        id: list.id,
+        title: list.name,
+        color: list.color,
+      }
+    })}>
       <View style={styles.card}>
         <ImageBackground
           source={list.image ? { uri: list.image } : undefined}
@@ -90,7 +98,6 @@ export default function HomeScreen() {
           <Text style={styles.toolButtonText}>＋</Text>
         </Pressable>
       </View>
-
       <FlatList
         data={lists}
         renderItem={renderItem}
