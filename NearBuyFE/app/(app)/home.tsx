@@ -59,7 +59,21 @@ export default function HomeScreen() {
   }, []);
 
   const renderItem = ({ item: list }: any) => (
-    <Pressable style={styles.cardContainer} onPress={() => {}}>
+    <Pressable
+      style={styles.cardContainer}
+      onPress={() =>
+        router.push({
+          pathname: '/list/listScreen',
+          params: {
+            id: list.id,
+            title: list.name,
+            color: list.color,
+            items: JSON.stringify(list.items), // Pass list items as a JSON string
+            suggestions: JSON.stringify(list.suggested_items || []),
+          },
+        })
+      }
+    >
       <View style={styles.card}>
         <ImageBackground
           source={list.image ? { uri: list.image } : undefined}
@@ -69,7 +83,9 @@ export default function HomeScreen() {
         >
           <View style={styles.textContainer}>
             <Text style={styles.cardTitle}>{list.name}</Text>
-            <Text style={styles.cardSubtitle}>{list.unchecked_items.length} items left </Text>
+            <Text style={styles.cardSubtitle}>
+              {list.unchecked_items.length} items left
+            </Text>
           </View>
         </ImageBackground>
       </View>
