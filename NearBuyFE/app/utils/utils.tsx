@@ -5,8 +5,8 @@ import * as SecureStore from 'expo-secure-store';
 
 export const currentPath = 
           //'http://10.0.2.2:8000/' // for Android emulator
-          'http://10.0.0.49:8000/' // for Android live via USB - change to your machine's IP (ipconfig -> IPv4 Address)
-          //'http://localhost:8000/' // for web or iOS simulator
+          //'http://10.0.0.49:8000/' // for Android live via USB - change to your machine's IP (ipconfig -> IPv4 Address)
+          'http://localhost:8000/' // for web or iOS simulator
           ;
 
 // Platform-aware save function
