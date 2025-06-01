@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, FlatList, Pressable, TextInput } from 'react-na
 import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
 
 interface Item {
   id: string;
@@ -11,20 +13,32 @@ interface Item {
 }
 
 export default function ListScreen() {
-  const { title, color, id } = useLocalSearchParams();
+  const { title, color, id, items: listItems, suggestions: rawSuggestions } = useLocalSearchParams();
   const [items, setItems] = useState<Item[]>([]);
   const [recommended, setRecommended] = useState<string[]>([]);
   const [newItem, setNewItem] = useState('');
 
   useEffect(() => {
-    // Mocked DB items per category
-    setItems([
-      { id: '1', name: 'balloons', isBought: false },
-      { id: '2', name: 'plates', isBought: false },
-      { id: '3', name: 'drinks', isBought: false },
-    ]);
-    setRecommended(['snacks', 'presents', 'cups']);
-  }, [id]);
+    try {
+      if (listItems) {
+        const parsed = JSON.parse(listItems as string);
+        const formatted = parsed.map((item: any) => ({
+          id: item.item_id,
+          name: item.name,
+          isBought: item.is_checked,
+        }));
+        setItems(formatted);
+      }
+    } catch (err) {
+      console.error('Failed to parse items from navigation', err);
+    }
+  
+    if (rawSuggestions) {
+      const parsed = JSON.parse(rawSuggestions as string);
+      const namesOnly = parsed.map((s: any) => s.name); // or format better
+      setRecommended(namesOnly);
+    }
+  }, [listItems, rawSuggestions]);
 
   const toggleItem = (id: string) => {
     setItems(prev => prev.map(i => i.id === id ? { ...i, isBought: !i.isBought } : i));
@@ -47,7 +61,7 @@ export default function ListScreen() {
       <FlatList
         data={items}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.list}
       />
 
