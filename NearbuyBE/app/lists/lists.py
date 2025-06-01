@@ -92,7 +92,7 @@ def create_list(user_id: str, user_list: UserList):
 # -------------------------------------------------------------------------- #
 @router.get("/lists/")
 def get_user_lists(user_id: str,
-                   token: str = Header(...)): # Tells FastAPI to extract token from the request header
+                   token: str = Header(...)):
     # Authorize user session for RLS
     supabase.postgrest.auth(token)
 
@@ -110,32 +110,45 @@ def get_user_lists(user_id: str,
 
     out = []
     for lst in rows:
+        list_id = lst["list_id"]
+
         items = (
             supabase.table("lists_items")
             .select("*")
-            .eq("list_id", lst["list_id"])
+            .eq("list_id", list_id)
             .eq("is_deleted", False)
             .execute()
             .data
             or []
         )
 
-        print("before unchecked_items")
-        # Only unchecked items
+        suggestions = (
+            supabase.table("items_suggestions")
+            .select("*")
+            .eq("list_id", list_id)
+            .eq("used", False)
+            .eq("rejected", False)
+            .execute()
+            .data
+            or []
+        )
+
         unchecked_items = [
             item for item in items if not item.get("is_checked", False)
         ]
-        print("after unchecked_items")
 
         out.append({
-            "id": lst["list_id"],
+            "id": list_id,
             "name": lst["name"],
             "deadline": lst["deadline"],
             "geo_alert": lst["geo_alert"],
             "items": items,
-            "unchecked_items": unchecked_items
+            "unchecked_items": unchecked_items,
+            "suggested_items": suggestions
         })
+
         print(f"out: {out}")
+
     return out
 
 # -------------------------------------------------------------------------- #
@@ -161,10 +174,11 @@ def get_list(list_id: str):
         .execute()
         .data
     )
+
     return {
         "name": lst["name"],
         "deadline": lst["deadline"],
-        "geo_alert": lst["geo_alert"],            # NEW ❹
+        "geo_alert": lst["geo_alert"],
         "items": items
     }
 
