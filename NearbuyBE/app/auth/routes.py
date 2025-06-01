@@ -18,14 +18,14 @@ def signin_endpoint(data: SignInData):
 @router.post("/signup")
 def signup_endpoint(data: SignUpData):
     try:
-        user = sign_up(
+        user, session = sign_up(
             email=data.email,
             password=data.password,
             display_name=data.display_name,
             geo_alert=data.geo_alert,
         )
         print(f"[SIGNUP] {user.email} created.")
-        return {"message": "Sign-up successful", "user_id": user.id}
+        return {"message": "Sign-up successful", "user_id": user.id, "access_token": session.access_token}
     except AuthError as e:
         print("Supabase AuthError:", e)
         raise HTTPException(status_code=400, detail=str(e))

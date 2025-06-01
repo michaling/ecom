@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Utils from '../../utils/utils';
 
 const CARD_COLORS = [
   '#FFE3E3', '#FFCDB3', '#FFEABE',
@@ -30,15 +31,16 @@ export default function HomeScreen() {
   useEffect(() => {
     const fetchLists = async () => {
       try {
-        const token = await SecureStore.getItemAsync('access_token');
-        const user_id = await SecureStore.getItemAsync('user_id');
-        if (!user_id) return;
+        console.log('Fetching lists...');
+        const user_id = await Utils.getValueFor('user_id'); // Get user ID from secure storage
+        const token = await Utils.getValueFor('access_token'); // Get access token from secure storage
+        if (!token || !user_id) {
+          console.error('No user ID or token found. User may not be logged in.');
+          return;
+        }
         console.log("TOKEN", token);
-        const res = await axios.get(
-          //'http://10.0.2.2:8000/lists/' // for Android emulator
-          'http://10.0.0.49:8000/lists' // for Android live via USB - change to your machine's IP (ipconfig -> IPv4 Address)
-          //'http://localhost:8000/lists' // for web or iOS simulator
-          , {
+        const res = await axios.get(Utils.currentPath + 'lists', 
+        {
           params: { user_id },
           headers: { token },
         });
@@ -64,7 +66,7 @@ export default function HomeScreen() {
       style={styles.cardContainer}
       onPress={() =>
         router.push({
-          pathname: '/list/listScreen',
+          pathname: '/(dashboard)/(list)/listScreen',
           params: {
             id: list.id,
             title: list.name,

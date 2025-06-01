@@ -17,7 +17,7 @@ export default function IndexRedirect() {
 
   useEffect(() => {
     if (isReady) {
-      router.replace('../../(list)/listScreen'); // or '/home' if already authenticated
+      router.replace('/register'); // or '/home' if already authenticated
     }
   }, [isReady]);
 

@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Alert, Platform } from 'react-native';
 import axios, { AxiosError } from 'axios';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Utils from '../utils/utils';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
+  
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -16,20 +19,17 @@ export default function LoginScreen() {
     }
   
     try {
-      //const res = await axios.post('http://10.0.2.2:8000/auth/signin', { email, password }); // for Android emulator
-      const res = await axios.post('http://10.0.0.49:8000/auth/signin', { email, password }); // for Android live via USB - change to your machine's IP (ipconfig -> IPv4 Address)
-      //const res = await axios.post('http://localhost:8000/auth/signin', { email, password }); // for web or iOS simulator
+      const res = await axios.post(Utils.currentPath + 'auth/signin', { email, password });
 
       console.log('[LOGIN SUCCESS]', res.data);
-      await SecureStore.setItemAsync('user_id', res.data.user_id);  // Save user ID to secure storage
-      await SecureStore.setItemAsync('access_token', res.data.access_token); // Save access token to secure storage
-      router.push('/home');
+      await Utils.save('user_id', res.data.user_id); // Save user ID to secure storage
+      await Utils.save('access_token', res.data.access_token); // Save access token to secure storage
+      router.push('/(dashboard)/(tabs)/home');
     } catch (err) {
       const error = err as AxiosError;
       const detail = (error.response?.data as { detail?: string })?.detail;
       Alert.alert('Login failed', detail || 'Unknown error');
-      //Alert.alert('Login failed', error.response?.data?.detail || 'Unknown error');
-      //console.log('Login failed: ', error.response?.data?.detail || 'Unknown error');
+      console.log(err);
       console.log('Login failed: ', detail || 'Unknown error');
     }
   };
