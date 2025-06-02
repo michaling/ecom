@@ -1,52 +1,49 @@
-import os
-from urllib.parse import urlparse
-from langchain.agents import Tool, initialize_agent, AgentType
+from langchain.agents import Tool
 from langchain_openai import ChatOpenAI
-from product_tools import find_store_website, product_appears_on_site
-from dotenv import load_dotenv
+from tools.store_finder import StoreWebsiteTool
+from tools.product_indicators import ProductSearchSignalTool, URLMatchSignalTool, StoreDescriptionSignalTool
+from scoring.score_calculator import ScoreCombiner
 
-load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
+llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 
-# Initialize language model
-llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", openai_api_key=api_key)
+store_tool = StoreWebsiteTool()
+url_tool = URLMatchSignalTool()
+search_tool = ProductSearchSignalTool()
+desc_tool = StoreDescriptionSignalTool()
+scorer = ScoreCombiner()
 
-# Tool: find the store's website
-def find_website(store: str) -> str:
-    print(f"[DEBUG] Searching for website of: {store}")
-    return find_store_website(store)
+def smart_availability_checker(query: str):
+    """Wrapper to run all indicators and return a score-based decision."""
+    product, store = query.split("|||")
 
-# Tool: check if a product appears on the given store site
-def check_product(product_input: str) -> bool:
-    try:
-        product_name, store_url = product_input.split("|||")
-        parsed = urlparse(store_url)
-        domain = parsed.netloc
-        print(f"[DEBUG] Checking '{product_name}' on domain: {domain}")
-        return product_appears_on_site(product_name, domain)
-    except Exception as e:
-        print(f"[ERROR] Parsing input for check_product: {e}")
-        return False
+    print(f"[INFO] Finding store website for '{store}'...")
+    store_url = store_tool.run(store)
+    print(f"[INFO] Got store URL: {store_url}")
 
-# Register tools
+    if not store_url:
+        return "Score: 0.0 → Product not available (no website found)."
+
+    # Run indicator functions
+    url_match = url_tool.run(f"{product}|||{store_url}")
+    product_search = search_tool.run(f"{product}|||{store_url}")
+    store_desc = desc_tool.run(f"{store}|||{product}")
+
+    # Compute final score
+    score = scorer.compute(url_match, product_search, store_desc)
+    available = score >= 0.5
+    return f"Score: {score} → Product {'available' if available else 'not available'}."
+
+# Tools for LangChain (optional, currently unused)
 tools = [
-    Tool(name="FindStoreWebsite", func=find_website, description="Find website for a given store"),
-    Tool(name="CheckProductOnSite", func=check_product, description="Check if a product exists on a given store website (input: '<product>|||<store_url>')")
+    Tool(name="FindStoreWebsite", func=store_tool.run, description="Find official website of a store"),
+    Tool(name="URLMatchSignal", func=url_tool.run, description="Check if product name appears in a store URL"),
+    Tool(name="ProductSearchSignal", func=search_tool.run, description="Search store site for product and use LLM to decide likelihood"),
+    Tool(name="StoreDescriptionSignal", func=desc_tool.run, description="Analyze store description to determine if it might sell a product"),
 ]
 
-# Build agent
-agent = initialize_agent(
-    tools=tools,
-    llm=llm,
-    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-    verbose=True
-)
-
-# Example query
-product = "iphone"
-store = "idigital"
-question = f"Is the product '{product}' available at {store}? First find the store's website, then check if the product appears on the site. Answer only True or False."
-
-# Execute using invoke instead of deprecated run()
-response = agent.invoke({"input": question})
-print("Agent Final Answer:", response["output"])
+# Sample run
+if __name__ == "__main__":
+    product = "Nutella"
+    store = "Walmart"
+    question = f"{product}|||{store}"
+    print("→", smart_availability_checker(question))
