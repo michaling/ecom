@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import Checklist from '@/components/Checklist';
-
-
+import RecommendationItem from '@/components/RecommendationItem';
 
 export default function ListScreen() {
   const { id, title, color, items: listItems, suggestions: rawSuggestions } = useLocalSearchParams();
@@ -50,6 +49,15 @@ export default function ListScreen() {
     setItems(prev => prev.filter(item => item.id !== id));
   };
 
+  const handleAddRecommendation = (name: string) => {
+    const newItem = {
+      id: Date.now().toString(),
+      name,
+      isChecked: false,
+    };
+    setItems((prev) => [...prev, newItem]);
+    setRecommended((prev) => prev.filter((r) => r !== name));
+  };
 
   return (
     <View style={styles.container}>
@@ -67,10 +75,21 @@ export default function ListScreen() {
           onNameChange={changeItemName}
           onDelete={deleteItem}
         />
+      {recommended.length > 0 && (
+          <View style={styles.recommendations}>
+            <Text style={styles.recommendTitle}>Recommended for you</Text>
+            {recommended.slice(0, 3).map((rec) => (
+              <RecommendationItem
+                key={rec}
+                name={rec}
+                onAdd={() => handleAddRecommendation(rec)}
+              />
+            ))}
+          </View>
+        )}
       </View>
     </View>
   );
-  
 }
 
 const styles = StyleSheet.create({
@@ -102,7 +121,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    marginTop: -15, // כדי ל"עלות" קצת על ה-header
+    marginTop: -15,
     padding: 16,
   
     // Shadow (iOS)
@@ -115,4 +134,14 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   
+  recommendations: {
+    marginTop: 24,
+    marginBottom: 50,
+  },
+  recommendTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    paddingLeft: 4,
+  },
 });
