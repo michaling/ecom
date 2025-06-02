@@ -1,4 +1,7 @@
 # globals.py
+import os
+
+from dotenv import load_dotenv
 from supabase import create_client
 
 # Supabase credentials
@@ -8,3 +11,7 @@ SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 # Shared instances
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 supabase.postgrest.auth(SERVICE_ROLE_KEY)
+
+# OpenAI key
+load_dotenv()
+api_key = os.getenv("OPENAI_API_KEY")
