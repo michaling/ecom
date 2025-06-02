@@ -4,6 +4,7 @@ from supabase import create_client
 # Supabase credentials
 SUPABASE_URL = "https://nallltanfjxhuaxvlwaf.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hbGxsdGFuZmp4aHVheHZsd2FmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3NTA5NzAsImV4cCI6MjA2MTMyNjk3MH0.QJi8v8eKu2QOEGPyRbgGL7Yaaj3zj22Mi8PEDz6WcbE"
-
+SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hbGxsdGFuZmp4aHVheHZsd2FmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTc1MDk3MCwiZXhwIjoyMDYxMzI2OTcwfQ.SunB5DAsEf0YE457qgxZQh99JvwVVY7dwPI0VhTYvRo"
 # Shared instances
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase.postgrest.auth(SERVICE_ROLE_KEY)
