@@ -26,6 +26,8 @@ class List(Base):
     list_id = Column(PGUUID(as_uuid=True), primary_key=True, index=True)
     user_id = Column(PGUUID(as_uuid=True), nullable=False)
     name = Column(String, nullable=False)
+    deadline = Column(DateTime(timezone=False), nullable=True)  
+    deadline_notified = Column(Boolean, nullable=False, default=False)
     # (deadline, etc.)
 
 class ListItem(Base):
@@ -38,6 +40,8 @@ class ListItem(Base):
     list_id = Column(PGUUID(as_uuid=True), ForeignKey("lists.list_id", ondelete="CASCADE"), nullable=False)
     geo_alert = Column(Boolean, default=False, nullable=False)
     name = Column(String, nullable=False)
+    deadline = Column(DateTime(timezone=False), nullable=True)  
+    deadline_notified = Column(Boolean, nullable=False, default=False)
 
 """
 class Item(Base):

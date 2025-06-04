@@ -1,5 +1,3 @@
-# backend/main.py
-
 import os
 from datetime import datetime, timedelta
 from uuid import UUID
@@ -14,6 +12,10 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import IntegrityError
 
 from dotenv import load_dotenv
+
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+from deadline_checker import check_deadlines_and_notify
 
 from models import (
     Base,
@@ -43,7 +45,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Create tables if they don't exist (no-op if they already do)
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="nearBuy (Expo + Category Detailed Notification)")
+app = FastAPI(title="nearBuy (Expo + Notification)")
 
 app.add_middleware(
     CORSMiddleware,
@@ -52,6 +54,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# -------------------- Scheduler Setup --------------------
+
+@app.on_event("startup")
+def startup_event():
+    scheduler = BackgroundScheduler()
+    # Run the job every 1 hour. Adjust minutes or hours if you prefer a different frequency.
+    scheduler.add_job(
+        check_deadlines_and_notify,
+        trigger=IntervalTrigger(hours=1),
+        name="Check upcoming deadlines every hour",
+        replace_existing=True
+    )
+    scheduler.start()
+    # Attach to app so we can shut it down later:
+    app.state.scheduler = scheduler
+
+# On shutdown, remove the scheduler
+@app.on_event("shutdown")
+def shutdown_event():
+    scheduler: BackgroundScheduler = app.state.scheduler
+    scheduler.shutdown()
 
 # -------------------- 2. Dependency: DB Session --------------------
 
@@ -346,3 +370,15 @@ async def location_update(
 
 # -------------------- 11. (Optional) Admin Endpoints --------------------
 # To run locally: uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# tester for the deadline alerts
+@app.get("/admin/trigger_deadline_check")
+async def manual_deadline_check(
+    current_user_id: UUID = Depends(get_current_user_id),  # optional auth
+):
+    """
+    Manually invoke the deadline checker (for testing). 
+    In production, you might lock this down to admins only.
+    """
+    check_deadlines_and_notify()
+    return {"status": "ok", "detail": "Deadline check triggered"}
