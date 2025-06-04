@@ -43,7 +43,7 @@ def check_deadlines_and_notify():
         body = f"Your list “{lst.name}” is due on {deadline_str} (within 24 h)."
 
         for (expo_token,) in tokens:
-            send_expo_push(expo_token, title, body, {"list_id": str(lst.id)})
+            send_expo_push(expo_token, title, body, {"list_name": str(lst.name)})
 
         lst.deadline_notified = True
 
@@ -70,7 +70,7 @@ def check_deadlines_and_notify():
         body = f"Your item “{item.item_name}” is due on {deadline_str} (within 24 h)."
 
         for (expo_token,) in tokens:
-            send_expo_push(expo_token, title, body, {"list_item_id": str(item.id)})
+            send_expo_push(expo_token, title, body, {"item_name": str(item.name)})
 
         item.deadline_notified = True
 
