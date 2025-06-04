@@ -3,6 +3,8 @@ from app.lists.models import UserList, ListItem
 from app.supabase_client import supabase
 from datetime import datetime
 from typing import List
+import os
+import requests
 
 router = APIRouter()
 
@@ -87,7 +89,43 @@ def create_list(user_id: str, user_list: UserList):
 
     supabase.table("lists_items").insert(items_payload).execute()
 
-    return {"list_id": list_id, "message": "List created"}
+    # ─── NEW: CALL THE ML MODEL FOR RECOMMENDATIONS ─────────────────────────────
+    # Assume you have set an environment variable ML_API_BASE_URL (e.g. "http://localhost:8000")
+    ml_api_base = os.getenv("ML_API_BASE_URL", "http://localhost:8000")
+    # The FastAPI model service expects a GET to /recommend_by_list_name?list_name=<your_list_name>
+    try:
+        resp = requests.get(
+            f"{ml_api_base}/recommend_by_list_name",
+            params={"list_name": user_list.name},
+            timeout=5,  # short timeout in seconds
+        )
+        resp.raise_for_status()
+        ml_payload = resp.json()
+        # Expecting something like {"list_name": "...", "recommended_products": ["Milk", "Eggs", ...]}
+        recommended_products = ml_payload.get("recommended_products", [])
+    except Exception as e:
+        # If the ML service fails, just log or raise—here, we'll raise a 502 so the client knows
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to fetch recommendations from ML service: {e}",
+        )
+
+    # Now insert those recommendations into items_suggestions table
+    # We assume the schema for items_suggestions has at least: list_id, suggestion_text, used (default false), rejected (default false)
+    suggestions_payload = []
+    for prod_name in recommended_products:
+        suggestions_payload.append(
+            {
+                "list_id": list_id,
+                "suggestion_text": prod_name,
+                # "used" and "rejected" will default to FALSE in the database
+            }
+        )
+    if suggestions_payload:
+        supabase.table("items_suggestions").insert(suggestions_payload).execute()
+    # ────────────────────────────────────────────────────────────────────────────
+
+    return {"list_id": list_id, "message": "List created with recommendations"}
 
 # -------------------------------------------------------------------------- #
 @router.get("/lists")
