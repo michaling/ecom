@@ -91,32 +91,30 @@ export default function ListScreen() {
 
   
   const changeItemName = async (itemId: string, newName: string) => {
-    const updated = items.map((item) =>
-      item.id === itemId ? { ...item, name: newName } : item
+    setItems(prev =>
+      prev.map(item => item.id === itemId ? { ...item, name: newName } : item)
     );
-    setItems(updated);
   
     const token = await Utils.getValueFor('access_token');
     try {
-      await axios.put(`${Utils.currentPath}items/${itemId}`, {
-        name: newName,
-      }, {
-        headers: { token },
-      });
+      await axios.patch(
+        `${Utils.currentPath}items/${itemId}/name`,
+        { name: newName },
+        { headers: { token } }
+      );
     } catch (err) {
       console.error('[RENAME FAILED]', err);
     }
   };
   
   const deleteItem = async (itemId: string) => {
-    const updated = items.filter((item) => item.id !== itemId);
-    setItems(updated);
-  
+    setItems(prev => prev.filter(item => item.id !== itemId));
     const token = await Utils.getValueFor('access_token');
     try {
-      await axios.delete(`${Utils.currentPath}items/${itemId}`, {
-        headers: { token },
-      });
+      await axios.delete(
+        `${Utils.currentPath}items/${itemId}`,
+        { headers: { token } }
+      );
     } catch (err) {
       console.error('[DELETE FAILED]', err);
     }
