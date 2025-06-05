@@ -26,25 +26,6 @@ def bump_list_timestamp_from_item(item_id: str):
         print("[ERROR bump_list_timestamp_from_item]", e)
         raise HTTPException(status_code=500, detail="Failed to update list timestamp")
 
-
-# --- Rename item ---
-@router.patch("/items/{item_id}/name")
-def rename_item(item_id: str, req: RenameRequest):
-    try:
-        res = supabase.table("lists_items").update({
-            "name": req.name
-        }).eq("item_id", item_id).execute()
-
-        if not res.data:
-            raise HTTPException(status_code=404, detail="Item not found")
-
-        bump_list_timestamp_from_item(item_id)
-        return {"message": "Item renamed", "item_id": item_id}
-    except Exception as e:
-        print("[ERROR rename_item]", e)
-        raise HTTPException(status_code=500, detail="Failed to rename item")
-
-
 # --- Check or uncheck item ---
 @router.patch("/items/{item_id}/check")
 def check_item(
@@ -54,7 +35,6 @@ def check_item(
 ):
     try:
         supabase.postgrest.auth(token)
-
         now = datetime.now().isoformat()
         res = (
             supabase.table("lists_items")
@@ -77,21 +57,57 @@ def check_item(
         raise HTTPException(status_code=500, detail="Failed to update check status")
 
 
-# --- Soft delete ---
-@router.delete("/items/{item_id}")
-def delete_item(item_id: str):
+# --- Rename item ---
+@router.patch("/items/{item_id}/name")
+def rename_item(
+    item_id: str,
+    req: RenameRequest,
+    token: str = Header(...),
+):
     try:
-        now = datetime.utcnow().isoformat()
-        res = supabase.table("lists_items").update({
-            "is_deleted": True,
-            "deleted_at": now
-        }).eq("item_id", item_id).execute()
+        supabase.postgrest.auth(token)
+
+        res = (
+            supabase.table("lists_items")
+            .update({"name": req.name})
+            .eq("item_id", item_id)
+            .execute()
+        )
 
         if not res.data:
-            raise HTTPException(status_code=404, detail="Item not found")
+            raise HTTPException(404, "Item not found or not authorised")
+
+        bump_list_timestamp_from_item(item_id)
+
+        return {"message": "Item renamed", "item_id": item_id}
+
+    except Exception as e:
+        print("[ERROR rename_item]", e)
+        raise HTTPException(500, "Failed to rename item")
+
+
+# --- Soft delete ---
+@router.delete("/items/{item_id}")
+def delete_item(
+    item_id: str,
+    token: str = Header(...),
+):
+    try:
+        supabase.postgrest.auth(token)
+        now = datetime.now().isoformat()
+        res = (
+            supabase.table("lists_items")
+            .update({"is_deleted": True, "deleted_at": now})
+            .eq("item_id", item_id)
+            .execute()
+        )
+
+        if not res.data:
+            raise HTTPException(404, "Item not found or not authorised")
 
         bump_list_timestamp_from_item(item_id)
         return {"message": "Item deleted", "item_id": item_id}
+
     except Exception as e:
         print("[ERROR delete_item]", e)
-        raise HTTPException(status_code=500, detail="Failed to delete item")
+        raise HTTPException(500, "Failed to delete item")
