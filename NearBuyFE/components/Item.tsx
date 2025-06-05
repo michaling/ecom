@@ -37,8 +37,8 @@ export default function ShoppingItem({ name, isChecked, onToggle, onNameChange, 
     <View style={styles.container}>
       <Pressable onPress={onToggle}>
         <Ionicons
-          name={isChecked ? 'checkmark-circle' : 'ellipse-outline'}
-          size={30}
+          name={isChecked ? 'checkbox' : 'square-outline'}
+          size={28}
           color={isChecked ? 'purple' : 'gray'}
           style={styles.icon}
         />
