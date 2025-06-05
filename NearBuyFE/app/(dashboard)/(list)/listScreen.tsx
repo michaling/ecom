@@ -1,7 +1,9 @@
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Checklist from '@/components/Checklist';
+import RecommendationItem from '@/components/RecommendationItem';
+import { AntDesign, Ionicons } from '@expo/vector-icons';
 import * as Utils from '../../utils/utils';
 import axios from 'axios';
 
@@ -25,6 +27,8 @@ export default function ListScreen() {
     const [items, setItems] = useState<Item[]>([]);
     const [recommended, setRecommended] = useState<string[]>([]); // we’ll need it soon
     const [loading, setLoading] = useState(true);
+    const [isAdding, setIsAdding] = useState(false);
+    const [newItemName, setNewItemName] = useState('');
 
 
     /* ────────── helper: fetch list from BE ────────── */
@@ -57,7 +61,7 @@ export default function ListScreen() {
       setLoading(false);
     }
   }, [id]);
-    
+
   /* load once on mount */
   useEffect(() => {
     loadList(); // here we just invoke it, not return it
@@ -69,14 +73,14 @@ export default function ListScreen() {
       loadList();
     }, [loadList]),
   );
-    
+
 
   const toggleItem = async (id: string) => {
     const updatedItems = items.map((item) =>
       item.id === id ? { ...item, isChecked: !item.isChecked } : item
     );
     setItems(updatedItems);
-  
+
     const token = await Utils.getValueFor('access_token');
     try {
       await axios.patch(`${Utils.currentPath}items/${id}/check`, {
@@ -89,7 +93,7 @@ export default function ListScreen() {
     }
   };
 
-  
+
   const changeItemName = async (itemId: string, newName: string) => {
     setItems(prev =>
       prev.map(item => item.id === itemId ? { ...item, name: newName } : item)
@@ -120,13 +124,37 @@ export default function ListScreen() {
     }
   };
 
-  
+
   const total = items.length;
   const left  = items.filter(i => !i.isChecked).length;
 
+  const addNewItem = () => {
+    // TODO: Insert new item to BE
+    // if (newItemName.trim() === '') return;
+    // const newItem = {
+    //   id: Date.now().toString(), // TODO: replace with actual ID from BE
+    //   name: newItemName,
+    //   isChecked: false,
+    // };
+    // setItems(prev => [...prev, newItem]);
+    // setNewItemName('');
+    // setIsAdding(false);
+  };
+
+
+  const handleAddRecommendation = (name: string) => {
+    const newItem = {
+      id: Date.now().toString(),
+      name,
+      isChecked: false,
+    };
+    setItems((prev) => [...prev, newItem]);
+    setRecommended((prev) => prev.filter((r) => r !== name));
+  };
 
   return (
     <View style={styles.container}>
+
       <View style={[styles.header, { backgroundColor: background || '#E6E6FA' }]}>
         <Text style={styles.title}>{title} </Text>
         <Text style={styles.subtitle}>
@@ -135,12 +163,55 @@ export default function ListScreen() {
       </View>
   
       <View style={styles.content}>
-        <Checklist
-          items={items}
-          onToggle={toggleItem}
-          onNameChange={changeItemName}
-          onDelete={deleteItem}
-        />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+        <View style={styles.topContent}>
+          <View style={{ flexGrow: 0 }}>
+            <Checklist
+              items={items}
+              onToggle={toggleItem}
+              onNameChange={changeItemName}
+              onDelete={deleteItem}
+            />
+          </View>
+          <View style={styles.addContainer}>
+            {!isAdding && (
+              <TouchableOpacity style={styles.addButton}
+                onPress={() => setIsAdding(true)}
+              >
+                <AntDesign name="plus" size={33} color="purple" />
+                {/*<Text style={styles.addButtonText}>Add Item</Text> */}
+              </TouchableOpacity>
+            )}
+            {isAdding && (
+              <TextInput
+                style={styles.input}
+                value={newItemName}
+                onChangeText={setNewItemName}
+                placeholder="Enter item name"
+                onSubmitEditing={addNewItem}
+                onBlur={addNewItem}
+                autoFocus
+              />
+            )}
+          </View>
+      </View>
+      </KeyboardAvoidingView>
+      {recommended.length > 0 && (
+          <View style={styles.recommendations}>
+            <Text style={styles.recommendTitle}>Recommended for you</Text>
+            {recommended.slice(0, 3).map((rec) => (
+              <RecommendationItem
+                key={rec}
+                name={rec}
+                onAdd={() => handleAddRecommendation(rec)}
+              />
+            ))}
+          </View>
+        )}
+
       </View>
     </View>
   );
@@ -173,10 +244,10 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FAFAFA',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    marginTop: -15, // כדי ל"עלות" קצת על ה-header
+    marginTop: -15,
     padding: 16,
   
     // Shadow (iOS)
@@ -188,5 +259,53 @@ const styles = StyleSheet.create({
     // Shadow (Android)
     elevation: 10,
   },
-  
+  topContent: {
+    flexGrow: 1,
+  },
+
+  addContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+  },
+
+  addButton: {
+    borderWidth: 1,
+    borderColor: "purple",
+    padding: 12,
+    marginTop: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addButtonText: {
+    fontSize: 12,
+    color: '#333',
+    marginTop: 4,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 10,
+    fontSize: 16,
+  },
+
+  recommendationsBox: {
+    borderTopWidth: 1,
+    borderTopColor: '#ddd',
+    paddingTop: 12,
+  },
+
+  recommendations: {
+    marginTop: 24,
+    marginBottom: 50,
+  },
+  recommendTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    paddingLeft: 4,
+  },
+
 });

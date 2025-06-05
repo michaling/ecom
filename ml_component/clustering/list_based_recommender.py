@@ -14,7 +14,7 @@ class ListBasedRecommender:
         :param top_k_per_product: Number of similar products per product
         :param final_m: Number of products to return in the final recommendation
         """
-        self.supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        self.supabase = supabase
         self.product_recommender = ProductRecommender()
         self.embedding_model_name = embedding_model_name
         self.k = k
