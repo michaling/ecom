@@ -12,7 +12,12 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     # allow_origins=["*"],  # Replace with your frontend URL in production
-    allow_origins=["http://localhost:8081", "https://yvxcfsw-anonymous-8081.exp.direct"],  # Replace with your frontend URL in production
+    allow_origins=[
+        "http://localhost:8081",
+        "https://yvxcfsw-anonymous-8081.exp.direct",
+        "http://yvxcfsw-anonymous-8081.exp.direct",
+        "http://10.0.0.49:8000"
+    ],  # Replace with your frontend URL in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

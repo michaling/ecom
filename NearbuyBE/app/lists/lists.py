@@ -151,6 +151,7 @@ def get_list(list_id: str):
         .execute()
         .data
     )
+
     if not lst:
         raise HTTPException(status_code=404, detail="List not found")
 

@@ -38,9 +38,9 @@ model.fit(X_train, y_train)
 # --- Evaluate ---
 y_pred = model.predict(X_test)
 accuracy = metrics.accuracy_score(y_test, y_pred)
-print(f"✅ Logistic classifier accuracy: {accuracy * 100:.2f}%")
+print(f"Logistic classifier accuracy: {accuracy * 100:.2f}%")
 
 # --- Save ---
 os.makedirs('saved_models', exist_ok=True)
 joblib.dump(model, 'saved_models/product_category_classifier.joblib')
-print("✅ Model saved to saved_models/product_category_classifier.joblib")
+print("Model saved to saved_models/product_category_classifier.joblib")
