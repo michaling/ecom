@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Utils from '../../utils/utils';
+
 
 const CARD_COLORS = [
   '#FFE3E3', '#FFCDB3', '#FFEABE',
@@ -28,38 +29,39 @@ export default function HomeScreen() {
   const router = useRouter();
   const [lists, setLists] = useState<any[]>([]);
 
-  useEffect(() => {
-    const fetchLists = async () => {
-      try {
-        console.log('Fetching lists...');
-        const user_id = await Utils.getValueFor('user_id'); // Get user ID from secure storage
-        const token = await Utils.getValueFor('access_token'); // Get access token from secure storage
-        if (!token || !user_id) {
-          console.error('No user ID or token found. User may not be logged in.');
-          return;
-        }
-        console.log("TOKEN", token);
-        const res = await axios.get(Utils.currentPath + 'lists', 
-        {
-          params: { user_id },
-          headers: { token },
-        });
-        console.log('[FETCH LISTS SUCCESS]', res.data);
-
-        const listsWithColors = res.data.map((item: any, index: number) => ({
-          ...item,
-          color: CARD_COLORS[index % CARD_COLORS.length], // If you want to cycle through predefined colors
-          //color: getRandomPastelColor(), // If you want to choose a random pastel color for each card
-        }));
-        
-        setLists(listsWithColors);
-      } catch (err) {
-        console.error('Error fetching lists', err);
+  // fetch once each time Home gains focus
+  const fetchLists = React.useCallback(async () => {
+    try {
+      console.log('[HOME] fetching lists …');
+      const [user_id, token] = await Promise.all([
+        Utils.getValueFor('user_id'),
+        Utils.getValueFor('access_token'),
+      ]);
+      if (!token || !user_id) {
+        console.warn('[HOME] no user or token'); return;
       }
-    };
 
-    fetchLists();
+      const res = await axios.get(Utils.currentPath + 'lists', {
+        params: { user_id },
+        headers: { token },
+      });
+
+      const listsWithColors = res.data.map((it: any, idx: number) => ({
+        ...it,
+        color: CARD_COLORS[idx % CARD_COLORS.length],
+      }));
+      setLists(listsWithColors);
+    } catch (err) {
+      console.error('[HOME] fetch error', err);
+    }
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      // call the async function but don’t return its Promise
+      fetchLists();
+    }, [fetchLists])
+  );
 
   const renderItem = ({ item: list }: any) => (
     <Pressable
@@ -68,11 +70,10 @@ export default function HomeScreen() {
         router.push({
           pathname: '/(dashboard)/(list)/listScreen',
           params: {
-            id: list.id,
+            // Pass the list details to the list screen
+            id:    list.id,
             title: list.name,
             color: list.color,
-            items: JSON.stringify(list.items), // Pass list items as a JSON string
-            suggestions: JSON.stringify(list.suggested_items || []),
           },
         })
       }
@@ -87,7 +88,7 @@ export default function HomeScreen() {
           <View style={styles.textContainer}>
             <Text style={styles.cardTitle}>{list.name}</Text>
             <Text style={styles.cardSubtitle}>
-              {list.unchecked_items.length} items left
+              {list.unchecked_count} items left
             </Text>
           </View>
         </ImageBackground>

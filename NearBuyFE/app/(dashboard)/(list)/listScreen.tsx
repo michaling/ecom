@@ -1,54 +1,130 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Checklist from '@/components/Checklist';
+import * as Utils from '../../utils/utils';
+import axios from 'axios';
 
-
+interface Item {
+  id: string;
+  name: string;
+  isChecked: boolean;
+}
 
 export default function ListScreen() {
-  const { id, title, color, items: listItems, suggestions: rawSuggestions } = useLocalSearchParams();
+    /* ────────── navigation params ────────── */
+    const { id, title, color } = useLocalSearchParams<{
+    id: string;
+    title: string;
+    color?: string | string[];
+  }>();
+
   const background = Array.isArray(color) ? color[0] : color;
 
-  const [items, setItems] = useState<any[]>([]);
-  const [recommended, setRecommended] = useState<string[]>([]);
-  
-  useEffect(() => {
-    if (listItems) {
-      const parsed = JSON.parse(listItems as string);
-      const formatted = parsed.map((item: any) => ({
-        id: item.item_id,
-        name: item.name,
-        isChecked: item.is_checked,
+    /* ────────── component state ────────── */
+    const [items, setItems] = useState<Item[]>([]);
+    const [recommended, setRecommended] = useState<string[]>([]); // we’ll need it soon
+    const [loading, setLoading] = useState(true);
+
+
+    /* ────────── helper: fetch list from BE ────────── */
+  const loadList = useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = await Utils.getValueFor('access_token');
+      if (!token) {
+        console.warn('[LIST] no token – probably logged-out');
+        return;
+      }
+
+      const res = await axios.get(
+        `${Utils.currentPath}lists/${id}`,
+        { headers: { token } },
+      );
+
+      //  { items: [...], suggested_items: [...] }
+      const formatted: Item[] = res.data.items.map((it: any) => ({
+        id: it.item_id,
+        name: it.name,
+        isChecked: it.is_checked,
       }));
+
       setItems(formatted);
+      setRecommended(res.data.suggested_items?.map((s: any) => s.name) ?? []);
+    } catch (err) {
+      console.error('[LIST] load failed:', err);
+    } finally {
+      setLoading(false);
     }
+  }, [id]);
+    
+  /* load once on mount */
+  useEffect(() => {
+    loadList(); // here we just invoke it, not return it
+  }, [loadList]);
+
+  /* reload every time the screen gains focus */
+  useFocusEffect(
+    React.useCallback(() => {
+      loadList();
+    }, [loadList]),
+  );
+    
+
+  const toggleItem = async (id: string) => {
+    const updatedItems = items.map((item) =>
+      item.id === id ? { ...item, isChecked: !item.isChecked } : item
+    );
+    setItems(updatedItems);
   
-    if (rawSuggestions) {
-      const parsed = JSON.parse(rawSuggestions as string);
-      const namesOnly = parsed.map((s: any) => s.name);
-      setRecommended(namesOnly);
-      console.log('[Suggestions Loaded]', namesOnly); 
+    const token = await Utils.getValueFor('access_token');
+    try {
+      await axios.patch(`${Utils.currentPath}items/${id}/check`, {
+        is_checked: !items.find(item => item.id === id)?.isChecked,
+      }, {
+        headers: { token },
+      });
+    } catch (err) {
+      console.error('[TOGGLE FAILED]', err);
     }
-  }, [listItems, rawSuggestions]);
+  };
 
-  const totalItems = items.length;
-  const checkedItems = items.filter((item) => item.isChecked).length;
-
-  const toggleItem = (id: string) => {
-    setItems(prev =>
-      prev.map(item => item.id === id ? { ...item, isChecked: !item.isChecked } : item)
+  
+  const changeItemName = async (itemId: string, newName: string) => {
+    const updated = items.map((item) =>
+      item.id === itemId ? { ...item, name: newName } : item
     );
+    setItems(updated);
+  
+    const token = await Utils.getValueFor('access_token');
+    try {
+      await axios.put(`${Utils.currentPath}items/${itemId}`, {
+        name: newName,
+      }, {
+        headers: { token },
+      });
+    } catch (err) {
+      console.error('[RENAME FAILED]', err);
+    }
   };
   
-  const changeItemName = (id: string, newName: string) => {
-    setItems(prev =>
-      prev.map(item => item.id === id ? { ...item, name: newName } : item)
-    );
-  };
+  const deleteItem = async (itemId: string) => {
+    const updated = items.filter((item) => item.id !== itemId);
+    setItems(updated);
   
-  const deleteItem = (id: string) => {
-    setItems(prev => prev.filter(item => item.id !== id));
+    const token = await Utils.getValueFor('access_token');
+    try {
+      await axios.delete(`${Utils.currentPath}items/${itemId}`, {
+        headers: { token },
+      });
+    } catch (err) {
+      console.error('[DELETE FAILED]', err);
+    }
   };
+
+  
+  const total = items.length;
+  const left  = items.filter(i => !i.isChecked).length;
 
 
   return (
@@ -56,7 +132,7 @@ export default function ListScreen() {
       <View style={[styles.header, { backgroundColor: background || '#E6E6FA' }]}>
         <Text style={styles.title}>{title} </Text>
         <Text style={styles.subtitle}>
-          {`${totalItems} items, ${totalItems - checkedItems} remaining`}
+          {`${total} items, ${left} remaining`}
         </Text>
       </View>
   

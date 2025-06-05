@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Path
 from app.lists.models import UserList, ListItem
 from app.supabase_client import supabase
 from datetime import datetime
@@ -122,20 +122,9 @@ def get_user_lists(user_id: str,
             or []
         )
 
-        suggestions = (
-            supabase.table("items_suggestions")
-            .select("*")
-            .eq("list_id", list_id)
-            .eq("used", False)
-            .eq("rejected", False)
-            .execute()
-            .data
-            or []
+        unchecked_count = sum(
+            1 for it in items if not it.get("is_checked", False)
         )
-
-        unchecked_items = [
-            item for item in items if not item.get("is_checked", False)
-        ]
 
         out.append({
             "id": list_id,
@@ -143,12 +132,11 @@ def get_user_lists(user_id: str,
             "deadline": lst["deadline"],
             "geo_alert": lst["geo_alert"],
             "items": items,
-            "unchecked_items": unchecked_items,
-            "suggested_items": suggestions
+            # "unchecked_items": unchecked_items, # Delete Later
+            "unchecked_count": unchecked_count
         })
 
-        print(f"out: {out}")
-
+        #print(f"out: {out}")
     return out
 
 # -------------------------------------------------------------------------- #
@@ -175,11 +163,22 @@ def get_list(list_id: str):
         .data
     )
 
+    suggestions = (
+        supabase.table("items_suggestions")
+        .select("*")
+        .eq("list_id", list_id)
+        .eq("used", False)
+        .eq("rejected", False)
+        .execute()
+        .data or []
+    )
+
     return {
         "name": lst["name"],
         "deadline": lst["deadline"],
         "geo_alert": lst["geo_alert"],
-        "items": items
+        "items": items,
+        "suggestions": suggestions
     }
 
 # -------------------------------------------------------------------------- #
@@ -230,6 +229,8 @@ def update_list(list_id: str, user_list: UserList):
     supabase.table("lists_items").insert(items_payload).execute()
 
     return {"message": "List updated"}
+
+
 
 # -------------------------------------------------------------------------- #
 @router.delete("/lists/{list_id}")
