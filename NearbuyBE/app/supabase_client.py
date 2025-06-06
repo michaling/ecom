@@ -10,8 +10,4 @@ url = os.getenv("SUPABASE_URL")
 key = os.getenv("SUPABASE_KEY")
 
 
-supabase = create_client(url, key, options=ClientOptions(
-        postgrest_client_timeout=10,
-        storage_client_timeout=10,
-        schema="public",
-    ))
+supabase = create_client(url, key)
