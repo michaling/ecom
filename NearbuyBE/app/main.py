@@ -1,10 +1,10 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
-from app.auth.routes import router as auth_router
-from app.lists.lists import router as lists_router
-from app.lists.items import router as items_router
-from app.lists.cleanup import router as lists_cleanup_router
+from auth.routes import router as auth_router
+from lists.lists import router as lists_router
+from lists.items import router as items_router
+from lists.cleanup import router as lists_cleanup_router
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()

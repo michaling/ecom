@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from app.auth.schemas import SignInData, SignUpData
-from app.auth.logic import sign_in, sign_up
+from auth.schemas import SignInData, SignUpData
+from auth.logic import sign_in, sign_up
 from gotrue.errors import AuthError
 
 router = APIRouter()

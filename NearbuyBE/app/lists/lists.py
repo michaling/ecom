@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Header, Path
-from app.lists.models import UserList, ListItem
-from app.supabase_client import supabase
+from lists.models import UserList, ListItem
+from supabase_client import supabase
 from datetime import datetime
 from typing import List
 
