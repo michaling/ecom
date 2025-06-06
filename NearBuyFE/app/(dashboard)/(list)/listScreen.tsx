@@ -4,7 +4,7 @@ import { useLocalSearchParams, useFocusEffect } from 'expo-router';
 import Checklist from '@/components/Checklist';
 import RecommendationItem from '@/components/RecommendationItem';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
-import * as Utils from '../../utils/utils';
+import * as Utils from '../../../utils/utils';
 import axios from 'axios';
 
 interface Item {

@@ -4,7 +4,7 @@ import axios, { AxiosError } from 'axios';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Utils from '../utils/utils';
+import * as Utils from '../../utils/utils';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -21,7 +21,7 @@ export default function LoginScreen() {
     try {
       const res = await axios.post(Utils.currentPath + 'auth/signin', { email, password });
 
-      console.log('[LOGIN SUCCESS]', res.data);
+      console.log('[LOGIN SUCCESS]');
       await Utils.save('user_id', res.data.user_id); // Save user ID to secure storage
       await Utils.save('access_token', res.data.access_token); // Save access token to secure storage
       router.push('/(dashboard)/(tabs)/home');
