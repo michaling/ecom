@@ -2,29 +2,21 @@ from fastapi import APIRouter, HTTPException, Header
 from supabase_client import supabase
 from datetime import datetime
 from pydantic import BaseModel
+from utils import *
 
 router = APIRouter()
 
 # --- Models ---
 class RenameRequest(BaseModel):
     name: str
+    list_id: str
 
 class CheckRequest(BaseModel):
     is_checked: bool
+    list_id: str
 
-# --- Shared helper ---
-def bump_list_timestamp_from_item(item_id: str):
-    try:
-        res = supabase.table("lists_items").select("list_id").eq("item_id", item_id).single().execute()
-        if not res.data:
-            raise HTTPException(status_code=404, detail="Item not found")
-        list_id = res.data["list_id"]
-        supabase.table("lists").update({
-            "last_update": datetime.now().isoformat()
-        }).eq("list_id", list_id).execute()
-    except Exception as e:
-        print("[ERROR bump_list_timestamp_from_item]", e)
-        raise HTTPException(status_code=500, detail="Failed to update list timestamp")
+class DeleteItemRequest(BaseModel):
+    list_id: str
 
 # --- Check or uncheck item ---
 @router.patch("/items/{item_id}/check")
@@ -49,7 +41,7 @@ def check_item(
         if not res.data:
             raise HTTPException(status_code=404, detail="Item not found")
 
-        bump_list_timestamp_from_item(item_id)
+        bump_list_timestamp(req.list_id)
         return {"message": "Item checked/unchecked", "item_id": item_id}
 
     except Exception as e:
@@ -77,7 +69,7 @@ def rename_item(
         if not res.data:
             raise HTTPException(404, "Item not found or not authorised")
 
-        bump_list_timestamp_from_item(item_id)
+        bump_list_timestamp(req.list_id)
 
         return {"message": "Item renamed", "item_id": item_id}
 
@@ -90,6 +82,7 @@ def rename_item(
 @router.delete("/items/{item_id}")
 def delete_item(
     item_id: str,
+    req: DeleteItemRequest,
     token: str = Header(...),
 ):
     try:
@@ -105,7 +98,7 @@ def delete_item(
         if not res.data:
             raise HTTPException(404, "Item not found or not authorised")
 
-        bump_list_timestamp_from_item(item_id)
+        bump_list_timestamp(req.list_id)
         return {"message": "Item deleted", "item_id": item_id}
 
     except Exception as e:
