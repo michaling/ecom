@@ -1,3 +1,4 @@
+import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from app.auth.routes import router as auth_router
@@ -27,3 +28,6 @@ app.include_router(auth_router, prefix="/auth")
 app.include_router(lists_router)
 app.include_router(lists_cleanup_router)
 app.include_router(items_router)
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

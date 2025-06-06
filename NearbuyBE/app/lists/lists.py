@@ -142,27 +142,48 @@ def get_user_lists(user_id: str,
 # -------------------------------------------------------------------------- #
 @router.get("/lists/{list_id}")
 def get_list(list_id: str):
-    lst = (
-        supabase.table("lists")
-        .select("*")
-        .eq("list_id", list_id)
-        .eq("is_deleted", False)
-        .single()
-        .execute()
-        .data
-    )
+    try:
+        lst = (
+            supabase.table("lists")
+            .select("*")
+            .eq("list_id", list_id)
+            .eq("is_deleted", False)
+            .single()
+            .execute()
+            .data
+        )
+
+    except RemoteProtocolError as e:
+        print("[RemoteProtocolError]", e)
+        raise HTTPException(status_code=502, detail="Supabase connection dropped unexpectedly.")
+
+    except Exception as e:
+        print("[Generic get_list error]", e)
+        raise HTTPException(status_code=500, detail="Failed to get list")
 
     if not lst:
         raise HTTPException(status_code=404, detail="List not found")
 
-    items = (
-        supabase.table("lists_items")
-        .select("*")
-        .eq("list_id", list_id)
-        .eq("is_deleted", False)
-        .execute()
-        .data
-    )
+    try:
+        items = (
+            supabase.table("lists_items")
+            .select("*")
+            .eq("list_id", list_id)
+            .eq("is_deleted", False)
+            .execute()
+            .data
+        )
+    except Exception as e:
+        print(f"get_list items error: {e}")
+        items = (
+            supabase.table("lists_items")
+            .select("*")
+            .eq("list_id", list_id)
+            .eq("is_deleted", False)
+            .execute()
+            .data
+        )
+
 
     suggestions = (
         supabase.table("items_suggestions")
