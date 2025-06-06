@@ -7,6 +7,7 @@ import { AntDesign, Ionicons } from '@expo/vector-icons';
 import * as Utils from '../../../utils/utils';
 import axios from 'axios';
 
+
 interface Item {
   id: string;
   name: string;
@@ -15,13 +16,13 @@ interface Item {
 
 export default function ListScreen() {
     /* ────────── navigation params ────────── */
-    const { id, title, color } = useLocalSearchParams<{
-    id: string;
-    title: string;
-    color?: string | string[];
+    const { list_id, list_name, list_color } = useLocalSearchParams<{
+    list_id: string;
+    list_name: string;
+    list_color?: string | string[];
   }>();
 
-  const background = Array.isArray(color) ? color[0] : color;
+  const background = Array.isArray(list_color) ? list_color[0] : list_color;
 
     /* ────────── component state ────────── */
     const [items, setItems] = useState<Item[]>([]);
@@ -42,7 +43,7 @@ export default function ListScreen() {
       }
 
       const res = await axios.get(
-        `${Utils.currentPath}lists/${id}`,
+        `${Utils.currentPath}lists/${list_id}`,
         { headers: { token } },
       );
 
@@ -60,7 +61,7 @@ export default function ListScreen() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [list_id]);
 
   /* load once on mount */
   useEffect(() => {
@@ -84,7 +85,8 @@ export default function ListScreen() {
     const token = await Utils.getValueFor('access_token');
     try {
       await axios.patch(`${Utils.currentPath}items/${id}/check`, {
-        is_checked: !items.find(item => item.id === id)?.isChecked,
+        is_checked: !items.find(item => item.id === id)?.isChecked, 
+        list_id: list_id,
       }, {
         headers: { token },
       });
@@ -103,7 +105,7 @@ export default function ListScreen() {
     try {
       await axios.patch(
         `${Utils.currentPath}items/${itemId}/name`,
-        { name: newName },
+        { name: newName, list_id: list_id, },
         { headers: { token } }
       );
     } catch (err) {
@@ -117,7 +119,10 @@ export default function ListScreen() {
     try {
       await axios.delete(
         `${Utils.currentPath}items/${itemId}`,
-        { headers: { token } }
+        {
+          headers: { token },
+          data: { list_id: list_id },
+        }
       );
     } catch (err) {
       console.error('[DELETE FAILED]', err);
@@ -128,17 +133,29 @@ export default function ListScreen() {
   const total = items.length;
   const left  = items.filter(i => !i.isChecked).length;
 
-  const addNewItem = () => {
-    // TODO: Insert new item to BE
-    // if (newItemName.trim() === '') return;
-    // const newItem = {
-    //   id: Date.now().toString(), // TODO: replace with actual ID from BE
-    //   name: newItemName,
-    //   isChecked: false,
-    // };
-    // setItems(prev => [...prev, newItem]);
-    // setNewItemName('');
-    // setIsAdding(false);
+
+  const addNewItem = async () => {
+    if (newItemName.trim() === '') return;
+    const token = await Utils.getValueFor('access_token');
+    try {
+      const res = await axios.post(
+        `${Utils.currentPath}lists/${list_id}/items`,
+        { item_name: newItemName },
+        {headers: { token },}
+      );
+  
+      const newItem = {
+        id: res.data.item_id,
+        name: res.data.name,
+        isChecked: false,
+      };
+  
+      setItems(prev => [...prev, newItem]);
+      setNewItemName('');
+      setIsAdding(false);
+    } catch (err) {
+      console.error('[ADD ITEM FAILED]', err);
+    }
   };
 
 
@@ -156,7 +173,7 @@ export default function ListScreen() {
     <View style={styles.container}>
 
       <View style={[styles.header, { backgroundColor: background || '#E6E6FA' }]}>
-        <Text style={styles.title}>{title} </Text>
+        <Text style={styles.title}>{list_name} </Text>
         <Text style={styles.subtitle}>
           {`${total} items, ${left} remaining`}
         </Text>
@@ -192,7 +209,6 @@ export default function ListScreen() {
                 onChangeText={setNewItemName}
                 placeholder="Enter item name"
                 onSubmitEditing={addNewItem}
-                onBlur={addNewItem}
                 autoFocus
               />
             )}

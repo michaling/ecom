@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 
 export default function ListCard({ list }: { list: any }) {
   const router = useRouter();
-
   return (
     <Pressable
       style={styles.cardContainer}
@@ -13,9 +12,9 @@ export default function ListCard({ list }: { list: any }) {
           pathname: '/(dashboard)/(list)/listScreen',
           params: {
             // Pass the list details to the list screen
-            id:    list.id,
-            title: list.name,
-            color: list.color,
+            list_id:    list.id,
+            list_name: list.name,
+            list_color: list.color,
           },
         })
       }
@@ -38,6 +37,7 @@ export default function ListCard({ list }: { list: any }) {
     </Pressable>
   );
 }
+
 
 const styles = StyleSheet.create({
   cardContainer: {

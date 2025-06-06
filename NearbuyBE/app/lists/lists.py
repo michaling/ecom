@@ -3,23 +3,30 @@ from lists.models import UserList, ListItem
 from supabase_client import supabase
 from datetime import datetime
 from typing import List
+from pydantic import BaseModel
+from utils import *
 
 router = APIRouter()
 
+class CreateItemRequest(BaseModel):
+    item_name: str
+
 # ---------- small helper -------------------------------------------------- #
-def user_has_global_geo_alert(user_id: str) -> bool:
-    """Look at user_profiles.geo_alert once per request."""
-    prof = (
-        supabase.table("user_profiles")
-        .select("geo_alert")
-        .eq("user_id", user_id)
-        .single()
-        .execute()
-    )
-    return bool(prof.data and prof.data.get("geo_alert"))
+
+# Does the same as get_profile_geo - Delete later (if not needed)
+# def user_has_global_geo_alert(user_id: str) -> bool:
+#     """Look at user_profiles.geo_alert once per request."""
+#     prof = (
+#         supabase.table("user_profiles")
+#         .select("geo_alert")
+#         .eq("user_id", user_id)
+#         .execute()
+#     )
+#     return bool(prof.data and prof.data.get("geo_alert"))
 
 def get_profile_geo(user_id: str) -> bool:
     """Return the user-level default (TRUE/FALSE)."""
+
     res = (supabase.table("user_profiles")
                     .select("geo_alert")
                     .eq("user_id", user_id)
@@ -41,12 +48,12 @@ def convert_datetime_to_iso(value):
 # -------------------------------------------------------------------------- #
 @router.post("/lists")
 def create_list(user_id: str, user_list: UserList):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
 
-    # 1️⃣  default comes from profile
+    # default comes from profile
     default_geo = get_profile_geo(user_id)
 
-    # 2️⃣  list-level value:  explicit > default
+    # list-level value:  explicit > default
     list_geo = user_list.geo_alert if user_list.geo_alert is not None else default_geo
 
     # Convert deadline to ISO string if it's a datetime object
@@ -153,10 +160,6 @@ def get_list(list_id: str):
             .data
         )
 
-    except RemoteProtocolError as e:
-        print("[RemoteProtocolError]", e)
-        raise HTTPException(status_code=502, detail="Supabase connection dropped unexpectedly.")
-
     except Exception as e:
         print("[Generic get_list error]", e)
         raise HTTPException(status_code=500, detail="Failed to get list")
@@ -206,7 +209,7 @@ def get_list(list_id: str):
 # -------------------------------------------------------------------------- #
 @router.put("/lists/{list_id}")
 def update_list(list_id: str, user_list: UserList):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
 
     # fetch owner to get default
     res = supabase.table("lists").select("user_id").eq("list_id", list_id).single().execute()
@@ -257,7 +260,7 @@ def update_list(list_id: str, user_list: UserList):
 # -------------------------------------------------------------------------- #
 @router.delete("/lists/{list_id}")
 def delete_list(list_id: str):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
     supabase.table("lists").update({"is_deleted": True, "deleted_at": now}).eq("list_id", list_id).execute()
     supabase.table("lists_items").update({"is_deleted": True, "deleted_at": now}).eq("list_id", list_id).execute()
     return {"message": "List deleted"}
@@ -265,7 +268,7 @@ def delete_list(list_id: str):
 # -------------------------------------------------------------------------- #
 @router.post("/lists/{list_id}/restore")
 def restore_list(list_id: str):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
     lst = (
         supabase.table("lists").select("*").eq("list_id", list_id).single().execute().data
     )
@@ -276,9 +279,69 @@ def restore_list(list_id: str):
 
     # still within 30 days?
     deleted_at = datetime.fromisoformat(lst["deleted_at"].replace("Z", "+00:00"))
-    if (datetime.utcnow() - deleted_at).days > 30:
+    if (datetime.now() - deleted_at).days > 30:
         raise HTTPException(status_code=410, detail="Too old to restore")
 
     supabase.table("lists").update({"is_deleted": False, "deleted_at": None, "last_update": now}).eq("list_id", list_id).execute()
     supabase.table("lists_items").update({"is_deleted": False, "deleted_at": None}).eq("list_id", list_id).execute()
     return {"message": "List successfully restored", "list_id": list_id}
+
+# -------------------------------------------------------------------------- #
+@router.post("/lists/{list_id}/items")
+def create_item(
+    list_id: str,
+    req: CreateItemRequest,
+    token: str = Header(...),
+):
+    item_name = req.item_name
+    try:
+        supabase.postgrest.auth(token)
+        now = datetime.now().isoformat()
+
+        # Fetch list info (geo_alert and user_id)
+        list_res = (
+            supabase.table("lists")
+            .select("geo_alert", "user_id")
+            .eq("list_id", list_id)
+            .single()
+            .execute()
+        )
+        if not list_res.data:
+            raise HTTPException(404, "List not found")
+
+        list_geo = list_res.data["geo_alert"]
+        user_id = list_res.data["user_id"]
+
+        # Fetch user's default geo_alert
+        user_geo = get_profile_geo(user_id)
+
+        # Final geo_alert decision
+        geo_alert = list_geo if list_geo is not None else bool(user_geo)
+
+        # Insert item
+        res = (
+            supabase.table("lists_items")
+            .insert({
+                "list_id": list_id,
+                "name": item_name,
+                "is_checked": False,
+                "created_at": now,
+                "geo_alert": geo_alert,
+            })
+            .execute()
+        )
+        if not res.data:
+            raise HTTPException(500, "Insert failed")
+
+        item = res.data[0]
+        bump_list_timestamp(list_id)
+
+
+        return {
+            "item_id": item["item_id"],
+            "name": item["name"],
+        }
+
+    except Exception as e:
+        print("[ERROR create_item]", e)
+        raise HTTPException(500, "Failed to create item")
