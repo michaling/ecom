@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Header
-from app.supabase_client import supabase
+from supabase_client import supabase
 from datetime import datetime
 from pydantic import BaseModel
 
