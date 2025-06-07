@@ -1,28 +1,44 @@
-import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from typing import List, Optional
 import re
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-import time
+# At first run you will need to install browser binaries: playwright install
+from playwright.sync_api import sync_playwright
+from typing import Optional
 
-def fetch_html(url: str) -> str:
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=options)
-
+def fetch_html(url: str, timeout: int = 10000) -> Optional[str]:
     try:
-        driver.get(url)
-        return driver.page_source
-    finally:
-        driver.quit()
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+
+            context = browser.new_context(
+                user_agent=(
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/114.0.0.0 Safari/537.36"
+                ),
+                locale="en-US",
+                viewport={"width": 1280, "height": 800},
+                extra_http_headers={
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "DNT": "1",  # Do Not Track
+                    "Upgrade-Insecure-Requests": "1"
+                }
+            )
+
+            page = context.new_page()
+            page.goto(url, timeout=timeout)
+            page.wait_for_load_state("networkidle")
+            content = page.content()
+
+            browser.close()
+            return content
+
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch HTML from {url}: {e}")
+        return None
+
+
 
 def extract_text_from_html(html: str) -> str:
     """Extract visible text from HTML."""
