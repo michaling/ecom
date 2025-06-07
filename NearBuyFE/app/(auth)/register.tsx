@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Switch } from 'react-native';
 import * as SecureStore from 'expo-secure-store'; // For saving login state later
 import axios, { AxiosError } from 'axios';
-import * as Utils from '../utils/utils';
+import * as Utils from '../../utils/utils';
 
 
 export default function RegisterScreen() {

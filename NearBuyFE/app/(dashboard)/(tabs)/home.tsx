@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -9,10 +9,18 @@ import {
   FlatList,
   ImageBackground,
   Modal,
+  TouchableOpacity,
+  TextInput,
+  Switch,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as Utils from '../../utils/utils';
+import * as Utils from '../../../utils/utils';
+import ListCard from '@/components/ListCard';
+import { AntDesign } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+
 
 const CARD_COLORS = [
   '#FFE3E3', '#FFCDB3', '#FFEABE',
@@ -27,73 +35,58 @@ const getRandomPastelColor = () => {
 export default function HomeScreen() {
   const router = useRouter();
   const [lists, setLists] = useState<any[]>([]);
+  const [isAddModalVisible, setAddModalVisible] = useState(false);
+  const [newListName, setNewListName] = useState('');
+  const [isLocationEnabled, setLocationEnabled] = useState(false);
+  const [deadline, setDeadline] = useState<Date | null>(null);
+  const [isDeadlineEnabled, setIsDeadlineEnabled] = useState(false);
+  const [isDatePickerVisible, setDatePickerVisible] = useState(false);
 
-  useEffect(() => {
-    const fetchLists = async () => {
-      try {
-        console.log('Fetching lists...');
-        const user_id = await Utils.getValueFor('user_id'); // Get user ID from secure storage
-        const token = await Utils.getValueFor('access_token'); // Get access token from secure storage
-        if (!token || !user_id) {
-          console.error('No user ID or token found. User may not be logged in.');
-          return;
-        }
-        console.log("TOKEN", token);
-        const res = await axios.get(Utils.currentPath + 'lists', 
-        {
-          params: { user_id },
-          headers: { token },
-        });
-        console.log('[FETCH LISTS SUCCESS]', res.data);
+  const resetForm = () => {
+    setNewListName('');
+    setLocationEnabled(false);
+    setDeadline(null);
+    setIsDeadlineEnabled(false);
+    setDatePickerVisible(false);
+  };
 
-        const listsWithColors = res.data.map((item: any, index: number) => ({
-          ...item,
-          color: CARD_COLORS[index % CARD_COLORS.length], // If you want to cycle through predefined colors
-          //color: getRandomPastelColor(), // If you want to choose a random pastel color for each card
-        }));
-        
-        setLists(listsWithColors);
-      } catch (err) {
-        console.error('Error fetching lists', err);
+
+
+  // fetch once each time Home gains focus
+  const fetchLists = React.useCallback(async () => {
+    try {
+      console.log('[HOME] fetching lists …');
+      const [user_id, token] = await Promise.all([
+        Utils.getValueFor('user_id'),
+        Utils.getValueFor('access_token'),
+      ]);
+      if (!token || !user_id) {
+        console.warn('[HOME] no user or token'); return;
       }
-    };
 
-    fetchLists();
+      const res = await axios.get(Utils.currentPath + 'lists', {
+        params: { user_id },
+        headers: { token },
+      });
+
+      const listsWithColors = res.data.map((it: any, idx: number) => ({
+        ...it,
+        color: CARD_COLORS[idx % CARD_COLORS.length],
+      }));
+      setLists(listsWithColors);
+    } catch (err) {
+      console.error('[HOME] fetch error', err);
+    }
   }, []);
 
-  const renderItem = ({ item: list }: any) => (
-    <Pressable
-      style={styles.cardContainer}
-      onPress={() =>
-        router.push({
-          pathname: '/(dashboard)/(list)/listScreen',
-          params: {
-            id: list.id,
-            title: list.name,
-            color: list.color,
-            items: JSON.stringify(list.items), // Pass list items as a JSON string
-            suggestions: JSON.stringify(list.suggested_items || []),
-          },
-        })
-      }
-    >
-      <View style={styles.card}>
-        <ImageBackground
-          source={list.image ? { uri: list.image } : undefined}
-          resizeMode="cover"
-          style={[styles.imageBackground, { backgroundColor: list.color }]}
-          imageStyle={styles.imageStyle}
-        >
-          <View style={styles.textContainer}>
-            <Text style={styles.cardTitle}>{list.name}</Text>
-            <Text style={styles.cardSubtitle}>
-              {list.unchecked_items.length} items left
-            </Text>
-          </View>
-        </ImageBackground>
-      </View>
-    </Pressable>
+  useFocusEffect(
+    React.useCallback(() => {
+      // call the async function but don’t return its Promise
+      fetchLists();
+    }, [fetchLists])
   );
+
+  const renderItem = ({ item }: any) => <ListCard list={item} />;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -102,12 +95,13 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.toolsRow}>
-        <Pressable style={styles.toolButton} onPress={() => {}}>
+        <TouchableOpacity style={styles.toolButton} onPress={() => {}}>
           <Text style={styles.toolButtonText}>Edit</Text>
-        </Pressable>
-        <Pressable style={styles.toolButton} onPress={() => {}}>
-          <Text style={styles.toolButtonText}>＋</Text>
-        </Pressable>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.toolButton} onPress={() => setAddModalVisible(true)}>
+          <AntDesign name="plus" size={25} color="black" />
+        </TouchableOpacity>
+
       </View>
 
       <FlatList
@@ -119,6 +113,138 @@ export default function HomeScreen() {
         columnWrapperStyle={styles.row}
         showsVerticalScrollIndicator={false}
       />
+
+      <Modal
+        visible={isAddModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setAddModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Create a New List</Text>
+
+            {/* Input for list name */}
+            <TextInput
+              placeholder="List Name"
+              value={newListName}
+              onChangeText={setNewListName}
+              style={styles.input}
+            />
+
+            {/* Location-based toggle */}
+            <View style={styles.toggleContainer}>
+              <Text style={styles.toggleLabel}> Location Alerts </Text>
+              <Switch
+                value={isLocationEnabled}
+                onValueChange={() => setLocationEnabled(!isLocationEnabled)}
+                trackColor={{ false: '#ccc', true: '#007AFF' }}
+                thumbColor={isLocationEnabled ? '#fff' : '#f4f3f4'}
+              />
+            </View>
+            {/* Deadline picker */}
+            <View style={{ marginBottom: 12 }}>
+              <View style={styles.toggleContainer}>
+                <Text style={styles.toggleLabel}> Deadline Alerts </Text>
+                <Switch
+                  value={isDeadlineEnabled}
+                  onValueChange={(val) => {
+                    setIsDeadlineEnabled(val);
+                    if (!val) setDeadline(null); // Clear if disabled
+                  }}
+                  trackColor={{ false: '#ccc', true: '#007AFF' }}
+                  thumbColor={isDeadlineEnabled ? '#fff' : '#f4f3f4'}
+                />
+              </View>
+
+              {isDeadlineEnabled && (
+              <>
+                <Text style={styles.toggleLabel}>Deadline:</Text>
+
+                {Platform.OS === 'ios' && (
+                  <DateTimePicker
+                    value={deadline || new Date()}
+                    mode="datetime"
+                    display="spinner"
+                    onChange={(event, selectedDate) => {
+                      if (selectedDate) setDeadline(selectedDate);
+                    }}
+                    style={{ backgroundColor: '#fff' }}
+                  />
+                )}
+
+                {Platform.OS === 'android' && (
+                  <>
+                    <Pressable onPress={() => setDatePickerVisible(true)} style={styles.deadlineButton}>
+                      <Text style={styles.deadlineText}>
+                        {deadline ? deadline.toLocaleString() : 'Pick date & time'}
+                      </Text>
+                    </Pressable>
+
+                    {isDatePickerVisible && (
+                      <DateTimePicker
+                        value={deadline || new Date()}
+                        mode="datetime"
+                        display="default"
+                        onChange={(event, selectedDate) => {
+                          setDatePickerVisible(false);
+                          if (selectedDate) setDeadline(selectedDate);
+                        }}
+                      />
+                    )}
+                  </>
+                )}
+
+                {Platform.OS === 'web' && (
+                  <>
+                  <TextInput
+                    placeholder="YYYY-MM-DD HH:MM"
+                    value={deadline ? deadline.toLocaleString() : ''}
+                    onChangeText={(text) => {
+                      const parsed = new Date(text);
+                      if (!isNaN(parsed.getTime())) {
+                        setDeadline(parsed);
+                      }
+                    }}
+                    style={styles.input}
+                  />
+                  <Text style={{ fontSize: 12, color: '#888', marginTop: -8, marginBottom: 8 }}>
+                    Format: YYYY-MM-DD HH:MM
+                  </Text>
+                </>
+                )}
+                </>
+              )}
+            </View>
+
+            {/* Action buttons */}
+            <View style={styles.modalButtons}>
+              <Pressable
+                onPress={() => {
+                  resetForm();
+                  setAddModalVisible(false);
+                }}
+                style={styles.cancelButton}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  // TODO: call axios POST here
+                  resetForm();
+                  setAddModalVisible(false);
+                }}
+                style={styles.saveButton}
+              >
+                <Text style={styles.saveText}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+
     </SafeAreaView>
   );
 }
@@ -139,53 +265,6 @@ const styles = StyleSheet.create({
   row: {
     justifyContent: 'space-between',
     marginBottom: 16,
-  },
-  cardContainer: {
-    width: CARD_WIDTH,
-    aspectRatio: 1.2,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 5,
-    backgroundColor: '#fff',
-  },
-  card: {
-    flex: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: '#eee',
-    position: 'relative',
-  },
-  imageBackground: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    padding: 12,
-  },
-  imageStyle: {
-    resizeMode: 'cover',
-  },
-  textContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
-  },
-  cardSubtitle: {
-    fontSize: 14,
-    color: '#444',
-    marginTop: 4,
   },
   logoContainer: {
     alignItems: 'center',
@@ -215,4 +294,78 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    minHeight: '70%',
+    maxHeight: '90%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+  },
+  deadlineButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+  },
+
+  deadlineText: {
+    fontSize: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    paddingHorizontal: 20,
+  },
+  cancelButton: {
+    padding: 10,
+  },
+  cancelText: {
+    fontSize: 16,
+    color: '#888',
+  },
+  saveButton: {
+    backgroundColor: '#007AFF',
+    padding: 10,
+    borderRadius: 8,
+  },
+  saveText: {
+    fontSize: 16,
+    color: '#fff',
+  },
+
+  toggleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    marginRight: 16,
+  },
+
+  toggleLabel: {
+    fontSize: 16,
+    marginLeft: 16,
+  },
+
+
 });
