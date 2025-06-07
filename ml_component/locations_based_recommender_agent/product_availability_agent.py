@@ -1,49 +1,54 @@
-from langchain.agents import Tool
 from langchain_openai import ChatOpenAI
-from tools.store_finder import StoreWebsiteTool
-from tools.product_indicators import ProductSearchSignalTool, URLMatchSignalTool, StoreDescriptionSignalTool
-from scoring.score_calculator import ScoreCombiner
+import json
+from ml_component.globals import api_key
+from ml_component.locations_based_recommender_agent.tools.find_store_website_tool import FindStoreWebsiteTool
+from ml_component.locations_based_recommender_agent.tools.extract_relevant_pages_tool import ExtractRelevantStorePages
+from ml_component.locations_based_recommender_agent.tools.summerize_page_tool import SummarizeStorePageForProduct
 
-llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, api_key=api_key)
 
-store_tool = StoreWebsiteTool()
-url_tool = URLMatchSignalTool()
-search_tool = ProductSearchSignalTool()
-desc_tool = StoreDescriptionSignalTool()
-scorer = ScoreCombiner()
+# Instantiate tools
+find_site_tool = FindStoreWebsiteTool()
+extract_pages_tool = ExtractRelevantStorePages()
+summarizer_tool = SummarizeStorePageForProduct()
 
-def smart_availability_checker(query: str):
-    """Wrapper to run all indicators and return a score-based decision."""
+def check_product_availability(query: str) -> str:
     product, store = query.split("|||")
 
-    print(f"[INFO] Finding store website for '{store}'...")
-    store_url = store_tool.run(store)
-    print(f"[INFO] Got store URL: {store_url}")
-
+    # Step 1: Get store URL
+    print(f"[STEP 1] Searching for official site of: {store}")
+    store_url = find_site_tool.run(store)
     if not store_url:
-        return "Score: 0.0 → Product not available (no website found)."
+        return "False (Store website not found)"
 
-    # Run indicator functions
-    url_match = url_tool.run(f"{product}|||{store_url}")
-    product_search = search_tool.run(f"{product}|||{store_url}")
-    store_desc = desc_tool.run(f"{store}|||{product}")
+    # Step 2: Extract relevant page URLs
+    print(f"[STEP 2] Extracting relevant pages from: {store_url}")
+    pages_str = extract_pages_tool.run(f"{product}|||{store_url}")
+    page_urls = [url.strip() for url in pages_str.splitlines() if url.strip()]
 
-    # Compute final score
-    score = scorer.compute(url_match, product_search, store_desc)
-    available = score >= 0.5
-    return f"Score: {score} → Product {'available' if available else 'not available'}."
+    if not page_urls:
+        return "False (No relevant pages found)"
 
-# Tools for LangChain (optional, currently unused)
-tools = [
-    Tool(name="FindStoreWebsite", func=store_tool.run, description="Find official website of a store"),
-    Tool(name="URLMatchSignal", func=url_tool.run, description="Check if product name appears in a store URL"),
-    Tool(name="ProductSearchSignal", func=search_tool.run, description="Search store site for product and use LLM to decide likelihood"),
-    Tool(name="StoreDescriptionSignal", func=desc_tool.run, description="Analyze store description to determine if it might sell a product"),
-]
+    # Step 3: Analyze pages
+    print(f"[STEP 3] Scanning {len(page_urls)} relevant pages...")
+    for url in page_urls:
+        response = summarizer_tool.run(f"{product}|||{url}")
+        try:
+            parsed = json.loads(response) if isinstance(response, str) else response
+            print(f"[PAGE CHECK] {url} → {parsed}")
+            if parsed.get("answer") is True and float(parsed.get("confidence", 0)) > 0.7:
+                return f"True (High confidence on: {url})"
+        except Exception as e:
+            print(f"[WARN] Failed to parse response for {url}: {e}")
+            continue
 
-# Sample run
+    return "False (No page met confidence threshold)"
+
+
+# Main
 if __name__ == "__main__":
-    product = "Nutella"
-    store = "Walmart"
-    question = f"{product}|||{store}"
-    print("→", smart_availability_checker(question))
+    product = "iphone"
+    store = "idigital"
+    input_str = f"{product}|||{store}"
+    result = check_product_availability(input_str)
+    print("➤ Final Decision:", result)
