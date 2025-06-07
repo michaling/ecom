@@ -8,6 +8,12 @@ class ListItem(BaseModel):
     deadline: Optional[datetime] = None
     geo_alert: Optional[bool] = None
 
+class PartialListItem(BaseModel):
+    name: Optional[str] = None
+    is_checked: Optional[bool] = None
+    deadline: Optional[datetime] = None
+    geo_alert: Optional[bool] = None
+
 class UserList(BaseModel):
     id: Optional[str]
     name: str
