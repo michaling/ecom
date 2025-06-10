@@ -1,10 +1,13 @@
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header,FastAPI
 from app.lists.models import UserList, ListItem
 from app.supabase_client import supabase
 from datetime import datetime
 from typing import List
 import os
 import requests
+import asyncio
+import httpx
+from datetime import datetime
 
 
 router = APIRouter()
@@ -298,3 +301,85 @@ def restore_list(list_id: str):
     supabase.table("lists").update({"is_deleted": False, "deleted_at": None, "last_update": now}).eq("list_id", list_id).execute()
     supabase.table("lists_items").update({"is_deleted": False, "deleted_at": None}).eq("list_id", list_id).execute()
     return {"message": "List successfully restored", "list_id": list_id}
+
+
+async def fetch_and_update_recommendations():
+    # 1️⃣ fetch all active lists
+    lists_res = supabase.table("lists")\
+        .select("list_id, name")\
+        .eq("is_deleted", False)\
+        .execute()
+    lists_data = lists_res.data or []
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        for lst in lists_data:
+            list_id = lst["list_id"]
+            list_name = lst["name"]
+
+            # 2️⃣ fetch current items for this list
+            items_res = supabase.table("lists_items")\
+                .select("name")\
+                .eq("list_id", list_id)\
+                .eq("is_deleted", False)\
+                .execute()
+            existing = {i["name"] for i in (items_res.data or [])}
+
+            recommendations = set()
+
+            # 3️⃣ for each existing item, get similar products
+            for prod in existing:
+                try:
+                    r = await client.get(
+                        f"{ML_BASE}/recommend_similar_products",
+                        params={"product_name": prod, "top_k": 5},
+                    )
+                    r.raise_for_status()
+                    sims = r.json().get("similar_products", [])
+                    recommendations.update(sims)
+                except Exception as e:
+                    print(f"[{datetime.utcnow().isoformat()}] "
+                          f"similar_products fail for '{prod}': {e}")
+
+            # 4️⃣ optionally blend in list-name–based recs too
+            try:
+                r2 = await client.get(
+                    f"{ML_BASE}/recommend_by_list_name",
+                    params={"list_name": list_name},
+                )
+                r2.raise_for_status()
+                by_name = r2.json().get("recommended_products", [])
+                recommendations.update(by_name)
+            except Exception as e:
+                print(f"[{datetime.utcnow().isoformat()}] "
+                      f"recommend_by_list_name fail for '{list_name}': {e}")
+
+            # 5️⃣ final cleanup: remove already-present items
+            recommendations.difference_update(existing)
+
+            # 6️⃣ delete old suggestions
+            supabase.table("items_suggestions")\
+                .delete()\
+                .eq("list_id", list_id)\
+                .execute()
+
+            # 7️⃣ insert new suggestions
+            if recommendations:
+                payload = [
+                    {"list_id": list_id, "suggestion_text": name}
+                    for name in recommendations
+                ]
+                supabase.table("items_suggestions").insert(payload).execute()
+
+
+@app.on_event("startup")
+async def start_recommendation_scheduler():
+    async def loop():
+        await asyncio.sleep(5)  # let everything warm up
+        while True:
+            try:
+                await fetch_and_update_recommendations()
+            except Exception as e:
+                print(f"[{datetime.utcnow().isoformat()}] Scheduler error: {e}")
+            await asyncio.sleep(12 * 60 * 60)  # 12 hours
+
+    asyncio.create_task(loop())
