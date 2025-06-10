@@ -28,6 +28,7 @@ class List(Base):
     name = Column(String, nullable=False)
     deadline = Column(DateTime(timezone=False), nullable=True)  
     deadline_notified = Column(Boolean, nullable=False, default=False)
+    is_deleted = Column(Boolean, nullable=False, default=False)
     # (deadline, etc.)
 
 class ListItem(Base):
@@ -42,6 +43,7 @@ class ListItem(Base):
     name = Column(String, nullable=False)
     deadline = Column(DateTime(timezone=False), nullable=True)  
     deadline_notified = Column(Boolean, nullable=False, default=False)
+    is_deleted = Column(Boolean, nullable=False, default=False)
 
 """
 class Item(Base):

@@ -141,7 +141,8 @@ def get_user_geo_alert_item_ids(db: Session, user_id: UUID) -> list[int]:
         db.query(ListItem.item_id)
           .filter(
               ListItem.list_id.in_(user_list_ids),
-              ListItem.geo_alert == True
+              ListItem.geo_alert == True,
+              ListItem.is_deleted == False
           )
           .distinct()
           .all()

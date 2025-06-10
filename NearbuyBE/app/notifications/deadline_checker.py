@@ -29,7 +29,8 @@ def check_deadlines_and_notify():
               List.deadline.isnot(None),
               List.deadline_notified == False,
               List.deadline >= now,
-              List.deadline <= window_end
+              List.deadline <= window_end,
+              List.is_deleted == False
           )
           .all()
     )
@@ -56,7 +57,9 @@ def check_deadlines_and_notify():
               ListItem.deadline_notified == False,
               ListItem.deadline >= now,
               ListItem.deadline <= window_end,
-              ListItem.deadline != List.deadline
+              ListItem.deadline != List.deadline,
+              List.is_deleted == False,
+              ListItem.is_deleted == False
           )
           .all()
     )
