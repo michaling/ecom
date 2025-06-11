@@ -15,8 +15,6 @@ class PartialListItem(BaseModel):
     geo_alert: Optional[bool] = None
 
 class UserList(BaseModel):
-    id: Optional[str]
     name: str
-    items: List[ListItem]
     deadline: Optional[datetime] = None
     geo_alert: Optional[bool] = None

@@ -252,12 +252,10 @@ export default function HomeScreen() {
                     const token = await Utils.getValueFor('access_token');
                     const user_id = await Utils.getValueFor('user_id');
 
-                    console.log('[CREATE LIST]', {user_id, token, newListName, isLocationEnabled, isDeadlineEnabled, deadline});
-
                     await axios.post(`${Utils.currentPath}lists`, {
                       name: newListName,
                       geo_alert: isLocationEnabled,
-                      deadline: isDeadlineEnabled ? deadline : null,  
+                      deadline: isDeadlineEnabled ? deadline?.toISOString() : null,
                     }, {
                       params: { user_id },
                       headers: { token }
@@ -265,8 +263,7 @@ export default function HomeScreen() {
 
                     resetForm();
                     setAddModalVisible(false);
-                    fetchLists(); // refresh lists on success
-
+                    fetchLists(); // refresh
                   } catch (err) {
                     console.error('[CREATE LIST FAILED]', err);
                   }

@@ -8,10 +8,10 @@ from utils import *
 
 router = APIRouter()
 
-class UserList(BaseModel):
-    name: str
-    geo_alert: bool | None = None
-    deadline: str | None = None
+
+class CreateItemRequest(BaseModel):
+    item_name: str
+
 
 # ---------- small helper -------------------------------------------------- #
 
@@ -30,14 +30,15 @@ def get_profile_geo(user_id: str) -> bool:
     """Return the user-level default (TRUE/FALSE)."""
 
     res = (supabase.table("user_profiles")
-                    .select("geo_alert")
-                    .eq("user_id", user_id)
-                    .single()
-                    .execute())
+           .select("geo_alert")
+           .eq("user_id", user_id)
+           .single()
+           .execute())
     # Handle case where profile might not exist or geo_alert is None
     if not res.data or res.data.get("geo_alert") is None:
         return False
     return bool(res.data["geo_alert"])
+
 
 def convert_datetime_to_iso(value):
     """Convert datetime object to ISO string if needed."""
@@ -47,6 +48,7 @@ def convert_datetime_to_iso(value):
         return value.isoformat()
     return value
 
+
 # -------------------------------------------------------------------------- #
 @router.post("/lists")
 def create_list(
@@ -55,14 +57,11 @@ def create_list(
     token: str = Header(...)
 ):
     try:
-        print("GOT HERE 1")
         supabase.postgrest.auth(token)
         now = datetime.now().isoformat()
-        print("GOT HERE 2")
         default_geo = get_profile_geo(user_id)
         list_geo = user_list.geo_alert if user_list.geo_alert is not None else default_geo
         deadline_str = convert_datetime_to_iso(user_list.deadline)
-        print("GOT HERE 3")
 
         res = (
             supabase.table("lists")
@@ -77,7 +76,6 @@ def create_list(
             .execute()
         )
 
-        print("GOT HERE 4")
         if not res.data:
             raise HTTPException(500, "Insert failed")
 
@@ -114,13 +112,13 @@ def get_user_lists(user_id: str,
         list_id = lst["list_id"]
 
         items = (
-            supabase.table("lists_items")
-            .select("*")
-            .eq("list_id", list_id)
-            .eq("is_deleted", False)
-            .execute()
-            .data
-            or []
+                supabase.table("lists_items")
+                .select("*")
+                .eq("list_id", list_id)
+                .eq("is_deleted", False)
+                .execute()
+                .data
+                or []
         )
 
         unchecked_count = sum(
@@ -137,8 +135,9 @@ def get_user_lists(user_id: str,
             "unchecked_count": unchecked_count
         })
 
-        #print(f"out: {out}")
+        # print(f"out: {out}")
     return out
+
 
 # -------------------------------------------------------------------------- #
 @router.get("/lists/{list_id}")
@@ -181,15 +180,14 @@ def get_list(list_id: str):
             .data
         )
 
-
     suggestions = (
-        supabase.table("items_suggestions")
-        .select("*")
-        .eq("list_id", list_id)
-        .eq("used", False)
-        .eq("rejected", False)
-        .execute()
-        .data or []
+            supabase.table("items_suggestions")
+            .select("*")
+            .eq("list_id", list_id)
+            .eq("used", False)
+            .eq("rejected", False)
+            .execute()
+            .data or []
     )
 
     return {
@@ -200,6 +198,7 @@ def get_list(list_id: str):
         "suggestions": suggestions
     }
 
+
 # -------------------------------------------------------------------------- #
 @router.put("/lists/{list_id}")
 def update_list(list_id: str, user_list: UserList):
@@ -209,7 +208,7 @@ def update_list(list_id: str, user_list: UserList):
     res = supabase.table("lists").select("user_id").eq("list_id", list_id).single().execute()
     if not res.data:
         raise HTTPException(status_code=404, detail="List not found")
-    
+
     user_id = res.data["user_id"]
     default_geo = get_profile_geo(user_id)
 
@@ -218,9 +217,9 @@ def update_list(list_id: str, user_list: UserList):
 
     # update list header
     supabase.table("lists").update({
-        "name":        user_list.name,
-        "deadline":    deadline_str,
-        "geo_alert":   list_geo,
+        "name": user_list.name,
+        "deadline": deadline_str,
+        "geo_alert": list_geo,
         "last_update": now
     }).eq("list_id", list_id).execute()
 
@@ -235,20 +234,19 @@ def update_list(list_id: str, user_list: UserList):
     for it in user_list.items:
         item_geo = it.geo_alert if it.geo_alert is not None else list_geo
         item_deadline_str = convert_datetime_to_iso(it.deadline)
-        
+
         items_payload.append({
-            "list_id":    list_id,
-            "name":       it.name,
+            "list_id": list_id,
+            "name": it.name,
             "is_checked": it.is_checked,
             "checked_at": now if it.is_checked else None,
             "created_at": now,
-            "deadline":   item_deadline_str,
-            "geo_alert":  item_geo
+            "deadline": item_deadline_str,
+            "geo_alert": item_geo
         })
     supabase.table("lists_items").insert(items_payload).execute()
 
     return {"message": "List updated"}
-
 
 
 # -------------------------------------------------------------------------- #
@@ -258,6 +256,7 @@ def delete_list(list_id: str):
     supabase.table("lists").update({"is_deleted": True, "deleted_at": now}).eq("list_id", list_id).execute()
     supabase.table("lists_items").update({"is_deleted": True, "deleted_at": now}).eq("list_id", list_id).execute()
     return {"message": "List deleted"}
+
 
 # -------------------------------------------------------------------------- #
 @router.post("/lists/{list_id}/restore")
@@ -276,16 +275,18 @@ def restore_list(list_id: str):
     if (datetime.now() - deleted_at).days > 30:
         raise HTTPException(status_code=410, detail="Too old to restore")
 
-    supabase.table("lists").update({"is_deleted": False, "deleted_at": None, "last_update": now}).eq("list_id", list_id).execute()
+    supabase.table("lists").update({"is_deleted": False, "deleted_at": None, "last_update": now}).eq("list_id",
+                                                                                                     list_id).execute()
     supabase.table("lists_items").update({"is_deleted": False, "deleted_at": None}).eq("list_id", list_id).execute()
     return {"message": "List successfully restored", "list_id": list_id}
+
 
 # -------------------------------------------------------------------------- #
 @router.post("/lists/{list_id}/items")
 def create_item(
-    list_id: str,
-    req: CreateItemRequest,
-    token: str = Header(...),
+        list_id: str,
+        req: CreateItemRequest,
+        token: str = Header(...),
 ):
     item_name = req.item_name
     try:
@@ -329,7 +330,6 @@ def create_item(
 
         item = res.data[0]
         bump_list_timestamp(list_id)
-
 
         return {
             "item_id": item["item_id"],
