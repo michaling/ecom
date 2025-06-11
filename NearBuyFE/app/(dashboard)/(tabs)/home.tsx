@@ -20,6 +20,7 @@ import * as Utils from '../../../utils/utils';
 import ListCard from '@/components/ListCard';
 import { AntDesign } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 
 
 const CARD_COLORS = [
@@ -85,6 +86,35 @@ export default function HomeScreen() {
       fetchLists();
     }, [fetchLists])
   );
+
+  const showAndroidDateTimePicker = () => {
+    // First: pick date
+    DateTimePickerAndroid.open({
+      value: deadline || new Date(),
+      mode: 'date', // ✅ זה mode חוקי
+      is24Hour: true,
+      onChange: (event, selectedDate) => {
+        if (event.type === 'set' && selectedDate) {
+          // Second: pick time
+          DateTimePickerAndroid.open({
+            value: selectedDate,
+            mode: 'time', // ✅ נפרד
+            is24Hour: true,
+            onChange: (event2, selectedTime) => {
+              if (event2.type === 'set' && selectedTime) {
+                // Combine date + time
+                const finalDate = new Date(selectedDate);
+                finalDate.setHours(selectedTime.getHours());
+                finalDate.setMinutes(selectedTime.getMinutes());
+                setDeadline(finalDate);
+              }
+            },
+          });
+        }
+      },
+    });
+  };
+  
 
   const renderItem = ({ item }: any) => <ListCard list={item} />;
 
@@ -174,26 +204,13 @@ export default function HomeScreen() {
                 )}
 
                 {Platform.OS === 'android' && (
-                  <>
-                    <Pressable onPress={() => setDatePickerVisible(true)} style={styles.deadlineButton}>
-                      <Text style={styles.deadlineText}>
-                        {deadline ? deadline.toLocaleString() : 'Pick date & time'}
-                      </Text>
-                    </Pressable>
-
-                    {isDatePickerVisible && (
-                      <DateTimePicker
-                        value={deadline || new Date()}
-                        mode="datetime"
-                        display="default"
-                        onChange={(event, selectedDate) => {
-                          setDatePickerVisible(false);
-                          if (selectedDate) setDeadline(selectedDate);
-                        }}
-                      />
-                    )}
-                  </>
+                  <Pressable onPress={showAndroidDateTimePicker} style={styles.deadlineButton}>
+                    <Text style={styles.deadlineText}>
+                      {deadline ? deadline.toLocaleString() : 'Pick date & time'}
+                    </Text>
+                  </Pressable>
                 )}
+
 
                 {Platform.OS === 'web' && (
                   <>
