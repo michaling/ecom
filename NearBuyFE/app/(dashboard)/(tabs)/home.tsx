@@ -91,7 +91,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.logoContainer}>
-        <Text style={styles.logoText}>NearBuy</Text>
+        <Text style={styles.logoText}>NearBuy </Text>
       </View>
 
       <View style={styles.toolsRow}>
@@ -230,10 +230,29 @@ export default function HomeScreen() {
               </Pressable>
 
               <Pressable
-                onPress={() => {
-                  // TODO: call axios POST here
-                  resetForm();
-                  setAddModalVisible(false);
+                onPress={async () => {
+                  try {
+                    const token = await Utils.getValueFor('access_token');
+                    const user_id = await Utils.getValueFor('user_id');
+
+                    console.log('[CREATE LIST]', {user_id, token, newListName, isLocationEnabled, isDeadlineEnabled, deadline});
+
+                    await axios.post(`${Utils.currentPath}lists`, {
+                      name: newListName,
+                      geo_alert: isLocationEnabled,
+                      deadline: isDeadlineEnabled ? deadline : null,  
+                    }, {
+                      params: { user_id },
+                      headers: { token }
+                    });
+
+                    resetForm();
+                    setAddModalVisible(false);
+                    fetchLists(); // refresh lists on success
+
+                  } catch (err) {
+                    console.error('[CREATE LIST FAILED]', err);
+                  }
                 }}
                 style={styles.saveButton}
               >

@@ -8,8 +8,10 @@ from utils import *
 
 router = APIRouter()
 
-class CreateItemRequest(BaseModel):
-    item_name: str
+class UserList(BaseModel):
+    name: str
+    geo_alert: bool | None = None
+    deadline: str | None = None
 
 # ---------- small helper -------------------------------------------------- #
 
@@ -47,54 +49,46 @@ def convert_datetime_to_iso(value):
 
 # -------------------------------------------------------------------------- #
 @router.post("/lists")
-def create_list(user_id: str, user_list: UserList):
-    now = datetime.now().isoformat()
+def create_list(
+    user_list: UserList,
+    user_id: str = Query(...),
+    token: str = Header(...)
+):
+    try:
+        print("GOT HERE 1")
+        supabase.postgrest.auth(token)
+        now = datetime.now().isoformat()
+        print("GOT HERE 2")
+        default_geo = get_profile_geo(user_id)
+        list_geo = user_list.geo_alert if user_list.geo_alert is not None else default_geo
+        deadline_str = convert_datetime_to_iso(user_list.deadline)
+        print("GOT HERE 3")
 
-    # default comes from profile
-    default_geo = get_profile_geo(user_id)
+        res = (
+            supabase.table("lists")
+            .insert({
+                "user_id": user_id,
+                "name": user_list.name,
+                "created_at": now,
+                "last_update": now,
+                "deadline": deadline_str,
+                "geo_alert": list_geo,
+            })
+            .execute()
+        )
 
-    # list-level value:  explicit > default
-    list_geo = user_list.geo_alert if user_list.geo_alert is not None else default_geo
+        print("GOT HERE 4")
+        if not res.data:
+            raise HTTPException(500, "Insert failed")
 
-    # Convert deadline to ISO string if it's a datetime object
-    deadline_str = convert_datetime_to_iso(user_list.deadline)
+        return {
+            "list_id": res.data[0]["list_id"],
+            "message": "List created"
+        }
 
-    # insert list ---------------------------------------------------------
-    list_res = (supabase.table("lists")
-                  .insert({
-                      "user_id": user_id,
-                      "name": user_list.name,
-                      "created_at": now,
-                      "last_update": now,
-                      "deadline": deadline_str,
-                      "geo_alert": list_geo        # ⬅ save it
-                  })
-                  .execute())
-
-    if not list_res.data:
-        raise HTTPException(500, "Failed to insert list")
-
-    list_id = list_res.data[0]["list_id"]
-
-    # items ---------------------------------------------------------------
-    items_payload = []
-    for it in user_list.items:
-        item_geo = it.geo_alert if it.geo_alert is not None else list_geo
-        item_deadline_str = convert_datetime_to_iso(it.deadline)
-        
-        items_payload.append({
-            "list_id":      list_id,
-            "name":         it.name,
-            "is_checked":   it.is_checked,
-            "checked_at":   now if it.is_checked else None,
-            "created_at":   now,
-            "deadline":     item_deadline_str,
-            "geo_alert":    item_geo,
-        })
-
-    supabase.table("lists_items").insert(items_payload).execute()
-
-    return {"list_id": list_id, "message": "List created"}
+    except Exception as e:
+        print("[ERROR create_list]", e)
+        raise HTTPException(500, "Failed to create list")
 
 # -------------------------------------------------------------------------- #
 @router.get("/lists")
