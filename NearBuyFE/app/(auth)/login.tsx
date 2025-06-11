@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Alert, Platform } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Alert, Platform, TouchableOpacity } from 'react-native';
 import axios, { AxiosError } from 'axios';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -55,9 +55,16 @@ export default function LoginScreen() {
         onChangeText={setPassword}
       />
 
-      <Pressable style={styles.button} onPress={handleLogin}>
+      <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>LOGIN</Text>
-      </Pressable>
+      </TouchableOpacity>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Don't have an account yet?</Text>
+        <TouchableOpacity onPress={() => router.push('/register')}>
+          <Text style={styles.footerLink}> Register</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
