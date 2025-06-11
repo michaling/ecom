@@ -55,7 +55,8 @@ export default function ListScreen() {
       }));
 
       setItems(formatted);
-      setRecommended(res.data.suggested_items?.map((s: any) => s.name) ?? []);
+      setRecommended(res.data.suggestions?.map((s: any) => s.name) ?? []);
+
     } catch (err) {
       console.error('[LIST] load failed:', err);
     } finally {
@@ -214,7 +215,7 @@ export default function ListScreen() {
             )}
           </View>
       </View>
-      </KeyboardAvoidingView>
+
       {recommended.length > 0 && (
           <View style={styles.recommendations}>
             <Text style={styles.recommendTitle}>Recommended for you</Text>
@@ -227,7 +228,8 @@ export default function ListScreen() {
             ))}
           </View>
         )}
-
+      </KeyboardAvoidingView>
+      
       </View>
     </View>
   );
