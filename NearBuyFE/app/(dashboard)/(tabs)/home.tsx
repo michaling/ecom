@@ -91,14 +91,14 @@ export default function HomeScreen() {
     // First: pick date
     DateTimePickerAndroid.open({
       value: deadline || new Date(),
-      mode: 'date', // ✅ זה mode חוקי
+      mode: 'date', 
       is24Hour: true,
       onChange: (event, selectedDate) => {
         if (event.type === 'set' && selectedDate) {
           // Second: pick time
           DateTimePickerAndroid.open({
             value: selectedDate,
-            mode: 'time', // ✅ נפרד
+            mode: 'time', 
             is24Hour: true,
             onChange: (event2, selectedTime) => {
               if (event2.type === 'set' && selectedTime) {
