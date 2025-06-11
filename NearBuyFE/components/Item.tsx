@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Modal, Switch, TouchableOpacity, Platform } from 'react-native';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Ionicons, Feather, MaterialIcons } from '@expo/vector-icons';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
@@ -18,12 +18,17 @@ interface ShoppingItemProps {
 export default function ShoppingItem({ name, isChecked, onToggle, onNameChange, onDelete }: ShoppingItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(name);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showDeadlineModal, setShowDeadlineModal] = useState(false);
   const [locationAlert, setLocationAlert] = useState(false);
   const [deadlineAlert, setDeadlineAlert] = useState(false);
   const [deadline, setDeadline] = useState<Date | null>(null);
+  const [tempLocationAlert, setTempLocationAlert] = useState(locationAlert);
+  const [tempDeadlineAlert, setTempDeadlineAlert] = useState(deadlineAlert);
+  const [tempDeadline, setTempDeadline] = useState(deadline);
+  
 
-
+  
   const handleEndEditing = () => {
     setIsEditing(false);
     onNameChange(editedName);
@@ -63,6 +68,12 @@ export default function ShoppingItem({ name, isChecked, onToggle, onNameChange, 
     );
   };
 
+  const openDeadlineModal = () => {
+    setTempDeadlineAlert(deadlineAlert);
+    setTempDeadline(deadline);
+    setShowDeadlineModal(true);
+  };
+
   return (
     <Swipeable renderRightActions={renderRightActions}>
       <View style={styles.container}>
@@ -89,61 +100,100 @@ export default function ShoppingItem({ name, isChecked, onToggle, onNameChange, 
           </Pressable>
         )}
 
-      {!isEditing && (
-        <Pressable onPress={() => setShowSettings(true)} style={{ marginLeft: 10 }}>
-          <Feather name="info" size={24} color="#c2c2c2" />
-        </Pressable>
+      {!isEditing && !isChecked && (
+        <View style={{ flexDirection: 'row', gap: 12, marginLeft: 10 }}>
+          <TouchableOpacity onPress={() => openDeadlineModal()}>
+            <Ionicons
+              name={deadlineAlert ? "alarm" : "alarm-outline"}
+              size={22}
+              color={deadlineAlert ? '#007AFF' : '#c2c2c2'}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => {
+            setTempLocationAlert(locationAlert);
+            setShowLocationModal(true);
+          }}>
+            <Ionicons
+              name={locationAlert ? "location" : "location-outline"}
+              size={22}
+              color={locationAlert ? '#007AFF' : '#c2c2c2'}
+            />
+          </TouchableOpacity>
+      </View>
       )}
       </View>
 
-      {/* Settings Modal */}
+      {/* Location Modal */}
       <Modal
-        visible={showSettings}
+        visible={showLocationModal}
         animationType="slide"
         transparent
-        onRequestClose={() => setShowSettings(false)}
+        onRequestClose={() => setShowLocationModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}> {name} </Text>
+        <View style={styles.modalOverlayLocation}>
+          <View style={styles.modalContainerLocation}>
+            <Text style={styles.modalTitle}>{name} – Location Alert</Text>
 
-            {/* Location toggle */}
             <View style={styles.toggleContainer}>
-              <Text style={styles.toggleLabel}>Location Alerts</Text>
+              <Text style={styles.toggleLabel}>Enable Location Alerts</Text>
               <Switch
-                value={locationAlert}
-                onValueChange={setLocationAlert}
+                value={tempLocationAlert}
+                onValueChange={setTempLocationAlert}
                 trackColor={{ false: '#ccc', true: '#007AFF' }}
-                thumbColor={locationAlert ? '#fff' : '#f4f3f4'}
+                thumbColor={tempLocationAlert ? '#fff' : '#f4f3f4'}
               />
             </View>
 
-            {/* Deadline toggle */}
+            <View style={styles.modalButtons}>
+              <Pressable onPress={() => setShowLocationModal(false)} style={styles.cancelButton}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable  onPress={() => {
+                setLocationAlert(tempLocationAlert);
+                setShowLocationModal(false);
+              }} style={styles.saveButton}>
+                <Text style={styles.saveText}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Deadline Modal */}
+      <Modal
+        visible={showDeadlineModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowDeadlineModal(false)}
+      >
+        <View style={styles.modalOverlayDeadline}>
+          <View style={styles.modalContainerDeadline}>
+            <Text style={styles.modalTitle}>{name} – Deadline Alert</Text>
+
             <View style={styles.toggleContainer}>
-              <Text style={styles.toggleLabel}>Deadline Alerts</Text>
+              <Text style={styles.toggleLabel}>Enable Deadline Alerts</Text>
               <Switch
-                value={deadlineAlert}
+                value={tempDeadlineAlert}
                 onValueChange={(val) => {
-                  setDeadlineAlert(val);
-                  if (!val) setDeadline(null);
+                  setTempDeadlineAlert(val);
+                  if (!val) setTempDeadline(null);
                 }}
                 trackColor={{ false: '#ccc', true: '#007AFF' }}
-                thumbColor={deadlineAlert ? '#fff' : '#f4f3f4'}
+                thumbColor={tempDeadlineAlert ? '#fff' : '#f4f3f4'}
               />
             </View>
 
-            {/* Deadline Picker */}
-            {deadlineAlert && (
+            {tempDeadlineAlert && (
               <>
                 <Text style={styles.toggleLabel}>Deadline:</Text>
 
                 {Platform.OS === 'ios' && (
                   <DateTimePicker
-                    value={deadline || new Date()}
+                    value={tempDeadline || new Date()}
                     mode="datetime"
                     display="spinner"
                     onChange={(event, selectedDate) => {
-                      if (selectedDate) setDeadline(selectedDate);
+                      if (selectedDate) setTempDeadline(selectedDate);
                     }}
                     style={{ backgroundColor: '#fff' }}
                   />
@@ -152,7 +202,7 @@ export default function ShoppingItem({ name, isChecked, onToggle, onNameChange, 
                 {Platform.OS === 'android' && (
                   <Pressable onPress={showAndroidDateTimePicker} style={styles.deadlineButton}>
                     <Text style={styles.deadlineText}>
-                      {deadline ? deadline.toLocaleString() : 'Pick date & time'}
+                      {tempDeadline ? tempDeadline.toLocaleString() : 'Pick date & time'}
                     </Text>
                   </Pressable>
                 )}
@@ -161,7 +211,7 @@ export default function ShoppingItem({ name, isChecked, onToggle, onNameChange, 
                   <>
                     <TextInput
                       placeholder="YYYY-MM-DD HH:MM"
-                      value={deadline ? deadline.toLocaleString() : ''}
+                      value={tempDeadline ? tempDeadline.toLocaleString() : ''}
                       onChangeText={(text) => {
                         const parsed = new Date(text);
                         if (!isNaN(parsed.getTime())) setDeadline(parsed);
@@ -176,19 +226,22 @@ export default function ShoppingItem({ name, isChecked, onToggle, onNameChange, 
               </>
             )}
 
-            {/* Action buttons */}
             <View style={styles.modalButtons}>
-              <Pressable onPress={() => setShowSettings(false)} style={styles.cancelButton}>
+              <Pressable onPress={() => setShowDeadlineModal(false)} style={styles.cancelButton}>
                 <Text style={styles.cancelText}>Cancel</Text>
               </Pressable>
-
-              <Pressable onPress={() => setShowSettings(false)} style={styles.saveButton}>
+              <Pressable onPress={() => {
+                setDeadlineAlert(tempDeadlineAlert);
+                setDeadline(tempDeadline);
+                setShowDeadlineModal(false);
+              }} style={styles.saveButton}>
                 <Text style={styles.saveText}>Save</Text>
               </Pressable>
             </View>
           </View>
         </View>
       </Modal>
+
     </Swipeable>
   );
 }
@@ -225,18 +278,44 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 4,
   },
-  modalOverlay: {
+  modalOverlayLocation: {
+    flex: 1,
+    justifyContent: 'center', // במקום 'flex-end'
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  modalContainerLocation: {
+    width: '80%',
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 16,
+    elevation: 5, // לאנדרואיד
+    shadowColor: '#000', // לאייפון
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+
+  modalOverlayDeadline: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-end', // שינוי קריטי — במקום 'center'
   },
-  modalContainer: {
+  modalContainerDeadline: {
     backgroundColor: '#fff',
     padding: 20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    minHeight: '60%',
+    width: '100%', // פריסה רוחבית מלאה
+    minHeight: '40%', // גובה נוח לחלק תחתון
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
   },
+  
+  
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
