@@ -21,6 +21,7 @@ import ListCard from '@/components/ListCard';
 import { AntDesign } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { Alert } from 'react-native';
 
 
 const CARD_COLORS = [
@@ -82,23 +83,23 @@ export default function HomeScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
-      // call the async function but don’t return its Promise
       fetchLists();
     }, [fetchLists])
   );
+
 
   const showAndroidDateTimePicker = () => {
     // First: pick date
     DateTimePickerAndroid.open({
       value: deadline || new Date(),
-      mode: 'date', // ✅ זה mode חוקי
+      mode: 'date',
       is24Hour: true,
       onChange: (event, selectedDate) => {
         if (event.type === 'set' && selectedDate) {
           // Second: pick time
           DateTimePickerAndroid.open({
             value: selectedDate,
-            mode: 'time', // ✅ נפרד
+            mode: 'time', 
             is24Hour: true,
             onChange: (event2, selectedTime) => {
               if (event2.type === 'set' && selectedTime) {
@@ -249,6 +250,16 @@ export default function HomeScreen() {
               <Pressable
                 onPress={async () => {
                   try {
+                    if (!newListName.trim()) {
+                      Alert.alert('Missing Name', 'Please enter a name for your list.');
+                      return;
+                    }
+
+                    if (isDeadlineEnabled && !deadline) {
+                      Alert.alert('Incomplete Deadline', 'Please pick a deadline date and time');
+                      return;
+                    }
+                    
                     const token = await Utils.getValueFor('access_token');
                     const user_id = await Utils.getValueFor('user_id');
 

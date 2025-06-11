@@ -14,6 +14,11 @@ interface Item {
   isChecked: boolean;
 }
 
+interface Suggestion {
+  suggestion_id: string;
+  name: string;
+}
+
 export default function ListScreen() {
     /* ────────── navigation params ────────── */
     const { list_id, list_name, list_color } = useLocalSearchParams<{
@@ -26,7 +31,7 @@ export default function ListScreen() {
 
     /* ────────── component state ────────── */
     const [items, setItems] = useState<Item[]>([]);
-    const [recommended, setRecommended] = useState<string[]>([]); // we’ll need it soon
+    const [recommended, setRecommended] = useState<Suggestion[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [newItemName, setNewItemName] = useState('');
@@ -55,7 +60,12 @@ export default function ListScreen() {
       }));
 
       setItems(formatted);
-      setRecommended(res.data.suggestions?.map((s: any) => s.name) ?? []);
+      setRecommended(
+        res.data.suggestions?.map((s: any) => ({
+          suggestion_id: s.suggestion_id,
+          name: s.name,
+        })) ?? []
+      );
 
     } catch (err) {
       console.error('[LIST] load failed:', err);
@@ -160,14 +170,42 @@ export default function ListScreen() {
   };
 
 
-  const handleAddRecommendation = (name: string) => {
-    const newItem = {
-      id: Date.now().toString(),
-      name,
-      isChecked: false,
-    };
-    setItems((prev) => [...prev, newItem]);
-    setRecommended((prev) => prev.filter((r) => r !== name));
+  const handleAddRecommendation = async (suggestion: Suggestion) => {
+    const token = await Utils.getValueFor('access_token');
+    try {
+      const res = await axios.post(
+        `${Utils.currentPath}lists/${list_id}/suggestions/${suggestion.suggestion_id}/accept`,
+        { name: suggestion.name }, 
+        { headers: { token } }
+      );
+  
+      const newItem = {
+        id: res.data.item_id,
+        name: suggestion.name,
+        isChecked: false,
+      };
+  
+      setItems(prev => [...prev, newItem]);
+      setRecommended(prev => prev.filter(r => r.suggestion_id !== suggestion.suggestion_id));
+    } catch (err) {
+      console.error('[ADD SUGGESTION FAILED]', err);
+    }
+  };
+
+  const handleHideRecommendation = async (s: Suggestion) => {
+    const token = await Utils.getValueFor('access_token');
+    try {
+      await axios.post(
+        `${Utils.currentPath}lists/${list_id}/suggestions/${s.suggestion_id}/reject`,
+        {},
+        { headers: { token } }
+      );
+      setRecommended((prev) =>
+        prev.filter((r) => r.suggestion_id !== s.suggestion_id)
+      );
+    } catch (err) {
+      console.error('[REJECT SUGGESTION FAILED]', err);
+    }
   };
 
   return (
@@ -221,9 +259,10 @@ export default function ListScreen() {
             <Text style={styles.recommendTitle}>Recommended for you</Text>
             {recommended.slice(0, 3).map((rec) => (
               <RecommendationItem
-                key={rec}
-                name={rec}
+                key={rec.suggestion_id}
+                name={rec.name}
                 onAdd={() => handleAddRecommendation(rec)}
+                onHide={() => handleHideRecommendation(rec)}
               />
             ))}
           </View>

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Header, Path
-from lists.models import UserList, ListItem
+from lists.models import UserList, ListItem, CreateItemRequest, AcceptSuggestionRequest
 from supabase_client import supabase
 from datetime import datetime
 from typing import List
@@ -7,11 +7,6 @@ from pydantic import BaseModel
 from utils import *
 
 router = APIRouter()
-
-
-class CreateItemRequest(BaseModel):
-    item_name: str
-
 
 # ---------- small helper -------------------------------------------------- #
 
@@ -101,6 +96,7 @@ def get_user_lists(user_id: str,
         .select("*")
         .eq("user_id", user_id)
         .eq("is_deleted", False)
+        .order("last_update", desc=True)
         .execute()
     ).data
 
@@ -282,60 +278,85 @@ def restore_list(list_id: str):
 
 
 # -------------------------------------------------------------------------- #
+def create_item_internal(list_id: str, item_name: str, token: str) -> dict:
+    supabase.postgrest.auth(token)
+    now = datetime.now().isoformat()
+
+    # Fetch list info (geo_alert and user_id)
+    list_res = (
+        supabase.table("lists")
+        .select("geo_alert", "user_id")
+        .eq("list_id", list_id)
+        .single()
+        .execute()
+    )
+    if not list_res.data:
+        raise HTTPException(404, "List not found")
+
+    list_geo = list_res.data["geo_alert"]
+    user_id = list_res.data["user_id"]
+    user_geo = get_profile_geo(user_id)
+    geo_alert = list_geo if list_geo is not None else bool(user_geo)
+
+    # Insert item
+    res = (
+        supabase.table("lists_items")
+        .insert({
+            "list_id": list_id,
+            "name": item_name,
+            "is_checked": False,
+            "created_at": now,
+            "geo_alert": geo_alert,
+        })
+        .execute()
+    )
+
+    if not res.data:
+        raise HTTPException(500, "Insert failed")
+
+    bump_list_timestamp(list_id)
+
+    return {
+        "item_id": res.data[0]["item_id"],
+        "name": res.data[0]["name"],
+    }
+
 @router.post("/lists/{list_id}/items")
-def create_item(
-        list_id: str,
-        req: CreateItemRequest,
-        token: str = Header(...),
-):
-    item_name = req.item_name
+def create_item(list_id: str, req: CreateItemRequest, token: str = Header(...)):
     try:
-        supabase.postgrest.auth(token)
-        now = datetime.now().isoformat()
-
-        # Fetch list info (geo_alert and user_id)
-        list_res = (
-            supabase.table("lists")
-            .select("geo_alert", "user_id")
-            .eq("list_id", list_id)
-            .single()
-            .execute()
-        )
-        if not list_res.data:
-            raise HTTPException(404, "List not found")
-
-        list_geo = list_res.data["geo_alert"]
-        user_id = list_res.data["user_id"]
-
-        # Fetch user's default geo_alert
-        user_geo = get_profile_geo(user_id)
-
-        # Final geo_alert decision
-        geo_alert = list_geo if list_geo is not None else bool(user_geo)
-
-        # Insert item
-        res = (
-            supabase.table("lists_items")
-            .insert({
-                "list_id": list_id,
-                "name": item_name,
-                "is_checked": False,
-                "created_at": now,
-                "geo_alert": geo_alert,
-            })
-            .execute()
-        )
-        if not res.data:
-            raise HTTPException(500, "Insert failed")
-
-        item = res.data[0]
-        bump_list_timestamp(list_id)
-
-        return {
-            "item_id": item["item_id"],
-            "name": item["name"],
-        }
-
+        return create_item_internal(list_id, req.item_name, token)
     except Exception as e:
         print("[ERROR create_item]", e)
         raise HTTPException(500, "Failed to create item")
+
+@router.post("/lists/{list_id}/suggestions/{suggestion_id}/accept")
+def accept_suggestion(
+    list_id: str,
+    suggestion_id: str,
+    req: AcceptSuggestionRequest,
+    token: str = Header(...)
+):
+    try:
+        supabase.postgrest.auth(token)
+        # Create item with provided name
+        result = create_item_internal(list_id, req.name, token)
+
+        # Mark suggestion as used
+        print(suggestion_id)
+        supabase.table("items_suggestions").update({"used": True}).eq("suggestion_id", suggestion_id).execute()
+
+        return {"message": "Suggestion accepted", "item_id": result["item_id"]}
+
+    except Exception as e:
+        print("[ERROR accept_suggestion]", e)
+        raise HTTPException(500, "Failed to accept suggestion")
+
+@router.post("/lists/{list_id}/suggestions/{suggestion_id}/reject")
+def reject_suggestion(list_id: str, suggestion_id: str, token: str = Header(...)):
+    try:
+        supabase.postgrest.auth(token)
+        supabase.table("items_suggestions").update({"rejected": True}).eq("suggestion_id", suggestion_id).execute()
+        return {"message": "Suggestion rejected"}
+    except Exception as e:
+        print("[ERROR reject_suggestion]", e)
+        raise HTTPException(500, "Failed to reject suggestion")
