@@ -98,3 +98,11 @@ class UserStoreProximity(Base):
     entered_at = Column(DateTime(timezone=True), nullable=False)
     notified = Column(Boolean, default=False, nullable=False)
     __table_args__ = (UniqueConstraint("user_id", "store_id", name="uniq_user_store"),)
+
+class StoreItemAvailability(Base):
+    __tablename__ = "store_item_availability"
+    item_id    = Column(PGUUID(as_uuid=True), ForeignKey("lists_items.item_id", ondelete="CASCADE"), primary_key=True)
+    store_id   = Column(PGUUID(as_uuid=True), ForeignKey("stores.store_id",  ondelete="CASCADE"), primary_key=True)
+    last_run   = Column(DateTime(timezone=True), nullable=False)
+    prediction = Column(Boolean, nullable=False)
+    confidence = Column(Float,   nullable=False)

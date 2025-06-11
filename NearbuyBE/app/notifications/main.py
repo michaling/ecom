@@ -26,7 +26,8 @@ from models import (
     Store,
     StoreCategory,
     DeviceToken,
-    UserStoreProximity
+    UserStoreProximity,
+    StoreItemAvailability
 )
 from utils import haversine_distance
 from expo_push import send_expo_push
@@ -264,105 +265,108 @@ async def location_update(
     current_user_id: UUID = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    # 1) Verify that the request’s user_id matches the authenticated user
     if req.user_id != current_user_id:
         raise HTTPException(status_code=403, detail="Cannot send location for another user")
 
     user_id = req.user_id
-    user_lat = req.latitude
-    user_lon = req.longitude
-    now_ts: datetime = req.timestamp
+    user_lat, user_lon, now_ts = req.latitude, req.longitude, req.timestamp
 
-    # 2) Get all item IDs from this user’s lists where geo_alert == True
-    user_item_ids = get_user_geo_alert_item_ids(db, user_id)
-    if not user_item_ids:
-        return {"status": "ok", "detail": "No geo_alert items on any list"}
+    # 1) fetch all item IDs the user wants geo-alerts for
+    item_rows = (
+        db.query(ListItem)
+          .join(List, List.list_id == ListItem.list_id)
+          .filter(
+              List.user_id == user_id,
+              ListItem.geo_alert == True,
+              ListItem.is_deleted == False
+          )
+          .all()
+    )
+    if not item_rows:
+        return {"status": "ok", "detail": "No geo_alert items"}
 
-    # 3) Map those item IDs → category IDs via items_categories
-    user_category_ids = get_category_ids_for_items(db, user_item_ids)
-    if not user_category_ids:
-        return {"status": "ok", "detail": "No categories found for geo_alert items"}
+    # 2) find all candidate stores by category as before
+    #    (reuse your get_category_ids_for_items and get_stores_for_category_ids helpers)
+    cat_ids   = get_category_ids_for_items(db, [i.item_id for i in item_rows])
+    store_rows = get_stores_for_category_ids(db, cat_ids)
 
-    # 4) Find all stores matching any of these categories via stores_categories
-    store_rows = get_stores_for_category_ids(db, user_category_ids)
-    # store_rows: list of tuples (store_id, store_name, store_lat, store_lon)
-
-    # 5) For each store, compute distance and handle geofence + dwell logic
     PROXIMITY_RADIUS = 500.0  # meters
-
     for store_id, store_name, store_lat, store_lon in store_rows:
         dist = haversine_distance(user_lat, user_lon, store_lat, store_lon)
 
         if dist <= PROXIMITY_RADIUS:
-            # User is within radius: check or insert proximity row
-            prox: Optional[UserStoreProximity] = (
-                db.query(UserStoreProximity)
-                  .filter_by(user_id=user_id, store_id=store_id)
-                  .first()
-            )
+            # enter or update dwell
+            prox = db.query(UserStoreProximity).filter_by(user_id=user_id, store_id=store_id).first()
             if not prox:
-                # No proximity row exists: insert with entered_at = now, notified=False
-                new_row = UserStoreProximity(
-                    user_id=user_id,
-                    store_id=store_id,
-                    entered_at=now_ts,
-                    notified=False
-                )
-                db.add(new_row)
+                prox = UserStoreProximity(user_id=user_id, store_id=store_id, entered_at=now_ts, notified=False)
+                db.add(prox)
                 db.commit()
-            else:
-                # Proximity row exists; check dwell time and notification
-                if not prox.notified:
-                    elapsed = now_ts - prox.entered_at
-                    if elapsed >= timedelta(minutes=5):
-                        # ≥5 minutes: send detailed push
-                        item_names = get_matching_item_names(db, user_id, store_id)
 
-                        if item_names:
-                            # Show up to 5 items, then “…and N more” if necessary
-                            MAX_SHOW = 5
-                            if len(item_names) > MAX_SHOW:
-                                shown = item_names[:MAX_SHOW]
-                                remaining = len(item_names) - MAX_SHOW
-                                bullet_list = "\n".join(f"• {n}" for n in shown)
-                                body = (
-                                    f"You've been near {store_name} for 5 minutes.\n"
-                                    f"They carry these items from your list:\n{bullet_list}\n"
-                                    f"…and {remaining} more items."
-                                )
-                            else:
-                                bullet_list = "\n".join(f"• {n}" for n in item_names)
-                                body = (
-                                    f"You've been near {store_name} for 5 minutes.\n"
-                                    f"They carry these items from your list:\n{bullet_list}"
-                                )
-                        else:
-                            # Fallback (unlikely if store_rows was filtered correctly)
-                            body = f"You've been near {store_name} for 5 minutes. They carry items on your list!"
+            elif not prox.notified and (now_ts - prox.entered_at) >= timedelta(minutes=5):
+                # time to check availability & notify
+                available_names = []
 
-                        tokens = (
-                            db.query(DeviceToken.expo_push_token)
-                              .filter(DeviceToken.user_id == user_id)
-                              .all()
+                for item in item_rows:
+                    # 1) see if we already ran this item/store
+                    rec: StoreItemAvailability = (
+                        db.query(StoreItemAvailability)
+                        .filter_by(item_id=item.item_id, store_id=store_id)
+                        .first()
+                    )
+                    if rec:
+                        # if we previously thought it *was* available, include it
+                        if rec.prediction:
+                            available_names.append(item.name)
+                    else:
+                        # call your ML agent
+                        result = availability_agent.check_product(item.name, store_name)
+
+                        # extract confidence and apply your 75% threshold
+                        confidence = float(result.get("confidence", 0.0))
+                        is_available = (confidence > 0.75)
+
+                        # insert into your new table
+                        new_rec = StoreItemAvailability(
+                            item_id    = item.item_id,
+                            store_id   = store_id,
+                            last_run   = now_ts,
+                            prediction = is_available,
+                            confidence = confidence
                         )
-                        for (expo_token,) in tokens:
-                            title = f"Store Nearby: {store_name}"
-                            data_payload = {
-                                "store_name": store_name,
-                                "item_names": item_names  # optional deep-link data
-                            }
-                            send_expo_push(expo_token, title, body, data_payload)
-
-                        # Mark as notified to avoid duplicate pushes
-                        prox.notified = True
+                        db.add(new_rec)
                         db.commit()
+
+                        # only consider it “available” for notification if confidence > .75
+                        if is_available:
+                            available_names.append(item.name)
+
+                # 3) if anything is available, build & send the Expo push
+                if available_names:
+                    MAX_SHOW = 5
+                    shown    = available_names[:MAX_SHOW]
+                    more     = len(available_names) - len(shown)
+
+                    bullet_list = "\n".join(f"• {n}" for n in shown)
+                    body = (
+                        f"You've been near {store_name} for 5 minutes.\n"
+                        f"They carry these items from your list:\n{bullet_list}"
+                        + (f"\n…and {more} more items." if more > 0 else "")
+                    )
+
+                    tokens = db.query(DeviceToken.expo_push_token).filter(DeviceToken.user_id == user_id).all()
+                    for (expo_token,) in tokens:
+                        send_expo_push(expo_token, f"Store Nearby: {store_name}", body, {
+                            "store_id": str(store_id),
+                            "items": available_names
+                        })
+
+                # mark notified
+                prox.notified = True
+                db.commit()
+
         else:
-            # Outside radius: if a proximity row exists, delete it (reset timer)
-            prox: Optional[UserStoreProximity] = (
-                db.query(UserStoreProximity)
-                  .filter_by(user_id=user_id, store_id=store_id)
-                  .first()
-            )
+            # reset if they wandered off
+            prox = db.query(UserStoreProximity).filter_by(user_id=user_id, store_id=store_id).first()
             if prox:
                 db.delete(prox)
                 db.commit()
