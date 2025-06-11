@@ -8,13 +8,12 @@ def _serialize_uuid(obj):
     if isinstance(obj, UUID):
         return str(obj)
     raise TypeError(f"Type {obj.__class__.__name__} not serializable")
+"""
 
 def send_expo_push(to_token: str, title: str, body: str, data: dict = None) -> bool:
-    """
-    Send a push notification via Expo's Push API to a single device.
-    Returns True if Expo responds with "ok", False otherwise.
-    Converts any UUIDs in `data` to strings so payload is JSON-serializable.
-    """
+    # Send a push notification via Expo's Push API to a single device.
+    # Returns True if Expo responds with "ok", False otherwise.
+    # Converts any UUIDs in `data` to strings so payload is JSON-serializable.
     # Ensure data values are JSON-compatible (cast UUIDs to str)
     clean_data = {}
     if data:
@@ -56,13 +55,13 @@ def send_expo_push(to_token: str, title: str, body: str, data: dict = None) -> b
     else:
         print(f"🚨 Expo HTTP Error {response.status_code}: {response.text}")
         return False
-
+"""
 # mock for testing
 
-"""
+
 def send_expo_push(to_token: str, title: str, body: str, data: dict = None) -> bool:
-    MOCKED push sender: print the payload instead of POSTing.
-    Converts any UUIDs in `data` → strings so json.dumps won’t fail.
+    # MOCKED push sender: print the payload instead of POSTing.
+    # Converts any UUIDs in `data` → strings so json.dumps won’t fail.
     payload = {
         "to": to_token,
         "title": title,
@@ -84,4 +83,3 @@ def send_expo_push(to_token: str, title: str, body: str, data: dict = None) -> b
     print(json.dumps(payload, indent=2, default=_serialize_for_json))
     print("=== END MOCK ===\n")
     return True
-"""

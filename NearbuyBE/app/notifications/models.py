@@ -44,6 +44,7 @@ class ListItem(Base):
     deadline = Column(DateTime(timezone=False), nullable=True)  
     deadline_notified = Column(Boolean, nullable=False, default=False)
     is_deleted = Column(Boolean, nullable=False, default=False)
+    is_checked = Column(Boolean, nullable=False, default=False)
 
 """
 class Item(Base):
@@ -106,3 +107,4 @@ class StoreItemAvailability(Base):
     last_run   = Column(DateTime(timezone=True), nullable=False)
     prediction = Column(Boolean, nullable=False)
     confidence = Column(Float,   nullable=False)
+    reason = Column(String, nullable=True)

@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 from typing import Optional
 
@@ -15,9 +15,9 @@ from dotenv import load_dotenv
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from deadline_checker import check_deadlines_and_notify
+from .deadline_checker import check_deadlines_and_notify
 
-from models import (
+from .models import (
     Base,
     User,
     List,
@@ -29,21 +29,15 @@ from models import (
     UserStoreProximity,
     StoreItemAvailability
 )
-from utils import haversine_distance
-from expo_push import send_expo_push
+from .utils import haversine_distance
+from .expo_push import send_expo_push
+from .database import get_db, engine
+import requests
 
 # -------------------- 1. Load environment & set up DB --------------------
 
-load_dotenv()  # loads .env file
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL not set in .env")
-
-engine = create_engine(DATABASE_URL, echo=False)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
 # Create tables if they don't exist (no-op if they already do)
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="nearBuy (Expo + Notification)")
@@ -78,14 +72,6 @@ def shutdown_event():
     scheduler: BackgroundScheduler = app.state.scheduler
     scheduler.shutdown()
 
-# -------------------- 2. Dependency: DB Session --------------------
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 # -------------------- 3. Authentication Stub --------------------
 # Replace with real JWT/Supabase Auth in production.
@@ -270,6 +256,8 @@ async def location_update(
 
     user_id = req.user_id
     user_lat, user_lon, now_ts = req.latitude, req.longitude, req.timestamp
+    if now_ts.tzinfo is None:
+        now_ts = now_ts.replace(tzinfo=timezone.utc)
 
     # 1) fetch all item IDs the user wants geo-alerts for
     item_rows = (
@@ -278,7 +266,9 @@ async def location_update(
           .filter(
               List.user_id == user_id,
               ListItem.geo_alert == True,
-              ListItem.is_deleted == False
+              ListItem.is_deleted == False,
+              ListItem.is_checked  == False,
+              (List.deadline.is_(None) | (List.deadline >= now_ts))
           )
           .all()
     )
@@ -302,43 +292,62 @@ async def location_update(
                 db.add(prox)
                 db.commit()
 
-            elif not prox.notified and (now_ts - prox.entered_at) >= timedelta(minutes=5):
-                # time to check availability & notify
-                available_names = []
+            #elif not prox.notified and (now_ts - prox.entered_at) >= timedelta(minutes=5):
+            elif not prox.notified:
+                entered = prox.entered_at
+                if entered.tzinfo is not None:
+                    entered = entered.astimezone(timezone.utc).replace(tzinfo=None)
 
-                for item in item_rows:
-                    # 1) see if we already ran this item/store
-                    rec: StoreItemAvailability = (
-                        db.query(StoreItemAvailability)
-                        .filter_by(item_id=item.item_id, store_id=store_id)
-                        .first()
-                    )
-                    if rec:
-                        # if we previously thought it *was* available, include it
-                        if rec.prediction:
-                            available_names.append(item.name)
-                    else:
-                        # call your ML agent
-                        result = availability_agent.check_product(item.name, store_name)
+                if (now_ts.replace(tzinfo=None) - entered) >= timedelta(minutes=5):
+                    # time to check availability & notify
+                    available_names = []
 
-                        # extract confidence and apply your 75% threshold
-                        confidence = float(result.get("confidence", 0.0))
-                        is_available = (confidence > 0.75)
-
-                        # insert into your new table
-                        new_rec = StoreItemAvailability(
-                            item_id    = item.item_id,
-                            store_id   = store_id,
-                            last_run   = now_ts,
-                            prediction = is_available,
-                            confidence = confidence
+                    for item in item_rows:
+                        # 1) see if we already ran this item/store
+                        rec: StoreItemAvailability = (
+                            db.query(StoreItemAvailability)
+                            .filter_by(item_id=item.item_id, store_id=store_id)
+                            .first()
                         )
-                        db.add(new_rec)
-                        db.commit()
+                        if rec:
+                            # if we previously thought it *was* available, include it
+                            if rec.prediction:
+                                available_names.append(item.name)
+                        else:
+                            # call your ML agent
+                            url = "http://localhost:8000/check_product_availability"
+                            params = {
+                                "product": item.name,
+                                "store": store_name
+                            }
 
-                        # only consider it “available” for notification if confidence > .75
-                        if is_available:
-                            available_names.append(item.name)
+                            resp = requests.get(url, params=params)
+                            if resp.status_code != 200:
+                                # handle agent‐service failure
+                                print(f"Agent call failed: {resp.status_code} {resp.text}")
+                                continue
+
+                            result = resp.json()
+                            # extract confidence and apply your 75% threshold
+                            confidence = float(result.get("confidence", 0.0))
+                            available_flag = bool(result.get("answer", False))
+                            reason_text    = result.get("reason")
+
+                            # insert into your new table
+                            new_rec = StoreItemAvailability(
+                                item_id    = item.item_id,
+                                store_id   = store_id,
+                                last_run   = now_ts,
+                                prediction = available_flag,
+                                confidence = confidence,
+                                reason = reason_text
+                            )
+                            db.add(new_rec)
+                            db.commit()
+
+                            # only consider it “available” for notification if confidence > .75
+                            if available_flag:
+                                available_names.append(item.name)
 
                 # 3) if anything is available, build & send the Expo push
                 if available_names:
