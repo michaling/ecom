@@ -51,7 +51,7 @@ def convert_datetime_to_iso(value):
 @router.post("/lists")
 def create_list(
     user_list: UserList,
-    user_id: str = Query(...),
+    user_id: str,
     token: str = Header(...)
 ):
     try:
