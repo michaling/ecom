@@ -36,7 +36,7 @@ export default function ShoppingItem({ name, isChecked, onToggle, onNameChange, 
 
   const showAndroidDateTimePicker = () => {
     DateTimePickerAndroid.open({
-      value: deadline || new Date(),
+      value: tempDeadline || new Date(),
       mode: 'date',
       is24Hour: true,
       onChange: (event, selectedDate) => {
@@ -50,7 +50,7 @@ export default function ShoppingItem({ name, isChecked, onToggle, onNameChange, 
                 const finalDate = new Date(selectedDate);
                 finalDate.setHours(selectedTime.getHours());
                 finalDate.setMinutes(selectedTime.getMinutes());
-                setDeadline(finalDate);
+                setTempDeadline(finalDate);
               }
             },
           });
@@ -132,7 +132,7 @@ export default function ShoppingItem({ name, isChecked, onToggle, onNameChange, 
       >
         <View style={styles.modalOverlayLocation}>
           <View style={styles.modalContainerLocation}>
-            <Text style={styles.modalTitle}>{name} – Location Alert</Text>
+            <Text style={styles.modalTitle}>{name}</Text>
 
             <View style={styles.toggleContainer}>
               <Text style={styles.toggleLabel}>Enable Location Alerts</Text>
@@ -168,8 +168,7 @@ export default function ShoppingItem({ name, isChecked, onToggle, onNameChange, 
       >
         <View style={styles.modalOverlayDeadline}>
           <View style={styles.modalContainerDeadline}>
-            <Text style={styles.modalTitle}>{name} – Deadline Alert</Text>
-
+            <Text style={styles.modalTitle}>{name}</Text>
             <View style={styles.toggleContainer}>
               <Text style={styles.toggleLabel}>Enable Deadline Alerts</Text>
               <Switch
@@ -214,7 +213,7 @@ export default function ShoppingItem({ name, isChecked, onToggle, onNameChange, 
                       value={tempDeadline ? tempDeadline.toLocaleString() : ''}
                       onChangeText={(text) => {
                         const parsed = new Date(text);
-                        if (!isNaN(parsed.getTime())) setDeadline(parsed);
+                        if (!isNaN(parsed.getTime())) setTempDeadline(parsed);
                       }}
                       style={styles.input}
                     />
