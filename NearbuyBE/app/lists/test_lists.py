@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 
 from fastapi.testclient import TestClient
 from lists import app
-from app.supabase_client import supabase
+from supabase_client import supabase
 
 client = TestClient(app)
 user_id = "18293cd2-18b4-4b88-9f92-85ae3e50dc68"

@@ -12,20 +12,25 @@ from datetime import datetime
 
 router = APIRouter()
 
+class CreateItemRequest(BaseModel):
+    item_name: str
+
 # ---------- small helper -------------------------------------------------- #
-def user_has_global_geo_alert(user_id: str) -> bool:
-    """Look at user_profiles.geo_alert once per request."""
-    prof = (
-        supabase.table("user_profiles")
-        .select("geo_alert")
-        .eq("user_id", user_id)
-        .single()
-        .execute()
-    )
-    return bool(prof.data and prof.data.get("geo_alert"))
+
+# Does the same as get_profile_geo - Delete later (if not needed)
+# def user_has_global_geo_alert(user_id: str) -> bool:
+#     """Look at user_profiles.geo_alert once per request."""
+#     prof = (
+#         supabase.table("user_profiles")
+#         .select("geo_alert")
+#         .eq("user_id", user_id)
+#         .execute()
+#     )
+#     return bool(prof.data and prof.data.get("geo_alert"))
 
 def get_profile_geo(user_id: str) -> bool:
     """Return the user-level default (TRUE/FALSE)."""
+
     res = (supabase.table("user_profiles")
                     .select("geo_alert")
                     .eq("user_id", user_id)
@@ -47,12 +52,12 @@ def convert_datetime_to_iso(value):
 # -------------------------------------------------------------------------- #
 @router.post("/lists")
 def create_list(user_id: str, user_list: UserList):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
 
-    # 1️⃣  default comes from profile
+    # default comes from profile
     default_geo = get_profile_geo(user_id)
 
-    # 2️⃣  list-level value:  explicit > default
+    # list-level value:  explicit > default
     list_geo = user_list.geo_alert if user_list.geo_alert is not None else default_geo
 
     # Convert deadline to ISO string if it's a datetime object
@@ -164,20 +169,9 @@ def get_user_lists(user_id: str,
             or []
         )
 
-        suggestions = (
-            supabase.table("items_suggestions")
-            .select("*")
-            .eq("list_id", list_id)
-            .eq("used", False)
-            .eq("rejected", False)
-            .execute()
-            .data
-            or []
+        unchecked_count = sum(
+            1 for it in items if not it.get("is_checked", False)
         )
-
-        unchecked_items = [
-            item for item in items if not item.get("is_checked", False)
-        ]
 
         out.append({
             "id": list_id,
@@ -185,49 +179,77 @@ def get_user_lists(user_id: str,
             "deadline": lst["deadline"],
             "geo_alert": lst["geo_alert"],
             "items": items,
-            "unchecked_items": unchecked_items,
-            "suggested_items": suggestions
+            # "unchecked_items": unchecked_items, # Delete Later
+            "unchecked_count": unchecked_count
         })
 
-        print(f"out: {out}")
-
+        #print(f"out: {out}")
     return out
 
 # -------------------------------------------------------------------------- #
 @router.get("/lists/{list_id}")
 def get_list(list_id: str):
-    lst = (
-        supabase.table("lists")
-        .select("*")
-        .eq("list_id", list_id)
-        .eq("is_deleted", False)
-        .single()
-        .execute()
-        .data
-    )
+    try:
+        lst = (
+            supabase.table("lists")
+            .select("*")
+            .eq("list_id", list_id)
+            .eq("is_deleted", False)
+            .single()
+            .execute()
+            .data
+        )
+
+    except Exception as e:
+        print("[Generic get_list error]", e)
+        raise HTTPException(status_code=500, detail="Failed to get list")
+
     if not lst:
         raise HTTPException(status_code=404, detail="List not found")
 
-    items = (
-        supabase.table("lists_items")
+    try:
+        items = (
+            supabase.table("lists_items")
+            .select("*")
+            .eq("list_id", list_id)
+            .eq("is_deleted", False)
+            .execute()
+            .data
+        )
+    except Exception as e:
+        print(f"get_list items error: {e}")
+        items = (
+            supabase.table("lists_items")
+            .select("*")
+            .eq("list_id", list_id)
+            .eq("is_deleted", False)
+            .execute()
+            .data
+        )
+
+
+    suggestions = (
+        supabase.table("items_suggestions")
         .select("*")
         .eq("list_id", list_id)
-        .eq("is_deleted", False)
+        .eq("used", False)
+        .eq("rejected", False)
         .execute()
-        .data
+        .data or []
     )
 
     return {
         "name": lst["name"],
         "deadline": lst["deadline"],
         "geo_alert": lst["geo_alert"],
-        "items": items
+        "items": items,
+        "suggestions": suggestions
     }
 
 # -------------------------------------------------------------------------- #
 @router.put("/lists/{list_id}")
 def update_list(list_id: str, user_list: UserList):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
 
     # fetch owner to get default
     res = supabase.table("lists").select("user_id").eq("list_id", list_id).single().execute()
@@ -273,10 +295,12 @@ def update_list(list_id: str, user_list: UserList):
 
     return {"message": "List updated"}
 
+
+
 # -------------------------------------------------------------------------- #
 @router.delete("/lists/{list_id}")
 def delete_list(list_id: str):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
     supabase.table("lists").update({"is_deleted": True, "deleted_at": now}).eq("list_id", list_id).execute()
     supabase.table("lists_items").update({"is_deleted": True, "deleted_at": now}).eq("list_id", list_id).execute()
     return {"message": "List deleted"}
@@ -284,7 +308,7 @@ def delete_list(list_id: str):
 # -------------------------------------------------------------------------- #
 @router.post("/lists/{list_id}/restore")
 def restore_list(list_id: str):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
     lst = (
         supabase.table("lists").select("*").eq("list_id", list_id).single().execute().data
     )
@@ -295,7 +319,7 @@ def restore_list(list_id: str):
 
     # still within 30 days?
     deleted_at = datetime.fromisoformat(lst["deleted_at"].replace("Z", "+00:00"))
-    if (datetime.utcnow() - deleted_at).days > 30:
+    if (datetime.now() - deleted_at).days > 30:
         raise HTTPException(status_code=410, detail="Too old to restore")
 
     supabase.table("lists").update({"is_deleted": False, "deleted_at": None, "last_update": now}).eq("list_id", list_id).execute()

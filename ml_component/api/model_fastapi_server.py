@@ -1,12 +1,14 @@
 from fastapi import FastAPI, HTTPException
 from ml_component.clustering.products_recommender import ProductRecommender
 from ml_component.clustering.list_based_recommender import ListBasedRecommender
+from ml_component.locations_based_recommender_agent.product_availability_agent import ProductAvailabilityAgent
 
 app = FastAPI()
 
 # Global instances
 product_recommender = ProductRecommender()
 list_recommender = ListBasedRecommender()
+availability_agent = ProductAvailabilityAgent()
 
 """
 To set up the server run: uvicorn ml_component.api.model_fastapi_server:app --reload
@@ -64,3 +66,19 @@ def recommend_top_lists(list_name: str):
         "list_name": list_name,
         "similar_lists": list_recommender.get_similar_lists_by_name(list_name)
     }
+
+
+@app.get("/check_product_availability")
+def check_product_availability(product: str, store: str):
+    """
+    Runs the full agent pipeline and returns whether the product is likely sold in the given store.
+    """
+    try:
+        result = availability_agent.check_product(product, store)
+        return {
+            "product": product,
+            "store": store,
+            **result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
