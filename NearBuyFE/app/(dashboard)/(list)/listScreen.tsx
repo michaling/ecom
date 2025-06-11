@@ -170,6 +170,10 @@ export default function ListScreen() {
     setRecommended((prev) => prev.filter((r) => r !== name));
   };
 
+  const handleHideRecommendation = (name: string) => {
+    setRecommended((prev) => prev.filter((r) => r !== name));
+  };
+
   return (
     <View style={styles.container}>
 
@@ -224,6 +228,7 @@ export default function ListScreen() {
                 key={rec}
                 name={rec}
                 onAdd={() => handleAddRecommendation(rec)}
+                onHide={() => handleHideRecommendation(rec)}
               />
             ))}
           </View>

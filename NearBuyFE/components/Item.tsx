@@ -91,7 +91,7 @@ export default function ShoppingItem({ name, isChecked, onToggle, onNameChange, 
 
       {!isEditing && (
         <Pressable onPress={() => setShowSettings(true)} style={{ marginLeft: 10 }}>
-          <Feather name="info" size={24} color="#888" />
+          <Feather name="info" size={24} color="#c2c2c2" />
         </Pressable>
       )}
       </View>
