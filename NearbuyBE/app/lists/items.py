@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Header
-from supabase_client import supabase
+from app.supabase_client import supabase
 from datetime import datetime
 from pydantic import BaseModel
-from utils import *
+from app.utils import *
 
 router = APIRouter()
 

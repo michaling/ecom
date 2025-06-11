@@ -1,232 +1,199 @@
-from fastapi import APIRouter, HTTPException, Header, FastAPI
-from app.lists.models import UserList, ListItem
+from fastapi import APIRouter, HTTPException, Header
+from app.lists.models import UserList
 from app.supabase_client import supabase
 from datetime import datetime
-from typing import List
+from typing import Optional
 import os
 import requests
-import asyncio
-import httpx
-
 
 router = APIRouter()
 
-class CreateItemRequest(BaseModel):
-    item_name: str
-
-# ---------- small helper -------------------------------------------------- #
-
-# Does the same as get_profile_geo - Delete later (if not needed)
-# def user_has_global_geo_alert(user_id: str) -> bool:
-#     """Look at user_profiles.geo_alert once per request."""
-#     prof = (
-#         supabase.table("user_profiles")
-#         .select("geo_alert")
-#         .eq("user_id", user_id)
-#         .execute()
-#     )
-#     return bool(prof.data and prof.data.get("geo_alert"))
+# ---------------------- Helpers ----------------------------------------- #
 
 def get_profile_geo(user_id: str) -> bool:
     """Return the user-level default (TRUE/FALSE)."""
-
-    res = (supabase.table("user_profiles")
-                    .select("geo_alert")
-                    .eq("user_id", user_id)
-                    .single()
-                    .execute())
-    # Handle case where profile might not exist or geo_alert is None
+    res = (
+        supabase.table("user_profiles")
+        .select("geo_alert")
+        .eq("user_id", user_id)
+        .single()
+        .execute()
+    )
     if not res.data or res.data.get("geo_alert") is None:
         return False
     return bool(res.data["geo_alert"])
 
-def convert_datetime_to_iso(value):
-    """Convert datetime object to ISO string if needed."""
+
+def convert_datetime_to_iso(value: Optional[datetime]) -> Optional[str]:
+    """Convert datetime to ISO string, or pass through None."""
     if value is None:
         return None
-    if isinstance(value, datetime):
-        return value.isoformat()
-    return value
+    return value.isoformat()
 
-# -------------------------------------------------------------------------- #
+
+def fetch_and_store_recommendations(list_name: str, list_id: int):
+    """Fetch recommendations from ML API both per-item and per-list, filter out existing items, and store them."""
+    ml_base = os.getenv("ML_API_BASE_URL", "http://localhost:8000")
+    # 1) Gather existing list items
+    existing_rows = (
+        supabase.table("lists_items")
+        .select("name")
+        .eq("list_id", list_id)
+        .eq("is_deleted", False)
+        .execute()
+        .data or []
+    )
+    existing_names = {row["name"] for row in existing_rows}
+
+    # 2) Collect recommendations from similar-products endpoint
+    recs = set()
+    for prod in existing_names:
+        try:
+            r = requests.get(
+                f"{ml_base}/recommend_similar_products",
+                params={"product_name": prod, "top_k": 5},
+                timeout=5
+            )
+            r.raise_for_status()
+            sims = r.json().get("similar_products", [])
+            recs.update(sims)
+        except Exception as e:
+            print(f"[ML Error] similar for '{prod}': {e}")
+
+    # 3) Also fetch recommendations by list name
+    try:
+        r2 = requests.get(
+            f"{ml_base}/recommend_by_list_name",
+            params={"list_name": list_name},
+            timeout=5
+        )
+        r2.raise_for_status()
+        by_name = r2.json().get("recommended_products", [])
+        recs.update(by_name)
+    except Exception as e:
+        print(f"[ML Error] by-name for '{list_name}': {e}")
+
+    # 4) Filter out any items already present and ensure no duplicates
+    filtered = list(recs - existing_names)
+
+    # 5) Clear old suggestions
+    supabase.table("items_suggestions").delete().eq("list_id", list_id).execute()
+
+    # 6) Insert new suggestions
+    payload = [{"list_id": list_id, "suggestion_text": item} for item in filtered]
+    if payload:
+        supabase.table("items_suggestions").insert(payload).execute()
+
+
+# --------------------- API Endpoints ------------------------------------ #
+
 @router.post("/lists")
 def create_list(user_id: str, user_list: UserList):
-    now = datetime.now().isoformat()
+    now = datetime.utcnow().isoformat()
 
-    # default comes from profile
     default_geo = get_profile_geo(user_id)
-
-    # list-level value:  explicit > default
     list_geo = user_list.geo_alert if user_list.geo_alert is not None else default_geo
+    deadline = convert_datetime_to_iso(user_list.deadline)
 
-    # Convert deadline to ISO string if it's a datetime object
-    deadline_str = convert_datetime_to_iso(user_list.deadline)
-
-    # insert list ---------------------------------------------------------
-    list_res = (supabase.table("lists")
-                  .insert({
-                      "user_id": user_id,
-                      "name": user_list.name,
-                      "created_at": now,
-                      "last_update": now,
-                      "deadline": deadline_str,
-                      "geo_alert": list_geo        # ⬅ save it
-                  })
-                  .execute())
-
-    if not list_res.data:
+    # Insert list
+    res = supabase.table("lists").insert({
+        "user_id": user_id,
+        "name": user_list.name,
+        "created_at": now,
+        "last_update": now,
+        "deadline": deadline,
+        "geo_alert": list_geo
+    }).execute()
+    if not res.data:
         raise HTTPException(500, "Failed to insert list")
+    list_id = res.data[0]["list_id"]
 
-    list_id = list_res.data[0]["list_id"]
-
-    # items ---------------------------------------------------------------
+    # Insert items
     items_payload = []
-    for it in user_list.items:
-        item_geo = it.geo_alert if it.geo_alert is not None else list_geo
-        item_deadline_str = convert_datetime_to_iso(it.deadline)
-        
+    for item in user_list.items:
         items_payload.append({
-            "list_id":      list_id,
-            "name":         it.name,
-            "is_checked":   it.is_checked,
-            "checked_at":   now if it.is_checked else None,
-            "created_at":   now,
-            "deadline":     item_deadline_str,
-            "geo_alert":    item_geo,
+            "list_id": list_id,
+            "name": item.name,
+            "is_checked": item.is_checked,
+            "checked_at": now if item.is_checked else None,
+            "created_at": now,
+            "deadline": convert_datetime_to_iso(item.deadline),
+            "geo_alert": item.geo_alert if item.geo_alert is not None else list_geo
         })
+    if items_payload:
+        supabase.table("lists_items").insert(items_payload).execute()
 
-    supabase.table("lists_items").insert(items_payload).execute()
-
-    # ─── NEW: CALL THE ML MODEL FOR RECOMMENDATIONS ─────────────────────────────
-    # Assume you have set an environment variable ML_API_BASE_URL (e.g. "http://localhost:8000")
-    ml_api_base = os.getenv("ML_API_BASE_URL", "http://localhost:8000")
-    # The FastAPI model service expects a GET to /recommend_by_list_name?list_name=<your_list_name>
-    try:
-        resp = requests.get(
-            f"{ml_api_base}/recommend_by_list_name",
-            params={"list_name": user_list.name},
-            timeout=5,  # short timeout in seconds
-        )
-        resp.raise_for_status()
-        ml_payload = resp.json()
-        # Expecting something like {"list_name": "...", "recommended_products": ["Milk", "Eggs", ...]}
-        recommended_products = ml_payload.get("recommended_products", [])
-    except Exception as e:
-        # If the ML service fails, just log or raise—here, we'll raise a 502 so the client knows
-        raise HTTPException(
-            status_code=502,
-            detail=f"Failed to fetch recommendations from ML service: {e}",
-        )
-
-    # Now insert those recommendations into items_suggestions table
-    # We assume the schema for items_suggestions has at least: list_id, suggestion_text, used (default false), rejected (default false)
-    suggestions_payload = []
-    for prod_name in recommended_products:
-        suggestions_payload.append(
-            {
-                "list_id": list_id,
-                "suggestion_text": prod_name,
-                # "used" and "rejected" will default to FALSE in the database
-            }
-        )
-    if suggestions_payload:
-        supabase.table("items_suggestions").insert(suggestions_payload).execute()
-    # ────────────────────────────────────────────────────────────────────────────
+    # Fetch and store combined ML recommendations
+    fetch_and_store_recommendations(user_list.name, list_id)
 
     return {"list_id": list_id, "message": "List created with recommendations"}
 
-# -------------------------------------------------------------------------- #
 @router.get("/lists")
-def get_user_lists(user_id: str,
-                   token: str = Header(...)):
-    # Authorize user session for RLS
+def get_user_lists(user_id: str, token: str = Header(...)):
     supabase.postgrest.auth(token)
-
-    print(f"user_id: {user_id}")
     rows = (
         supabase.table("lists")
         .select("*")
         .eq("user_id", user_id)
         .eq("is_deleted", False)
         .execute()
-    ).data
-
-    if not rows:
-        return []
+        .data or []
+    )
 
     out = []
     for lst in rows:
-        list_id = lst["list_id"]
-
+        lid = lst["list_id"]
         items = (
             supabase.table("lists_items")
             .select("*")
-            .eq("list_id", list_id)
+            .eq("list_id", lid)
             .eq("is_deleted", False)
             .execute()
-            .data
-            or []
+            .data or []
         )
-
-        unchecked_count = sum(
-            1 for it in items if not it.get("is_checked", False)
+        suggestions = (
+            supabase.table("items_suggestions")
+            .select("*")
+            .eq("list_id", lid)
+            .eq("used", False)
+            .eq("rejected", False)
+            .execute()
+            .data or []
         )
-
+        unchecked = sum(1 for i in items if not i.get("is_checked", False))
         out.append({
-            "id": list_id,
+            "id": lid,
             "name": lst["name"],
             "deadline": lst["deadline"],
             "geo_alert": lst["geo_alert"],
             "items": items,
-            # "unchecked_items": unchecked_items, # Delete Later
-            "unchecked_count": unchecked_count
+            "unchecked_count": unchecked,
+            "suggested_items": suggestions
         })
-
-        #print(f"out: {out}")
     return out
 
-# -------------------------------------------------------------------------- #
 @router.get("/lists/{list_id}")
 def get_list(list_id: str):
-    try:
-        lst = (
-            supabase.table("lists")
-            .select("*")
-            .eq("list_id", list_id)
-            .eq("is_deleted", False)
-            .single()
-            .execute()
-            .data
-        )
-
-    except Exception as e:
-        print("[Generic get_list error]", e)
-        raise HTTPException(status_code=500, detail="Failed to get list")
-
+    lst = (
+        supabase.table("lists")
+        .select("*")
+        .eq("list_id", list_id)
+        .eq("is_deleted", False)
+        .single()
+        .execute()
+        .data
+    )
     if not lst:
-        raise HTTPException(status_code=404, detail="List not found")
+        raise HTTPException(404, "List not found")
 
-    try:
-        items = (
-            supabase.table("lists_items")
-            .select("*")
-            .eq("list_id", list_id)
-            .eq("is_deleted", False)
-            .execute()
-            .data
-        )
-    except Exception as e:
-        print(f"get_list items error: {e}")
-        items = (
-            supabase.table("lists_items")
-            .select("*")
-            .eq("list_id", list_id)
-            .eq("is_deleted", False)
-            .execute()
-            .data
-        )
-
-
+    items = (
+        supabase.table("lists_items")
+        .select("*")
+        .eq("list_id", list_id)
+        .eq("is_deleted", False)
+        .execute()
+        .data
+    )
     suggestions = (
         supabase.table("items_suggestions")
         .select("*")
@@ -236,7 +203,6 @@ def get_list(list_id: str):
         .execute()
         .data or []
     )
-
     return {
         "name": lst["name"],
         "deadline": lst["deadline"],
@@ -245,164 +211,59 @@ def get_list(list_id: str):
         "suggestions": suggestions
     }
 
-# -------------------------------------------------------------------------- #
 @router.put("/lists/{list_id}")
 def update_list(list_id: str, user_list: UserList):
-    now = datetime.now().isoformat()
-
-    # fetch owner to get default
+    now = datetime.utcnow().isoformat()
     res = supabase.table("lists").select("user_id").eq("list_id", list_id).single().execute()
     if not res.data:
-        raise HTTPException(status_code=404, detail="List not found")
-    
-    user_id = res.data["user_id"]
-    default_geo = get_profile_geo(user_id)
-
+        raise HTTPException(404, "List not found")
+    default_geo = get_profile_geo(res.data["user_id"])
     list_geo = user_list.geo_alert if user_list.geo_alert is not None else default_geo
-    deadline_str = convert_datetime_to_iso(user_list.deadline)
+    deadline = convert_datetime_to_iso(user_list.deadline)
 
-    # update list header
     supabase.table("lists").update({
-        "name":        user_list.name,
-        "deadline":    deadline_str,
-        "geo_alert":   list_geo,
+        "name": user_list.name,
+        "deadline": deadline,
+        "geo_alert": list_geo,
         "last_update": now
     }).eq("list_id", list_id).execute()
 
-    # soft-delete old items (unchanged)
-    supabase.table("lists_items").update({
-        "is_deleted": True,
-        "deleted_at": now
-    }).eq("list_id", list_id).execute()
+    supabase.table("lists_items").update({"is_deleted": True, "deleted_at": now}).eq("list_id", list_id).execute()
 
-    # insert new items
     items_payload = []
-    for it in user_list.items:
-        item_geo = it.geo_alert if it.geo_alert is not None else list_geo
-        item_deadline_str = convert_datetime_to_iso(it.deadline)
-        
+    for item in user_list.items:
         items_payload.append({
-            "list_id":    list_id,
-            "name":       it.name,
-            "is_checked": it.is_checked,
-            "checked_at": now if it.is_checked else None,
+            "list_id": list_id,
+            "name": item.name,
+            "is_checked": item.is_checked,
+            "checked_at": now if item.is_checked else None,
             "created_at": now,
-            "deadline":   item_deadline_str,
-            "geo_alert":  item_geo
+            "deadline": convert_datetime_to_iso(item.deadline),
+            "geo_alert": item.geo_alert if item.geo_alert is not None else list_geo
         })
-    supabase.table("lists_items").insert(items_payload).execute()
+    if items_payload:
+        supabase.table("lists_items").insert(items_payload).execute()
 
     return {"message": "List updated"}
 
-
-
-# -------------------------------------------------------------------------- #
 @router.delete("/lists/{list_id}")
 def delete_list(list_id: str):
-    now = datetime.now().isoformat()
+    now = datetime.utcnow().isoformat()
     supabase.table("lists").update({"is_deleted": True, "deleted_at": now}).eq("list_id", list_id).execute()
     supabase.table("lists_items").update({"is_deleted": True, "deleted_at": now}).eq("list_id", list_id).execute()
     return {"message": "List deleted"}
 
-# -------------------------------------------------------------------------- #
 @router.post("/lists/{list_id}/restore")
 def restore_list(list_id: str):
-    now = datetime.now().isoformat()
-    lst = (
-        supabase.table("lists").select("*").eq("list_id", list_id).single().execute().data
-    )
+    now = datetime.utcnow().isoformat()
+    lst = supabase.table("lists").select("*").eq("list_id", list_id).single().execute().data
     if not lst:
-        raise HTTPException(status_code=404, detail="List not found")
-    if not lst["is_deleted"]:
+        raise HTTPException(404, "List not found")
+    if not lst.get("is_deleted", False):
         return {"message": "List is not deleted"}
-
-    # still within 30 days?
     deleted_at = datetime.fromisoformat(lst["deleted_at"].replace("Z", "+00:00"))
-    if (datetime.now() - deleted_at).days > 30:
-        raise HTTPException(status_code=410, detail="Too old to restore")
-
+    if (datetime.utcnow() - deleted_at).days > 30:
+        raise HTTPException(410, "Too old to restore")
     supabase.table("lists").update({"is_deleted": False, "deleted_at": None, "last_update": now}).eq("list_id", list_id).execute()
     supabase.table("lists_items").update({"is_deleted": False, "deleted_at": None}).eq("list_id", list_id).execute()
     return {"message": "List successfully restored", "list_id": list_id}
-
-
-async def fetch_and_update_recommendations():
-    # 1️⃣ fetch all active lists
-    lists_res = supabase.table("lists")\
-        .select("list_id, name")\
-        .eq("is_deleted", False)\
-        .execute()
-    lists_data = lists_res.data or []
-
-    async with httpx.AsyncClient(timeout=10) as client:
-        for lst in lists_data:
-            list_id = lst["list_id"]
-            list_name = lst["name"]
-
-            # 2️⃣ fetch current items for this list
-            items_res = supabase.table("lists_items")\
-                .select("name")\
-                .eq("list_id", list_id)\
-                .eq("is_deleted", False)\
-                .execute()
-            existing = {i["name"] for i in (items_res.data or [])}
-
-            recommendations = set()
-
-            # 3️⃣ for each existing item, get similar products
-            for prod in existing:
-                try:
-                    r = await client.get(
-                        f"{ML_BASE}/recommend_similar_products",
-                        params={"product_name": prod, "top_k": 5},
-                    )
-                    r.raise_for_status()
-                    sims = r.json().get("similar_products", [])
-                    recommendations.update(sims)
-                except Exception as e:
-                    print(f"[{datetime.utcnow().isoformat()}] "
-                          f"similar_products fail for '{prod}': {e}")
-
-            # 4️⃣ optionally blend in list-name–based recs too
-            try:
-                r2 = await client.get(
-                    f"{ML_BASE}/recommend_by_list_name",
-                    params={"list_name": list_name},
-                )
-                r2.raise_for_status()
-                by_name = r2.json().get("recommended_products", [])
-                recommendations.update(by_name)
-            except Exception as e:
-                print(f"[{datetime.utcnow().isoformat()}] "
-                      f"recommend_by_list_name fail for '{list_name}': {e}")
-
-            # 5️⃣ final cleanup: remove already-present items
-            recommendations.difference_update(existing)
-
-            # 6️⃣ delete old suggestions
-            supabase.table("items_suggestions")\
-                .delete()\
-                .eq("list_id", list_id)\
-                .execute()
-
-            # 7️⃣ insert new suggestions
-            if recommendations:
-                payload = [
-                    {"list_id": list_id, "suggestion_text": name}
-                    for name in recommendations
-                ]
-                supabase.table("items_suggestions").insert(payload).execute()
-
-
-@app.on_event("startup")
-async def start_recommendation_scheduler():
-    async def loop():
-        await asyncio.sleep(5)  # let everything warm up
-        while True:
-            try:
-                await fetch_and_update_recommendations()
-            except Exception as e:
-                print(f"[{datetime.utcnow().isoformat()}] Scheduler error: {e}")
-            await asyncio.sleep(12 * 60 * 60)  # 12 hours
-
-    asyncio.create_task(loop())

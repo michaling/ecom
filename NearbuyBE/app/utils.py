@@ -1,4 +1,4 @@
-from supabase_client import supabase
+from .supabase_client import supabase
 from fastapi import HTTPException
 from datetime import datetime
 
