@@ -35,7 +35,8 @@ export default function ListScreen() {
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [newItemName, setNewItemName] = useState('');
-
+    const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const [editedTitle, setEditedTitle] = useState(list_name);
 
     /* ────────── helper: fetch list from BE ────────── */
   const loadList = useCallback(async () => {
@@ -124,6 +125,23 @@ export default function ListScreen() {
     }
   };
   
+  const changeListName = async (newName: string) => {
+    setIsEditingTitle(false);
+    if (newName.trim() === '' || newName === list_name) return;
+  
+    const token = await Utils.getValueFor('access_token');
+    try {
+      await axios.patch(`${Utils.currentPath}lists/${list_id}/name`, {
+        name: newName,
+      }, {
+        headers: { token },
+      });
+      setEditedTitle(newName);
+    } catch (err) {
+      console.error('[RENAME LIST FAILED]', err);
+    }
+  };
+
   const deleteItem = async (itemId: string) => {
     setItems(prev => prev.filter(item => item.id !== itemId));
     const token = await Utils.getValueFor('access_token');
@@ -208,10 +226,6 @@ export default function ListScreen() {
     }
   };
 
-  const handleHideRecommendation = (name: string) => {
-    setRecommended((prev) => prev.filter((r) => r !== name));
-  };
-
   return (
     <View style={styles.container}>
 
@@ -235,7 +249,20 @@ export default function ListScreen() {
         >
           <Feather name="settings" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.title}>{list_name}</Text>
+        {isEditingTitle ? (
+        <TextInput
+          style={styles.title}
+          value={editedTitle}
+          onChangeText={setEditedTitle}
+          onBlur={() => changeListName(editedTitle)}
+          onSubmitEditing={() => changeListName(editedTitle)}
+          autoFocus
+        />
+      ) : (
+        <TouchableOpacity onPress={() => setIsEditingTitle(true)}>
+          <Text style={styles.title}>{editedTitle}</Text>
+        </TouchableOpacity>
+      )}
         <Text style={styles.subtitle}>
           {`${total} items, ${left} remaining`}
         </Text>

@@ -196,53 +196,72 @@ def get_list(list_id: str):
 
 
 # -------------------------------------------------------------------------- #
-@router.put("/lists/{list_id}")
-def update_list(list_id: str, user_list: UserList):
-    now = datetime.now().isoformat()
+# @router.put("/lists/{list_id}")
+# def update_list(list_id: str, user_list: UserList):
+#     now = datetime.now().isoformat()
+#
+#     # fetch owner to get default
+#     res = supabase.table("lists").select("user_id").eq("list_id", list_id).single().execute()
+#     if not res.data:
+#         raise HTTPException(status_code=404, detail="List not found")
+#
+#     user_id = res.data["user_id"]
+#     default_geo = get_profile_geo(user_id)
+#
+#     list_geo = user_list.geo_alert if user_list.geo_alert is not None else default_geo
+#     deadline_str = convert_datetime_to_iso(user_list.deadline)
+#
+#     # update list header
+#     supabase.table("lists").update({
+#         "name": user_list.name,
+#         "deadline": deadline_str,
+#         "geo_alert": list_geo,
+#         "last_update": now
+#     }).eq("list_id", list_id).execute()
+#
+#     # soft-delete old items (unchanged)
+#     supabase.table("lists_items").update({
+#         "is_deleted": True,
+#         "deleted_at": now
+#     }).eq("list_id", list_id).execute()
+#
+#     # insert new items
+#     items_payload = []
+#     for it in user_list.items:
+#         item_geo = it.geo_alert if it.geo_alert is not None else list_geo
+#         item_deadline_str = convert_datetime_to_iso(it.deadline)
+#
+#         items_payload.append({
+#             "list_id": list_id,
+#             "name": it.name,
+#             "is_checked": it.is_checked,
+#             "checked_at": now if it.is_checked else None,
+#             "created_at": now,
+#             "deadline": item_deadline_str,
+#             "geo_alert": item_geo
+#         })
+#     supabase.table("lists_items").insert(items_payload).execute()
+#
+#     return {"message": "List updated"}
 
-    # fetch owner to get default
-    res = supabase.table("lists").select("user_id").eq("list_id", list_id).single().execute()
-    if not res.data:
-        raise HTTPException(status_code=404, detail="List not found")
 
-    user_id = res.data["user_id"]
-    default_geo = get_profile_geo(user_id)
+@router.patch("/lists/{list_id}/name")
+def update_list_name(list_id: str, body: dict, token: str = Header(...)):
+    try:
+        supabase.postgrest.auth(token)
+        name = body.get("name", "").strip()
+        if not name:
+            raise HTTPException(400, "Invalid name")
 
-    list_geo = user_list.geo_alert if user_list.geo_alert is not None else default_geo
-    deadline_str = convert_datetime_to_iso(user_list.deadline)
+        supabase.table("lists").update({
+            "name": name,
+            "last_update": datetime.now().isoformat(),
+        }).eq("list_id", list_id).execute()
 
-    # update list header
-    supabase.table("lists").update({
-        "name": user_list.name,
-        "deadline": deadline_str,
-        "geo_alert": list_geo,
-        "last_update": now
-    }).eq("list_id", list_id).execute()
-
-    # soft-delete old items (unchanged)
-    supabase.table("lists_items").update({
-        "is_deleted": True,
-        "deleted_at": now
-    }).eq("list_id", list_id).execute()
-
-    # insert new items
-    items_payload = []
-    for it in user_list.items:
-        item_geo = it.geo_alert if it.geo_alert is not None else list_geo
-        item_deadline_str = convert_datetime_to_iso(it.deadline)
-
-        items_payload.append({
-            "list_id": list_id,
-            "name": it.name,
-            "is_checked": it.is_checked,
-            "checked_at": now if it.is_checked else None,
-            "created_at": now,
-            "deadline": item_deadline_str,
-            "geo_alert": item_geo
-        })
-    supabase.table("lists_items").insert(items_payload).execute()
-
-    return {"message": "List updated"}
+        return {"message": "List name updated"}
+    except Exception as e:
+        print("[ERROR update_list_name]", e)
+        raise HTTPException(500, "Failed to update name")
 
 
 # -------------------------------------------------------------------------- #
@@ -352,7 +371,7 @@ def accept_suggestion(
         raise HTTPException(500, "Failed to accept suggestion")
 
 @router.post("/lists/{list_id}/suggestions/{suggestion_id}/reject")
-def reject_suggestion(list_id: str, suggestion_id: str, token: str = Header(...)):
+def reject_suggestion(suggestion_id: str, token: str = Header(...)):
     try:
         supabase.postgrest.auth(token)
         supabase.table("items_suggestions").update({"rejected": True}).eq("suggestion_id", suggestion_id).execute()
