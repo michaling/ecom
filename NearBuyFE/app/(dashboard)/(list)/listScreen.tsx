@@ -12,6 +12,8 @@ interface Item {
   id: string;
   name: string;
   isChecked: boolean;
+  deadline?: string | null;
+  geo_alert?: boolean;
 }
 
 interface Suggestion {
@@ -59,6 +61,8 @@ export default function ListScreen() {
         id: it.item_id,
         name: it.name,
         isChecked: it.is_checked,
+        deadline: it.deadline,
+        geo_alert: it.geo_alert,
       }));
 
       setItems(formatted);
@@ -265,7 +269,7 @@ export default function ListScreen() {
         </TouchableOpacity>
       )}
         <Text style={styles.subtitle}>
-          {`${total} items, ${left} remaining`}
+          {`${total} items, ${left} remainingg`}
         </Text>
       </View>
   

@@ -13,16 +13,18 @@ interface ShoppingItemProps {
   onToggle: () => void;
   onNameChange: (newName: string) => void;
   onDelete: () => void;
+  deadline?: string | null;
+  geo_alert?: boolean;
 }
 
-export default function ShoppingItem({ name, isChecked, onToggle, onNameChange, onDelete }: ShoppingItemProps) {
+export default function ShoppingItem({name, isChecked, onToggle, onNameChange, onDelete, deadline, geo_alert,}: ShoppingItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(name);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showDeadlineModal, setShowDeadlineModal] = useState(false);
-  const [locationAlert, setLocationAlert] = useState(false);
-  const [deadlineAlert, setDeadlineAlert] = useState(false);
-  const [deadline, setDeadline] = useState<Date | null>(null);
+  const [locationAlert, setLocationAlert] = useState(geo_alert ?? false);
+  const [deadlineDate, setDeadlineDate] = useState<Date | null>(deadline ? new Date(deadline) : null);
+  const [deadlineAlert, setDeadlineAlert] = useState(!!deadline);
   const [tempLocationAlert, setTempLocationAlert] = useState(locationAlert);
   const [tempDeadlineAlert, setTempDeadlineAlert] = useState(deadlineAlert);
   const [tempDeadline, setTempDeadline] = useState(deadline);
@@ -36,7 +38,7 @@ export default function ShoppingItem({ name, isChecked, onToggle, onNameChange, 
 
   const showAndroidDateTimePicker = () => {
     DateTimePickerAndroid.open({
-      value: tempDeadline || new Date(),
+      value: typeof tempDeadline === 'string' ? new Date(tempDeadline) : tempDeadline || new Date(),
       mode: 'date',
       is24Hour: true,
       onChange: (event, selectedDate) => {

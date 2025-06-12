@@ -162,6 +162,7 @@ def get_list(list_id: str):
             .select("*")
             .eq("list_id", list_id)
             .eq("is_deleted", False)
+            .order("is_checked")
             .execute()
             .data
         )

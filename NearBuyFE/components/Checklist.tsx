@@ -6,6 +6,8 @@ interface ListItem {
   id: string;
   name: string;
   isChecked: boolean;
+  deadline?: string | null;
+  geo_alert?: boolean; 
 }
 
 interface ChecklistProps {
@@ -23,12 +25,14 @@ export default function Checklist({ items, onToggle, onNameChange, onDelete }: C
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
         <Item
-          name={item.name}
-          isChecked={item.isChecked}
-          onToggle={() => onToggle(item.id)}
-          onNameChange={(newName) => onNameChange(item.id, newName)}
-          onDelete={() => onDelete(item.id)}
-        />
+        name={item.name}
+        isChecked={item.isChecked}
+        onToggle={() => onToggle(item.id)}
+        onNameChange={(newName) => onNameChange(item.id, newName)}
+        onDelete={() => onDelete(item.id)}
+        deadline={item.deadline}   
+        geo_alert={item.geo_alert} 
+      />
       )}
       contentContainerStyle={{ paddingBottom: 20 }}
     />
