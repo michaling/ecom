@@ -265,7 +265,9 @@ export default function HomeScreen() {
                     await axios.post(`${Utils.currentPath}lists`, {
                       name: newListName,
                       geo_alert: isLocationEnabled,
-                      deadline: isDeadlineEnabled ? deadline?.toISOString() : null,
+                      deadline: isDeadlineEnabled && deadline
+                      ? deadline.toLocaleString('sv-SE').replace('T', ' ')
+                      : null,
                     }, {
                       params: { user_id },
                       headers: { token }

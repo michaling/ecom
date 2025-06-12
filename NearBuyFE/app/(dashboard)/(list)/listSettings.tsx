@@ -27,21 +27,32 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 export default function ListSettingsScreen() {
   const { list_id, list_name, list_color } = useLocalSearchParams();
-  const [listName, setListName] = useState('');
+  const [listName, setListName] = useState(typeof list_name === 'string' ? list_name : '');
   const [isEditing, setIsEditing] = useState(false);
   const [isLocationEnabled, setLocationEnabled] = useState(false);
   const [deadline, setDeadline] = useState<Date | null>(null);
   const [isDeadlineEnabled, setIsDeadlineEnabled] = useState(false);
   const [showIOSPicker, setShowIOSPicker] = useState(false);
-
-
   const router = useRouter();
 
 
-  const handleEndEditing = () => {
+  const handleEndEditing = async () => {
     setIsEditing(false);
-
+  
+    if (!listName.trim() || listName === list_name) return;
+  
+    const token = await Utils.getValueFor('access_token');
+    try {
+      await axios.patch(
+        `${Utils.currentPath}lists/${list_id}/name`,
+        { name: listName },
+        { headers: { token } }
+      );
+    } catch (err) {
+      console.error('[LIST NAME RENAME FAILED]', err);
+    }
   };
+
 
   const showAndroidDateTimePicker = () => {
     // First: pick date
@@ -63,6 +74,7 @@ export default function ListSettingsScreen() {
                 finalDate.setHours(selectedTime.getHours());
                 finalDate.setMinutes(selectedTime.getMinutes());
                 setDeadline(finalDate);
+                updateDeadline(finalDate);
               }
             },
           });
@@ -71,6 +83,60 @@ export default function ListSettingsScreen() {
     });
   };
 
+  const updateDeadline = async (newDate: Date | null) => {
+    const token = await Utils.getValueFor('access_token');
+    const formatted = newDate
+      ? newDate.toLocaleString('sv-SE').replace('T', ' ')
+      : null;
+  
+    try {
+      await axios.patch(`${Utils.currentPath}lists/${list_id}/deadline`, {
+        deadline: formatted,
+      }, {
+        headers: { token },
+      });
+    } catch (err) {
+      console.error('[UPDATE DEADLINE FAILED]', err);
+    }
+  };
+
+  const deleteList = async () => {
+    const token = await Utils.getValueFor('access_token');
+    try {
+      await axios.delete(`${Utils.currentPath}lists/${list_id}`, {
+        headers: { token },
+      });
+      router.replace('/home');
+    } catch (err) {
+      console.error('[DELETE LIST FAILED]', err);
+    }
+  };
+
+  useEffect(() => {
+    const fetchListSettings = async () => {
+      const token = await Utils.getValueFor('access_token');
+      if (!token) return;
+  
+      try {
+        const res = await axios.get(`${Utils.currentPath}lists/${list_id}`, {
+          headers: { token },
+        });
+  
+        setListName(res.data.name);
+        setLocationEnabled(res.data.geo_alert ?? false);
+        if (res.data.deadline) {
+          setDeadline(new Date(res.data.deadline));
+          setIsDeadlineEnabled(true);
+        }
+  
+      } catch (err) {
+        console.error('[FETCH SETTINGS FAILED]', err);
+      }
+    };
+  
+    fetchListSettings();
+  }, []);
+  
   return (   
     <>
      <View style={styles.headerRow}>
@@ -103,23 +169,46 @@ export default function ListSettingsScreen() {
         </View>
         {/* Location-based toggle */}
         <View style={styles.toggleContainer}>
-              <Text style={styles.toggleLabel}> Location Alerts </Text>
-              <Switch
-                value={isLocationEnabled}
-                onValueChange={() => setLocationEnabled(!isLocationEnabled)}
-                trackColor={{ false: '#ccc', true: '#007AFF' }}
-                thumbColor={isLocationEnabled ? '#fff' : '#f4f3f4'}
-              />
-            </View>
+          <Text style={styles.toggleLabel}>Location Alerts</Text>
+          <Switch
+            value={isLocationEnabled}
+            onValueChange={async (newValue) => {
+              setLocationEnabled(newValue);
+
+              const token = await Utils.getValueFor('access_token');
+              try {
+                await axios.patch(
+                  `${Utils.currentPath}lists/${list_id}/geo`,
+                  { geo_alert: newValue },
+                  { headers: { token } }
+                );
+              } catch (err) {
+                console.error('[UPDATE GEO ALERT FAILED]', err);
+              }
+            }}
+            trackColor={{ false: '#ccc', true: '#007AFF' }}
+            thumbColor={isLocationEnabled ? '#fff' : '#f4f3f4'}
+          />
+        </View>
             {/* Deadline picker */}
             <View style={{ marginBottom: 12 }}>
               <View style={styles.toggleContainer}>
                 <Text style={styles.toggleLabel}> Deadline Alerts </Text>
                 <Switch
                   value={isDeadlineEnabled}
-                  onValueChange={(val) => {
+                  onValueChange={async (val) => {
                     setIsDeadlineEnabled(val);
-                    if (!val) setDeadline(null); // Clear if disabled
+                  
+                    if (val) {
+                      if (Platform.OS === 'android') {
+                        showAndroidDateTimePicker();
+                      } else {
+                        setShowIOSPicker(true);
+                      }
+                    } else {
+                      setDeadline(null);
+                      await updateDeadline(null);
+                    }
                   }}
                   trackColor={{ false: '#ccc', true: '#007AFF' }}
                   thumbColor={isDeadlineEnabled ? '#fff' : '#f4f3f4'}
@@ -145,7 +234,10 @@ export default function ListSettingsScreen() {
                         mode="datetime"
                         display="spinner"
                         onChange={(event, selectedDate) => {
-                            if (selectedDate) setDeadline(selectedDate);
+                          if (selectedDate) {
+                            setDeadline(selectedDate);
+                            updateDeadline(selectedDate);
+                          }
                         }}
                         
                         />
@@ -177,6 +269,7 @@ export default function ListSettingsScreen() {
                       const parsed = new Date(text);
                       if (!isNaN(parsed.getTime())) {
                         setDeadline(parsed);
+                        updateDeadline(parsed);
                       }
                     }}
                     style={styles.input}
@@ -189,8 +282,8 @@ export default function ListSettingsScreen() {
                 </>
               )}
             </View>
-            <TouchableOpacity onPress={() => ('//TODO: delete list')}>
-                <Text style = {styles.deleteText}> Delete List </Text>
+            <TouchableOpacity onPress={deleteList}>
+              <Text style={styles.deleteText}>Delete List</Text>
             </TouchableOpacity>
             
           </View>

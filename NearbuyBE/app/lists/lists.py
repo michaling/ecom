@@ -379,3 +379,37 @@ def reject_suggestion(suggestion_id: str, token: str = Header(...)):
     except Exception as e:
         print("[ERROR reject_suggestion]", e)
         raise HTTPException(500, "Failed to reject suggestion")
+
+
+@router.patch("/lists/{list_id}/geo")
+def update_list_geo_alert(list_id: str, body: dict, token: str = Header(...)):
+    try:
+        supabase.postgrest.auth(token)
+        value = body.get("geo_alert")
+        if value is None:
+            raise HTTPException(400, "geo_alert missing")
+        supabase.table("lists").update({
+            "geo_alert": value,
+            "last_update": datetime.now().isoformat(),
+        }).eq("list_id", list_id).execute()
+
+        return {"message": "Geo alert updated"}
+    except Exception as e:
+        print("[ERROR update_list_geo_alert]", e)
+        raise HTTPException(500, "Failed to update geo alert")
+
+@router.patch("/lists/{list_id}/deadline")
+def update_list_deadline(list_id: str, body: dict, token: str = Header(...)):
+    try:
+        supabase.postgrest.auth(token)
+        deadline = body.get("deadline")
+
+        supabase.table("lists").update({
+            "deadline": deadline,
+            "last_update": datetime.now().isoformat()
+        }).eq("list_id", list_id).execute()
+
+        return {"message": "Deadline updated"}
+    except Exception as e:
+        print("[ERROR update_list_deadline]", e)
+        raise HTTPException(500, "Failed to update deadline")
