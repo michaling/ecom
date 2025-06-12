@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Alert, Platform, TouchableOpacity } from 'react-native';
+import { Image, View, Text, TextInput, Pressable, StyleSheet, Alert, Platform, TouchableOpacity, ImageBackground } from 'react-native';
 import axios, { AxiosError } from 'axios';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -10,6 +10,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
+  const image = {};
   
 
   const handleLogin = async () => {
@@ -35,7 +36,14 @@ export default function LoginScreen() {
   };
 
   return (
+    <ImageBackground source={require('../../assets/images/loginBG.png')} resizeMode="cover" style={styles.image}>
+
     <View style={styles.container}>
+    <View style={{alignItems: 'center'}}> 
+      <Image
+        style={styles.logo}
+        source={require('../../assets/images/logo1.png')}/>
+        </View>
       <Text style={styles.title}>Welcome to NearBuy </Text>
       <Text style={styles.subtitle}>Login to your account</Text>
 
@@ -66,6 +74,7 @@ export default function LoginScreen() {
         </TouchableOpacity>
       </View>
     </View>
+    </ImageBackground>
   );
 }
 
@@ -74,20 +83,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
-    backgroundColor: '#FAFAFA',
+    
+    //backgroundColor: '#FAFAFA',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
-    color: '#333',
+    color: '#5067b2',
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 24,
     color: '#666',
+    fontWeight: 'bold',
   },
   input: {
     borderWidth: 1,
@@ -96,9 +107,10 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 16,
     fontSize: 16,
+    backgroundColor: '#FAFAFA',
   },
   button: {
-    backgroundColor: '#C8A2C8',
+    backgroundColor: '#B25FC3',
     borderRadius: 50,
     paddingVertical: 14,
     paddingHorizontal: 24,
@@ -132,5 +144,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#007AFF',
     fontWeight: '500',
+  },
+  image: {
+    flex: 1,
+  },
+  logo: {
+    width: 64,
+    height: 104,
+    marginBottom: 16,
   },
 });
