@@ -87,7 +87,6 @@ export default function HomeScreen() {
     }, [fetchLists])
   );
 
-
   const showAndroidDateTimePicker = () => {
     // First: pick date
     DateTimePickerAndroid.open({
@@ -99,7 +98,7 @@ export default function HomeScreen() {
           // Second: pick time
           DateTimePickerAndroid.open({
             value: selectedDate,
-            mode: 'time', 
+            mode: 'time',
             is24Hour: true,
             onChange: (event2, selectedTime) => {
               if (event2.type === 'set' && selectedTime) {
@@ -122,7 +121,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.logoContainer}>
-        <Text style={styles.logoText}>NearBuy </Text>
+        <Text style={styles.logoText}>NearBuy</Text>
       </View>
 
       <View style={styles.toolsRow}>
@@ -259,7 +258,7 @@ export default function HomeScreen() {
                       Alert.alert('Incomplete Deadline', 'Please pick a deadline date and time');
                       return;
                     }
-                    
+
                     const token = await Utils.getValueFor('access_token');
                     const user_id = await Utils.getValueFor('user_id');
 

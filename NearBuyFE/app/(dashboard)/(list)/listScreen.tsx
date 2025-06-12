@@ -1,9 +1,9 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
 import Checklist from '@/components/Checklist';
 import RecommendationItem from '@/components/RecommendationItem';
-import { AntDesign, Ionicons } from '@expo/vector-icons';
+import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
 import * as Utils from '../../../utils/utils';
 import axios from 'axios';
 
@@ -208,11 +208,34 @@ export default function ListScreen() {
     }
   };
 
+  const handleHideRecommendation = (name: string) => {
+    setRecommended((prev) => prev.filter((r) => r !== name));
+  };
+
   return (
     <View style={styles.container}>
 
       <View style={[styles.header, { backgroundColor: background || '#E6E6FA' }]}>
-        <Text style={styles.title}>{list_name} </Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="chevron-back-outline" size={24} color="#007AFF" />
+              <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={{ position: 'absolute', top: 60, right: 20 }}
+          onPress={() => {
+            router.push({
+              pathname: '../listSettings',
+              params: {
+                list_id,
+                list_name,
+                list_color: background,
+              },
+            });
+          }}
+        >
+          <Feather name="settings" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.title}>{list_name}</Text>
         <Text style={styles.subtitle}>
           {`${total} items, ${left} remaining`}
         </Text>
@@ -237,7 +260,7 @@ export default function ListScreen() {
               <TouchableOpacity style={styles.addButton}
                 onPress={() => setIsAdding(true)}
               >
-                <AntDesign name="plus" size={33} color="purple" />
+                <AntDesign name="plus" size={30} color="purple" />
                 {/*<Text style={styles.addButtonText}>Add Item</Text> */}
               </TouchableOpacity>
             )}
@@ -364,5 +387,18 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingLeft: 4,
   },
+
+  backButton: {
+    padding: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'absolute', top: 50, left: 10,
+  },
+  
+  backText: {
+    fontSize: 18,
+    color: '#007AFF',
+    fontWeight: '500',
+  }
 
 });
