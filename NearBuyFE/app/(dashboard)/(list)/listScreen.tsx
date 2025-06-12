@@ -52,8 +52,9 @@ export default function ListScreen() {
         `${Utils.currentPath}lists/${list_id}`,
         { headers: { token } },
       );
+      
+      setEditedTitle(res.data.name); 
 
-      //  { items: [...], suggested_items: [...] }
       const formatted: Item[] = res.data.items.map((it: any) => ({
         id: it.item_id,
         name: it.name,
