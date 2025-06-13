@@ -35,3 +35,11 @@ export const save = async (key: string, value: string) => {
       return null;
     }
   };
+
+  export async function deleteValueFor(key: string) {
+    try {
+      await SecureStore.deleteItemAsync(key);
+    } catch (error) {
+      console.error('SecureStore deletion error:', error);
+    }
+  }

@@ -47,9 +47,14 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleLogout = () => {
-    // TODO: Add your logout logic here
-    //router.replace('../login'); // Example navigation to login screen
+  const handleLogout = async () => {
+    try {
+      await Utils.deleteValueFor('access_token');
+      await Utils.deleteValueFor('user_id');
+      router.replace('/login'); 
+    } catch (err) {
+      console.error('[LOGOUT FAILED]', err);
+    }
   };
 
 
