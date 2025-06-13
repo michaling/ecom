@@ -186,12 +186,20 @@ def get_list(list_id: str):
             .data or []
     )
 
+    # Get lowercase names of existing items for deduplication
+    existing_names = {item["name"].strip().lower() for item in items if item.get("name")}
+
+    # Filter out suggestions with duplicate names
+    filtered_suggestions = [
+        s for s in suggestions if s.get("name", "").strip().lower() not in existing_names
+    ]
+
     return {
         "name": lst["name"],
         "deadline": lst["deadline"],
         "geo_alert": lst["geo_alert"],
         "items": items,
-        "suggestions": suggestions
+        "suggestions": filtered_suggestions
     }
 
 
