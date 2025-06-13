@@ -1,6 +1,6 @@
 // app/(tabs)/profile.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,8 @@ import {
 import { MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import axios from 'axios';
+import * as Utils from '../../../utils/utils';
 
 export default function ProfileScreen() {
   const [displayName, setDisplayName] = useState('');
@@ -24,8 +26,25 @@ export default function ProfileScreen() {
   const [locationEnabled, setLocationEnabled] = useState(true);
   const router = useRouter();
 
-  const handleSaveName = () => {
+
+  const handleEndEditing = () => {
+    setIsEditing(false);
+    handleSaveName();
+  };
+
+
+  const handleSaveName = async () => {
     setDisplayName(tempName);
+    const token = await Utils.getValueFor('access_token');
+    try {
+      await axios.patch(`${Utils.currentPath}profile/display_name`, {
+        display_name: tempName,
+      }, {
+        headers: { token },
+      });
+    } catch (err) {
+      console.error('[SAVE NAME FAILED]', err);
+    }
   };
 
   const handleLogout = () => {
@@ -33,10 +52,25 @@ export default function ProfileScreen() {
     //router.replace('../login'); // Example navigation to login screen
   };
 
-  const handleEndEditing = () => {
-    setIsEditing(false);
-    handleSaveName
-  };
+
+  
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const token = await Utils.getValueFor('access_token');
+      try {
+        const res = await axios.get(`${Utils.currentPath}profile`, {
+          headers: { token },
+        });
+        setDisplayName(res.data.display_name || '');
+        setTempName(res.data.display_name || '');
+        setLocationEnabled(res.data.geo_alert ?? false);
+      } catch (err) {
+        console.error('[FETCH PROFILE FAILED]', err);
+      }
+    };
+    fetchProfile();
+  }, []);
+
 
   return (
     <ImageBackground source={require('../../../assets/images/profileBG.png')} resizeMode="cover" style={styles.image}>
@@ -45,13 +79,13 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
       {isEditing ? (
-            <TextInput
-                value={displayName}
-                onChangeText={setDisplayName}
+                <TextInput
+                value={tempName}
+                onChangeText={setTempName}
                 onBlur={handleEndEditing}
                 autoFocus
                 style={styles.input}
-            />
+              />
             ) : (
         <TouchableOpacity onPress={() => setIsEditing(true)}>
             <View style={styles.nameRow}>
@@ -67,7 +101,19 @@ export default function ProfileScreen() {
         <Text style={styles.settingLabel}>Enable location-based notifications by default</Text>
         <Switch
           value={locationEnabled}
-          onValueChange={setLocationEnabled}
+          onValueChange={async (val) => {
+            setLocationEnabled(val);
+            const token = await Utils.getValueFor('access_token');
+            try {
+              await axios.patch(`${Utils.currentPath}profile/geo_alert`, {
+                geo_alert: val,
+              }, {
+                headers: { token },
+              });
+            } catch (err) {
+              console.error('[SAVE GEO FAILED]', err);
+            }
+          }}
         />
       </View>
 
