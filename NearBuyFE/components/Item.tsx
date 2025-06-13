@@ -1,13 +1,16 @@
-// components/Item.tsx
-
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Modal, Switch, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons, Feather, MaterialIcons } from '@expo/vector-icons';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import axios from 'axios';
+import * as Utils from '../utils/utils';
+
 
 interface ShoppingItemProps {
+  item_id: string;
+  list_id: string;
   name: string;
   isChecked: boolean;
   onToggle: () => void;
@@ -17,7 +20,8 @@ interface ShoppingItemProps {
   geo_alert?: boolean;
 }
 
-export default function ShoppingItem({name, isChecked, onToggle, onNameChange, onDelete, deadline, geo_alert,}: ShoppingItemProps) {
+export default function ShoppingItem({ item_id, list_id, name, isChecked, onToggle, onNameChange, onDelete, deadline, geo_alert }: ShoppingItemProps) {
+
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(name);
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -27,7 +31,9 @@ export default function ShoppingItem({name, isChecked, onToggle, onNameChange, o
   const [deadlineAlert, setDeadlineAlert] = useState(!!deadline);
   const [tempLocationAlert, setTempLocationAlert] = useState(locationAlert);
   const [tempDeadlineAlert, setTempDeadlineAlert] = useState(deadlineAlert);
-  const [tempDeadline, setTempDeadline] = useState(deadline);
+  const [tempDeadline, setTempDeadline] = useState<Date | null>(
+    deadline ? new Date(deadline) : null
+  );
   
 
   
@@ -72,7 +78,8 @@ export default function ShoppingItem({name, isChecked, onToggle, onNameChange, o
 
   const openDeadlineModal = () => {
     setTempDeadlineAlert(deadlineAlert);
-    setTempDeadline(deadline);
+    setTempDeadline(deadline ? new Date(deadline) : null);
+
     setShowDeadlineModal(true);
   };
 
@@ -150,10 +157,24 @@ export default function ShoppingItem({name, isChecked, onToggle, onNameChange, o
               <Pressable onPress={() => setShowLocationModal(false)} style={styles.cancelButton}>
                 <Text style={styles.cancelText}>Cancel</Text>
               </Pressable>
-              <Pressable  onPress={() => {
-                setLocationAlert(tempLocationAlert);
-                setShowLocationModal(false);
-              }} style={styles.saveButton}>
+              <Pressable  
+                onPress={async () => {
+                  setLocationAlert(tempLocationAlert);
+                  setShowLocationModal(false);
+                
+                  const token = await Utils.getValueFor('access_token');
+                  try {
+                    await axios.patch(`${Utils.currentPath}items/${item_id}/geo`, {
+                      geo_alert: tempLocationAlert,
+                      list_id: list_id,
+                    }, {
+                      headers: { token },
+                    });
+                  } catch (err) {
+                    console.error('[UPDATE ITEM GEO ALERT FAILED]', err);
+                  }
+                }}
+              style={styles.saveButton}>
                 <Text style={styles.saveText}>Save</Text>
               </Pressable>
             </View>
@@ -231,11 +252,27 @@ export default function ShoppingItem({name, isChecked, onToggle, onNameChange, o
               <Pressable onPress={() => setShowDeadlineModal(false)} style={styles.cancelButton}>
                 <Text style={styles.cancelText}>Cancel</Text>
               </Pressable>
-              <Pressable onPress={() => {
+              <Pressable 
+              onPress={async () => {
                 setDeadlineAlert(tempDeadlineAlert);
-                setDeadline(tempDeadline);
+                setDeadlineDate(tempDeadline);
                 setShowDeadlineModal(false);
-              }} style={styles.saveButton}>
+              
+                const token = await Utils.getValueFor('access_token');
+                try {
+                  await axios.patch(`${Utils.currentPath}items/${item_id}/deadline`, {
+                    deadline: tempDeadline
+                      ? tempDeadline.toLocaleString('sv-SE').replace('T', ' ')
+                      : null,
+                      list_id: list_id,
+                  }, {
+                    headers: { token },
+                  });
+                } catch (err) {
+                  console.error('[UPDATE ITEM DEADLINE FAILED]', err);
+                }
+              }}
+              style={styles.saveButton}>
                 <Text style={styles.saveText}>Save</Text>
               </Pressable>
             </View>

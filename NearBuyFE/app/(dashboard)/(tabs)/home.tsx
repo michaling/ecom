@@ -43,6 +43,7 @@ export default function HomeScreen() {
   const [deadline, setDeadline] = useState<Date | null>(null);
   const [isDeadlineEnabled, setIsDeadlineEnabled] = useState(false);
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+  const [defaultGeoAlert, setDefaultGeoAlert] = useState<boolean>(false);
 
   const resetForm = () => {
     setNewListName('');
@@ -87,6 +88,22 @@ export default function HomeScreen() {
     }, [fetchLists])
   );
 
+  useEffect(() => {
+    const fetchDefaultSettings = async () => {
+      const token = await Utils.getValueFor('access_token');
+      try {
+        const res = await axios.get(`${Utils.currentPath}profile`, {
+          headers: { token },
+        });
+        setDefaultGeoAlert(res.data.geo_alert ?? false); // fallback: false
+      } catch (err) {
+        console.error('[PROFILE LOAD FAILED]', err);
+      }
+    };
+  
+    fetchDefaultSettings();
+  }, []);
+
   const showAndroidDateTimePicker = () => {
     // First: pick date
     DateTimePickerAndroid.open({
@@ -128,7 +145,12 @@ export default function HomeScreen() {
         <TouchableOpacity style={styles.toolButton} onPress={() => {}}>
           <Text style={styles.toolButtonText}>Edit</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.toolButton} onPress={() => setAddModalVisible(true)}>
+        <TouchableOpacity style={styles.toolButton} 
+          onPress={() => {
+            setLocationEnabled(defaultGeoAlert);
+            setAddModalVisible(true);
+          }}
+          >
           <AntDesign name="plus" size={25} color="black" />
         </TouchableOpacity>
 

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Header, Path
-from lists.models import UserList, ListItem, CreateItemRequest, AcceptSuggestionRequest
+from lists.models import UserList, ListItem, CreateItemRequest
 from supabase_client import supabase
 from datetime import datetime
 from typing import List
@@ -127,7 +127,6 @@ def get_user_lists(user_id: str,
             "deadline": lst["deadline"],
             "geo_alert": lst["geo_alert"],
             "items": items,
-            # "unchecked_items": unchecked_items, # Delete Later
             "unchecked_count": unchecked_count
         })
 
@@ -298,36 +297,25 @@ def restore_list(list_id: str):
 
 
 # -------------------------------------------------------------------------- #
-def create_item_internal(list_id: str, item_name: str, token: str) -> dict:
+def create_item_internal(list_id: str, item_name: str, token: str, geo_alert=None, deadline=None) -> dict:
     supabase.postgrest.auth(token)
     now = datetime.now().isoformat()
 
-    # Fetch list info (geo_alert and user_id)
-    list_res = (
-        supabase.table("lists")
-        .select("geo_alert", "user_id")
-        .eq("list_id", list_id)
-        .single()
-        .execute()
-    )
-    if not list_res.data:
-        raise HTTPException(404, "List not found")
+    payload = {
+        "list_id": list_id,
+        "name": item_name,
+        "is_checked": False,
+        "created_at": now,
+        "geo_alert": geo_alert,
+        "deadline": convert_datetime_to_iso(deadline),
+    }
 
-    list_geo = list_res.data["geo_alert"]
-    user_id = list_res.data["user_id"]
-    user_geo = get_profile_geo(user_id)
-    geo_alert = list_geo if list_geo is not None else bool(user_geo)
+    # Only send non-null values
+    payload = {k: v for k, v in payload.items() if v is not None}
 
-    # Insert item
     res = (
         supabase.table("lists_items")
-        .insert({
-            "list_id": list_id,
-            "name": item_name,
-            "is_checked": False,
-            "created_at": now,
-            "geo_alert": geo_alert,
-        })
+        .insert(payload)
         .execute()
     )
 
@@ -344,7 +332,9 @@ def create_item_internal(list_id: str, item_name: str, token: str) -> dict:
 @router.post("/lists/{list_id}/items")
 def create_item(list_id: str, req: CreateItemRequest, token: str = Header(...)):
     try:
-        return create_item_internal(list_id, req.item_name, token)
+        return create_item_internal(list_id, req.item_name, token,
+            geo_alert=req.geo_alert,
+            deadline=req.deadline)
     except Exception as e:
         print("[ERROR create_item]", e)
         raise HTTPException(500, "Failed to create item")
@@ -353,13 +343,15 @@ def create_item(list_id: str, req: CreateItemRequest, token: str = Header(...)):
 def accept_suggestion(
     list_id: str,
     suggestion_id: str,
-    req: AcceptSuggestionRequest,
+    req: CreateItemRequest,
     token: str = Header(...)
 ):
     try:
         supabase.postgrest.auth(token)
         # Create item with provided name
-        result = create_item_internal(list_id, req.name, token)
+        result = create_item_internal(list_id, req.item_name, token,
+            geo_alert=req.geo_alert,
+            deadline=req.deadline)
 
         # Mark suggestion as used
         print(suggestion_id)

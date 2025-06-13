@@ -39,6 +39,8 @@ export default function ListScreen() {
     const [newItemName, setNewItemName] = useState('');
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [editedTitle, setEditedTitle] = useState(list_name);
+    const [listGeoAlert, setListGeoAlert] = useState<boolean>(false);
+    const [listDeadline, setListDeadline] = useState<string | null>(null);
 
     /* ────────── helper: fetch list from BE ────────── */
   const loadList = useCallback(async () => {
@@ -66,6 +68,8 @@ export default function ListScreen() {
       }));
 
       setItems(formatted);
+      setListGeoAlert(res.data.geo_alert ?? false);
+      setListDeadline(res.data.deadline ?? null);
       setRecommended(
         res.data.suggestions?.map((s: any) => ({
           suggestion_id: s.suggestion_id,
@@ -174,7 +178,11 @@ export default function ListScreen() {
     try {
       const res = await axios.post(
         `${Utils.currentPath}lists/${list_id}/items`,
-        { item_name: newItemName },
+        {
+          item_name: newItemName,
+          geo_alert: listGeoAlert,
+          deadline: listDeadline,
+        },
         {headers: { token },}
       );
   
@@ -182,6 +190,8 @@ export default function ListScreen() {
         id: res.data.item_id,
         name: res.data.name,
         isChecked: false,
+        geo_alert: listGeoAlert,
+        deadline: listDeadline,
       };
   
       setItems(prev => [...prev, newItem]);
@@ -198,7 +208,11 @@ export default function ListScreen() {
     try {
       const res = await axios.post(
         `${Utils.currentPath}lists/${list_id}/suggestions/${suggestion.suggestion_id}/accept`,
-        { name: suggestion.name }, 
+        {
+          name: suggestion.name,
+          geo_alert: listGeoAlert,
+          deadline: listDeadline,
+        },
         { headers: { token } }
       );
   
@@ -206,6 +220,8 @@ export default function ListScreen() {
         id: res.data.item_id,
         name: suggestion.name,
         isChecked: false,
+        geo_alert: listGeoAlert,
+        deadline: listDeadline,
       };
   
       setItems(prev => [...prev, newItem]);
@@ -269,7 +285,7 @@ export default function ListScreen() {
         </TouchableOpacity>
       )}
         <Text style={styles.subtitle}>
-          {`${total} items, ${left} remainingg`}
+          {`${total} items, ${left} remaining`}
         </Text>
       </View>
   
@@ -285,6 +301,7 @@ export default function ListScreen() {
               onToggle={toggleItem}
               onNameChange={changeItemName}
               onDelete={deleteItem}
+              listId={list_id}
             />
           </View>
           <View style={styles.addContainer}>
