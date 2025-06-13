@@ -1,25 +1,26 @@
 import { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Utils from '../utils/utils';
 
 export default function IndexRedirect() {
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // Let the layout mount before navigation
-    const timeout = setTimeout(() => {
-      setIsReady(true);
-    }, 300); // Simulate short delay to make sure layout is mounted
+    const checkAuth = async () => {
+      const token = await Utils.getValueFor('access_token');
+      const userId = await Utils.getValueFor('user_id');
 
-    return () => clearTimeout(timeout);
+      if (token && userId) {
+        router.replace('/home');
+      } else {
+        router.replace('/login');
+      }
+    };
+
+    checkAuth(); // no need to delay it
   }, []);
-
-  useEffect(() => {
-    if (isReady) {
-      router.replace('/login'); // or '/home' if already authenticated
-    }
-  }, [isReady]);
 
   return (
     <View style={styles.container}>
