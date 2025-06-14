@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Utils from '../utils/utils';
+import axios from 'axios';
 
 export default function IndexRedirect() {
   const router = useRouter();
@@ -13,12 +14,19 @@ export default function IndexRedirect() {
       const userId = await Utils.getValueFor('user_id');
 
       if (token && userId) {
-        router.replace('/home');
+        try {
+          await axios.get(`${Utils.currentPath}profile`, {
+            headers: { token },
+          });
+          router.replace('/home');
+        } catch (err) {
+          console.log('Token invalid or expired', err);
+          router.replace('/login');
+        }
       } else {
         router.replace('/login');
       }
     };
-
     checkAuth(); // no need to delay it
   }, []);
 

@@ -10,7 +10,13 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.mylo.nearbuy",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": ["location"],
+        "NSLocationWhenInUseUsageDescription": "We need your location to alert you when you are near relevant stores.",
+        "NSLocationAlwaysUsageDescription": "We need your location in the background to send you shopping alerts near stores.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location at all times to send location-based shopping alerts."
+      }
     },
     "android": {
       "package": "com.mylo.nearbuy",
@@ -18,6 +24,12 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ],
+      "backgroundColor": "#ffffff",
       "edgeToEdgeEnabled": true
     },
     "web": {

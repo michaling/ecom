@@ -146,6 +146,14 @@ export default function HomeScreen() {
     fetchDefaultSettings();
   }, []);
 
+  // useEffect(() => {
+  //   Utils.startLocationPolling(); // Start polling every 60s
+  
+  //   return () => {
+  //     Utils.stopLocationPolling(); // Cleanup when screen unmounts
+  //   };
+  // }, []);
+
   const showAndroidDateTimePicker = () => {
     // First: pick date
     DateTimePickerAndroid.open({
