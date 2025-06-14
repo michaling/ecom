@@ -55,6 +55,11 @@ export default function RegisterScreen() {
     }
   
     try {
+      if (isLocationEnabled) {
+        const granted = await Utils.requestForegroundLocationPermission();
+        if (!granted) return; // Stop registration if permission was denied
+      }
+
       const res = await axios.post(
          Utils.currentPath + 'auth/signup',
         {

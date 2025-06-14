@@ -107,7 +107,13 @@ export default function ProfileScreen() {
         <Switch
           value={locationEnabled}
           onValueChange={async (val) => {
+            if (val) {
+              const granted = await Utils.requestForegroundLocationPermission();
+              if (!granted) return; // Don’t allow enabling if permission denied
+            }
+          
             setLocationEnabled(val);
+          
             const token = await Utils.getValueFor('access_token');
             try {
               await axios.patch(`${Utils.currentPath}profile/geo_alert`, {

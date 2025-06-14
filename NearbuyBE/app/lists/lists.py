@@ -101,21 +101,29 @@ def get_user_lists(user_id: str,
     ).data
 
     if not rows:
-        return []
+        return { "lists": [], "any_geo_enabled": False }
 
     out = []
+    any_geo = False
+
     for lst in rows:
         list_id = lst["list_id"]
 
         items = (
-                supabase.table("lists_items")
-                .select("*")
-                .eq("list_id", list_id)
-                .eq("is_deleted", False)
-                .execute()
-                .data
-                or []
+            supabase.table("lists_items")
+            .select("*")
+            .eq("list_id", list_id)
+            .eq("is_deleted", False)
+            .execute()
+            .data
+            or []
         )
+
+        if lst.get("geo_alert"):
+            any_geo = True
+
+        if any(it.get("geo_alert") for it in items):
+            any_geo = True
 
         unchecked_count = sum(
             1 for it in items if not it.get("is_checked", False)
@@ -130,8 +138,10 @@ def get_user_lists(user_id: str,
             "unchecked_count": unchecked_count
         })
 
-        # print(f"out: {out}")
-    return out
+    return {
+        "lists": out,
+        "any_geo_enabled": any_geo
+    }
 
 
 # -------------------------------------------------------------------------- #

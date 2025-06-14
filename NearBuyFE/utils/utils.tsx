@@ -1,6 +1,7 @@
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import * as Location from 'expo-location';
 
 
 export const currentPath = 
@@ -43,3 +44,36 @@ export const save = async (key: string, value: string) => {
       console.error('SecureStore deletion error:', error);
     }
   }
+
+  export const requestForegroundLocationPermission = async () => {
+    const { status } = await Location.getForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
+      if (newStatus !== 'granted') {
+        Alert.alert("Location permission is required for geo alerts.");
+        return false;
+      }
+    }
+    return true;
+  };
+
+  export const requestBackgroundLocationPermission = async () => {
+    const { status } = await Location.getBackgroundPermissionsAsync();
+    if (status !== 'granted') {
+      const { status: newStatus } = await Location.requestBackgroundPermissionsAsync();
+      if (newStatus !== 'granted') {
+        Alert.alert("Location permission is required for geo alerts.");
+        return false;
+      }
+    }
+    return true;
+  };
+
+  export const wasAskedForBgPermission = async (): Promise<boolean> => {
+    const val = await getValueFor('asked_bg_perm');
+    return val === 'true';
+  };
+  
+  export const markAskedForBgPermission = async (): Promise<void> => {
+    await save('asked_bg_perm', 'true');
+  };

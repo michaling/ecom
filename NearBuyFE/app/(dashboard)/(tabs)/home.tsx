@@ -44,6 +44,8 @@ export default function HomeScreen() {
   const [isDeadlineEnabled, setIsDeadlineEnabled] = useState(false);
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [defaultGeoAlert, setDefaultGeoAlert] = useState<boolean>(false);
+  const [anyGeoEnabled, setAnyGeoEnabled] = useState(false);
+
 
   const resetForm = () => {
     setNewListName('');
@@ -72,19 +74,59 @@ export default function HomeScreen() {
         headers: { token },
       });
 
-      const listsWithColors = res.data.map((it: any, idx: number) => ({
+      const rawLists = res.data.lists;
+      setAnyGeoEnabled(res.data.any_geo_enabled ?? false);
+
+      const listsWithColors = rawLists.map((it: any, idx: number) => ({
         ...it,
         color: CARD_COLORS[idx % CARD_COLORS.length],
       }));
       setLists(listsWithColors);
+      
     } catch (err) {
       console.error('[HOME] fetch error', err);
     }
   }, []);
 
+  const checkBackgroundPermissionIfNeeded = async () => {
+    if (!anyGeoEnabled) return;
+  
+    const wasAsked = await Utils.wasAskedForBgPermission();
+    if (wasAsked) return;
+  
+    Alert.alert(
+      "Allow location access?",
+      "To get alerts near stores, the app needs location access at all times. Update your settings?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+          onPress: () => {
+            Utils.markAskedForBgPermission();
+          }
+        },
+        {
+          text: "Allow",
+          onPress: async () => {
+            const granted = await Utils.requestBackgroundLocationPermission();
+            await Utils.markAskedForBgPermission();
+  
+            if (!granted) {
+              console.warn('User denied background permission');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   useFocusEffect(
     React.useCallback(() => {
-      fetchLists();
+      const run = async () => {
+        await fetchLists();
+        await checkBackgroundPermissionIfNeeded();
+      };
+      run();
     }, [fetchLists])
   );
 
@@ -95,7 +137,7 @@ export default function HomeScreen() {
         const res = await axios.get(`${Utils.currentPath}profile`, {
           headers: { token },
         });
-        setDefaultGeoAlert(res.data.geo_alert ?? false); // fallback: false
+        setDefaultGeoAlert(res.data.geo_alert ?? false);
       } catch (err) {
         console.error('[PROFILE LOAD FAILED]', err);
       }
