@@ -82,19 +82,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 24,
-    
+    marginBottom: 40,
     //backgroundColor: '#FAFAFA',
   },
   title: {
-    fontSize: 28,
+    fontSize: 27,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
     color: '#5067b2',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 18,
     textAlign: 'center',
     marginBottom: 24,
     color: '#666',
@@ -108,6 +109,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 16,
     backgroundColor: '#FAFAFA',
+    width: 320,
   },
   button: {
     backgroundColor: '#B25FC3',
@@ -116,7 +118,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
-  
+    width: 200,
     // Shadow for iOS
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },

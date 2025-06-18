@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Pressable, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, Image, TextInput, Button, StyleSheet, Pressable, Alert, TouchableOpacity, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Switch } from 'react-native';
 import * as SecureStore from 'expo-secure-store'; // For saving login state later
@@ -85,8 +85,16 @@ export default function RegisterScreen() {
   };
 
   return (
+    <ImageBackground source={require('../../assets/images/registerBG.png')} resizeMode="cover" style={styles.image}>
+
     <View style={styles.container}>
-      <Text style={styles.title}>Create Account</Text>
+    <View style={{alignItems: 'center'}}> 
+      <Image
+        style={styles.logo}
+        source={require('../../assets/images/logo1.png')}/>
+        </View>
+      <Text style={styles.title}>Welcome to NearBuy </Text>
+      <Text style={styles.subtitle}>Create a new account</Text>
       <TextInput
         placeholder="Name"
         style={styles.input}
@@ -151,6 +159,7 @@ export default function RegisterScreen() {
         </TouchableOpacity>
       </View>
     </View>
+    </ImageBackground>
   );
 }
 
@@ -158,15 +167,24 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1,
     justifyContent: 'center', 
+    alignItems: 'center',
     padding: 24, 
-    backgroundColor: '#FAFAFA'
+    marginBottom: 20,
+    //backgroundColor: '#FAFAFA'
   },
-  title: { 
-    fontSize: 28, 
-    fontWeight: 'bold', 
-    textAlign: 'center', 
-    marginBottom: 24, 
-    color: '#333' 
+  title: {
+    fontSize: 27,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+    color: '#5067b2',
+  },
+  subtitle: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 24,
+    color: '#666',
+    fontWeight: 'bold',
   },
   input: {
     borderWidth: 1,
@@ -175,16 +193,18 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 16,
     fontSize: 16,
+    backgroundColor: '#FAFAFA',
+    width: 320,
   },
   button: {
-    backgroundColor: '#D1F0E5', // 🔁 Change to your preferred color
+    backgroundColor: '#B25FC3', // 🔁 Change to your preferred color
     borderRadius: 50,           // Fully rounded
     paddingVertical: 14,
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
     margin: 10,
-  
+    width: 200,
     // Shadow for iOS
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -219,8 +239,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 10,
-    marginRight: 60,
-    marginLeft: 16,
+    marginHorizontal: 50,
   },
   
   toggleLabel: {
@@ -235,5 +254,13 @@ const styles = StyleSheet.create({
   smallerToggleLabel: {
     fontSize: 12,
     color: '#333',
+  },
+  image: {
+    flex: 1,
+  },
+  logo: {
+    width: 55,
+    height: 89,
+    marginBottom: 16,
   },
 });

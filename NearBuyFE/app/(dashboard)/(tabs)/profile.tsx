@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
       //flex: 1,
       padding: 24,
       marginHorizontal: 30,
-      marginTop: 100,
+      marginTop: 120,
       backgroundColor: '#FAFAFA',
       justifyContent: 'center',
       borderRadius: 15,
