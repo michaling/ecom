@@ -67,6 +67,7 @@ def create_list(
                 "last_update": now,
                 "deadline": deadline_str,
                 "geo_alert": list_geo,
+                "pic_path": user_list.pic_path,
             })
             .execute()
         )

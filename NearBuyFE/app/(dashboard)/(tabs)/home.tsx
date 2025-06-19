@@ -14,6 +14,9 @@ import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Alert } from 'react-native';
 
 
+
+const IMAGE_POOL = Array.from({ length: 11 }, (_, i) => `bg${i + 1}.png`);
+
 const CARD_COLORS = [
   '#FFE3E3', '#FFCDB3', '#FFEABE',
   '#DAEDCE', '#C8E2FC', '#C8A2C8'
@@ -336,6 +339,9 @@ export default function HomeScreen() {
 
                     const token = await Utils.getValueFor('access_token');
                     const user_id = await Utils.getValueFor('user_id');
+                    const listCount = lists.length;
+                    const selectedImage = IMAGE_POOL[listCount % IMAGE_POOL.length];
+
 
                     await axios.post(`${Utils.currentPath}lists`, {
                       name: newListName,
@@ -343,6 +349,7 @@ export default function HomeScreen() {
                       deadline: isDeadlineEnabled && deadline
                       ? deadline.toLocaleString('sv-SE').replace('T', ' ')
                       : null,
+                      pic_path: selectedImage,
                     }, {
                       params: { user_id },
                       headers: { token }
@@ -450,6 +457,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: '#332F6E',
   },
   input: {
     borderWidth: 1,
@@ -482,7 +490,7 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   saveButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#B25FC3',
     padding: 10,
     borderRadius: 8,
   },

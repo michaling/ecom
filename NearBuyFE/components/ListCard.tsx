@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, ImageBackground } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ImageBackground, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import imageMap from '@/utils/imageMap';
 
@@ -8,7 +8,7 @@ export default function ListCard({ list }: { list: any }) {
   const imageSource = imageMap[list.pic_path] || require('@/assets/images/default-bg.png');
 
   return (
-    <Pressable
+    <TouchableOpacity activeOpacity={.6}
       style={styles.cardContainer}
       onPress={() =>
         router.push({
@@ -37,7 +37,7 @@ export default function ListCard({ list }: { list: any }) {
           </View>
         </ImageBackground>
       </View>
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
@@ -53,6 +53,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 5,
     backgroundColor: '#fff',
+    
   },
   card: {
     flex: 1,
@@ -85,7 +86,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333333',
+    color: '#2A294B',
   },
   cardSubtitle: {
     fontSize: 13,
