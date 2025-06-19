@@ -35,6 +35,7 @@ export default function HomeScreen() {
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [defaultGeoAlert, setDefaultGeoAlert] = useState<boolean>(false);
   const [anyGeoEnabled, setAnyGeoEnabled] = useState(false);
+  const [displayName, setDisplayName] = useState('');
 
 
   const resetForm = () => {
@@ -128,6 +129,7 @@ export default function HomeScreen() {
           headers: { token },
         });
         setDefaultGeoAlert(res.data.geo_alert ?? false);
+        setDisplayName(res.data.display_name || '');
       } catch (err) {
         console.error('[PROFILE LOAD FAILED]', err);
       }
@@ -188,7 +190,7 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.header}> 
-        <Text style={styles.text1}> Welcome back UserName, </Text>
+        <Text style={styles.text1}> Welcome back {displayName || 'User'}, </Text>
         <Text style={styles.text2}> What are you gonna buy today? </Text>
       </View>
 
