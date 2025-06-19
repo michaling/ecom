@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ImageBackground } from 'react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
 import Checklist from '@/components/Checklist';
@@ -249,8 +249,14 @@ export default function ListScreen() {
 
   return (
     <View style={styles.container}>
-
-      <View style={[styles.header, { backgroundColor: background || '#E6E6FA' }]}>
+  <ImageBackground
+          source={ require('@/assets/images/default-bg.png') }
+          resizeMode="cover"
+          style={styles.imageBackground}
+          imageStyle={styles.imageStyle}
+        >
+      <View style={styles.header}>
+    
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back-outline" size={24} color="#007AFF" />
               <Text style={styles.backText}>Back</Text>
@@ -287,8 +293,10 @@ export default function ListScreen() {
         <Text style={styles.subtitle}>
           {`${total} items, ${left} remaining`}
         </Text>
+       
       </View>
-  
+      </ImageBackground>
+
       <View style={styles.content}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -359,16 +367,24 @@ const styles = StyleSheet.create({
   },
   
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     marginBottom: 6,
-    color: '#333',
+    color: '#2A294B',
+    shadowColor: 'white',
+    shadowRadius: 0.2,
+    shadowOffset: {
+      width: 1.5,
+      height: 1.3,
+    },
+    shadowOpacity: 1,
+
   },
   subtitle: {
-    fontSize: 14,
-    color: '#666',
-    paddingBottom: 10,
-    paddingLeft: 8,
+    fontSize: 15,
+    color: '#2A294B',
+    paddingBottom: 8,
+    paddingLeft: 2,
   },
 
   content: {
@@ -448,6 +464,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#007AFF',
     fontWeight: '500',
-  }
+  },
+  imageBackground: {
+    justifyContent: 'flex-end',
+    padding: 12,
+  },
+  imageStyle: {
+    opacity: 0.8,
+  },
 
 });

@@ -21,9 +21,9 @@ export default function ListCard({ list }: { list: any }) {
     >
       <View style={styles.card}>
         <ImageBackground
-          source={list.image ? { uri: list.image } : undefined}
+          source={ require('@/assets/images/default-bg.png') }
           resizeMode="cover"
-          style={[styles.imageBackground, { backgroundColor: list.color }]}
+          style={styles.imageBackground}
           imageStyle={styles.imageStyle}
         >
           <View style={styles.textContainer}>
@@ -64,7 +64,9 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   imageStyle: {
-    resizeMode: 'cover',
+    //resizeMode: 'cover',
+    borderRadius: 16,
+    paddingBottom: 30,
   },
   textContainer: {
     position: 'absolute',
@@ -78,12 +80,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#333333',
   },
   cardSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#444',
     marginTop: 4,
   },
