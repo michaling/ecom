@@ -7,6 +7,7 @@ import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
 import * as Utils from '../../../utils/utils';
 import axios from 'axios';
 import imageMap from '@/utils/imageMap';
+import { ScrollView } from 'react-native';
 
 interface Item {
   id: string;
@@ -308,8 +309,9 @@ export default function ListScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
         >
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.topContent}>
-          <View style={{ flexGrow: 0 }}>
+          <View style={{ flexGrow: 0, justifyContent: 'space-between' }}>
             <Checklist
               items={items}
               onToggle={toggleItem}
@@ -353,6 +355,7 @@ export default function ListScreen() {
             ))}
           </View>
         )}
+        </ScrollView>
       </KeyboardAvoidingView>
       
       </View>
@@ -416,14 +419,13 @@ const styles = StyleSheet.create({
 
   addContainer: {
     alignItems: 'center',
-    marginTop: 16,
   },
 
   addButton: {
     borderWidth: 1.5,
     borderColor: "#B25FC3",
     padding: 10,
-    marginTop: 12,
+    //marginTop: 12,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -440,6 +442,7 @@ const styles = StyleSheet.create({
     padding: 10,
     marginTop: 10,
     fontSize: 16,
+    width: 250,
   },
 
   recommendationsBox: {
@@ -449,8 +452,7 @@ const styles = StyleSheet.create({
   },
 
   recommendations: {
-    marginTop: 24,
-    marginBottom: 50,
+    marginTop: 80,
   },
   recommendTitle: {
     fontSize: 16,
@@ -478,5 +480,12 @@ const styles = StyleSheet.create({
   imageStyle: {
     opacity: 0.7,
   },
-
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
+    backgroundColor: '#FAFAFA',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  }
+  
 });
