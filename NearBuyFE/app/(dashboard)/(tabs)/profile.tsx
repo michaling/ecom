@@ -175,10 +175,10 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       marginVertical: 18,
       marginHorizontal: 5,
-      marginRight:40,
+      marginRight: 50,
     },
     settingLabel: {
-      fontSize: 17,
+      fontSize: 16,
     },
     logoutButton: {
       marginTop: 40,
