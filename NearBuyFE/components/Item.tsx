@@ -90,7 +90,7 @@ export default function ShoppingItem({ item_id, list_id, name, isChecked, onTogg
           <Ionicons
             name={isChecked ? 'checkbox' : 'square-outline'}
             size={28}
-            color={isChecked ? 'purple' : 'gray'}
+            color={isChecked ? '#B25FC3' : 'gray'}
             style={styles.icon}
           />
         </Pressable>

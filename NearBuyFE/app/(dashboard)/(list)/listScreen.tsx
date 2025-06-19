@@ -323,7 +323,7 @@ export default function ListScreen() {
               <TouchableOpacity style={styles.addButton}
                 onPress={() => setIsAdding(true)}
               >
-                <AntDesign name="plus" size={30} color="purple" />
+                <AntDesign name="plus" size={30} color="#B25FC3" />
                 {/*<Text style={styles.addButtonText}>Add Item</Text> */}
               </TouchableOpacity>
             )}
@@ -420,9 +420,9 @@ const styles = StyleSheet.create({
   },
 
   addButton: {
-    borderWidth: 1,
-    borderColor: "purple",
-    padding: 12,
+    borderWidth: 1.5,
+    borderColor: "#B25FC3",
+    padding: 10,
     marginTop: 12,
     borderRadius: 12,
     alignItems: 'center',
