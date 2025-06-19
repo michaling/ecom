@@ -510,13 +510,13 @@ const styles = StyleSheet.create({
   text1: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#2A294B',
+    color: '#332F6E',
     marginBottom: 2,
   },
   text2: {
     fontSize: 16,
     //fontWeight: 'bold',
-    color: '#2A294B',
+    color: '#332F6E',
     marginLeft: 30,
   },
   header: {

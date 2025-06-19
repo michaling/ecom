@@ -6,7 +6,7 @@ import RecommendationItem from '@/components/RecommendationItem';
 import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
 import * as Utils from '../../../utils/utils';
 import axios from 'axios';
-
+import imageMap from '@/utils/imageMap';
 
 interface Item {
   id: string;
@@ -28,6 +28,7 @@ export default function ListScreen() {
     list_name: string;
     list_color?: string | string[];
   }>();
+  
 
   const background = Array.isArray(list_color) ? list_color[0] : list_color;
 
@@ -41,6 +42,9 @@ export default function ListScreen() {
     const [editedTitle, setEditedTitle] = useState(list_name);
     const [listGeoAlert, setListGeoAlert] = useState<boolean>(false);
     const [listDeadline, setListDeadline] = useState<string | null>(null);
+    const [picPath, setPicPath] = useState<string | null>(null);
+
+    const imageSource = imageMap[picPath ?? ''] || require('@/assets/images/default-bg.png');
 
     /* ────────── helper: fetch list from BE ────────── */
   const loadList = useCallback(async () => {
@@ -58,6 +62,8 @@ export default function ListScreen() {
       );
       
       setEditedTitle(res.data.name); 
+
+      setPicPath(res.data.pic_path ?? null);
 
       const formatted: Item[] = res.data.items.map((it: any) => ({
         id: it.item_id,
@@ -250,7 +256,7 @@ export default function ListScreen() {
   return (
     <View style={styles.container}>
   <ImageBackground
-          source={ require('@/assets/images/default-bg.png') }
+          source={imageSource}
           resizeMode="cover"
           style={styles.imageBackground}
           imageStyle={styles.imageStyle}
@@ -262,7 +268,7 @@ export default function ListScreen() {
               <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={{ position: 'absolute', top: 60, right: 20 }}
+          style={{ position: 'absolute', top: 55, right: 20 }}
           onPress={() => {
             router.push({
               pathname: '../listSettings',
@@ -274,7 +280,7 @@ export default function ListScreen() {
             });
           }}
         >
-          <Feather name="settings" size={24} color="#333" />
+          <Feather name="settings" size={24} color="#007AFF" />
         </TouchableOpacity>
         {isEditingTitle ? (
         <TextInput
@@ -370,7 +376,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: 'bold',
     marginBottom: 6,
-    color: '#2A294B',
+    color: 'black',
     shadowColor: 'white',
     shadowRadius: 0.2,
     shadowOffset: {
@@ -382,7 +388,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 15,
-    color: '#2A294B',
+    color: 'black',
     paddingBottom: 8,
     paddingLeft: 2,
   },
@@ -457,7 +463,7 @@ const styles = StyleSheet.create({
     padding: 6,
     flexDirection: 'row',
     alignItems: 'center',
-    position: 'absolute', top: 50, left: 10,
+    position: 'absolute', top: 45, left: 7,
   },
   
   backText: {
@@ -470,7 +476,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   imageStyle: {
-    opacity: 0.8,
+    opacity: 0.7,
   },
 
 });

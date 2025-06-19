@@ -1,9 +1,12 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
+import imageMap from '@/utils/imageMap';
 
 export default function ListCard({ list }: { list: any }) {
   const router = useRouter();
+  const imageSource = imageMap[list.pic_path] || require('@/assets/images/default-bg.png');
+
   return (
     <Pressable
       style={styles.cardContainer}
@@ -21,7 +24,7 @@ export default function ListCard({ list }: { list: any }) {
     >
       <View style={styles.card}>
         <ImageBackground
-          source={ require('@/assets/images/default-bg.png') }
+          source={imageSource}
           resizeMode="cover"
           style={styles.imageBackground}
           imageStyle={styles.imageStyle}
