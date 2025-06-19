@@ -134,6 +134,7 @@ def get_user_lists(user_id: str,
             "name": lst["name"],
             "deadline": lst["deadline"],
             "geo_alert": lst["geo_alert"],
+            "pic_path": lst.get("pic_path"),
             "items": items,
             "unchecked_count": unchecked_count
         })
@@ -208,6 +209,7 @@ def get_list(list_id: str):
         "name": lst["name"],
         "deadline": lst["deadline"],
         "geo_alert": lst["geo_alert"],
+        "pic_path": lst.get("pic_path"),
         "items": items,
         "suggestions": filtered_suggestions
     }
