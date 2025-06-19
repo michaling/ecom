@@ -121,16 +121,16 @@ const styles = StyleSheet.create({
     width: 200,
     // Shadow for iOS
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 3,
+    shadowOffset: { width: 1, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
   
     // Shadow for Android
     elevation: 5,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: 'white',
+    fontSize: 15,
     fontWeight: 'bold',
   },
   footer: {
