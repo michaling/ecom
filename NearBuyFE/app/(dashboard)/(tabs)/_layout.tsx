@@ -5,6 +5,13 @@ export default function AppLayout() {
   return (
     <Tabs
       screenOptions={{
+        animation: 'shift',
+        transitionSpec: {
+          animation: 'timing',
+          config: {
+            duration: 200,
+          },
+        },
         headerShown: false,
         tabBarShowLabel: false,
         tabBarActiveTintColor: '#B25FC3',
@@ -38,13 +45,7 @@ export default function AppLayout() {
           ),
         }} 
       />
-      {/*<Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-          tabBarLabel: 'Settings',
-        }}
-      /> */}
+
     </Tabs>
   );
 }
