@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, Text, Image, TextInput, Button, StyleSheet, Pressable, Alert, TouchableOpacity, ImageBackground } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { View, Text, Image, TextInput, Animated, Easing, StyleSheet, Alert, TouchableOpacity, ImageBackground, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Switch } from 'react-native';
 import * as SecureStore from 'expo-secure-store'; // For saving login state later
@@ -21,14 +21,34 @@ export default function RegisterScreen() {
     return /\S+@\S+\.\S+/.test(email);
   };
 
-  //Phone number format (digits only, 9–15 digits) // Delete later
-  // const isValidPhone = (phone: string) => {
-  //   return /^\d{9,15}$/.test(phone);
-  // };
+  const slideAnim = useRef(new Animated.Value(0)).current;
 
-
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener('keyboardWillShow', () => {
+      Animated.timing(slideAnim, {
+        toValue: -70, // pixels to move up
+        duration: 350,
+        easing: Easing.out(Easing.poly(4)),
+        useNativeDriver: true,
+      }).start();
+    });
+  
+    const keyboardWillHide = Keyboard.addListener('keyboardWillHide', () => {
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 200,
+        easing: Easing.in(Easing.poly(1)),
+        useNativeDriver: true,
+      }).start();
+    });
+  
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, []);
+  
   // TODO: Strong password validation
-
 
 
   //check inputs validations
@@ -42,13 +62,7 @@ export default function RegisterScreen() {
       Alert.alert('Error', 'Please enter a valid email address.');
       return;
     }
-  
-    // Delete later
-    // if (!isValidPhone(phoneNumber)) {
-    //   Alert.alert('Error', 'Please enter a valid phone number.');
-    //   return;
-    // }
-  
+
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match.');
       return;
@@ -86,8 +100,13 @@ export default function RegisterScreen() {
 
   return (
     <ImageBackground source={require('../../assets/images/registerBG.png')} resizeMode="cover" style={styles.image}>
+     <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <Animated.View style={[styles.container, { transform: [{ translateY: slideAnim }] }]}>
 
-    <View style={styles.container}>
     <View style={{alignItems: 'center'}}> 
       <Image
         style={styles.logo}
@@ -111,14 +130,6 @@ export default function RegisterScreen() {
         value={email}
         onChangeText={setEmail}
       />
-      {/* Delete later */}
-      {/* <TextInput
-        placeholder="Phone number"
-        keyboardType="phone-pad"
-        style={styles.input}
-        value={phoneNumber}
-        onChangeText={setNumber}
-      /> */}
       <TextInput
         placeholder="Password"
         secureTextEntry
@@ -158,7 +169,9 @@ export default function RegisterScreen() {
           <Text style={styles.footerLink}> Login</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </Animated.View>
+    </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
     </ImageBackground>
   );
 }
@@ -169,9 +182,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center', 
     alignItems: 'center',
     padding: 24, 
-    marginBottom: 20,
+    //marginBottom: 20,
     //backgroundColor: '#FAFAFA'
   },
+  
   title: {
     fontSize: 27,
     fontWeight: 'bold',
@@ -183,14 +197,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textAlign: 'center',
     marginBottom: 24,
-    color: '#666',
+    color: '#332F6E',
     fontWeight: 'bold',
   },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
-    padding: 12,
+    padding: 11,
     marginBottom: 16,
     fontSize: 16,
     backgroundColor: '#FAFAFA',

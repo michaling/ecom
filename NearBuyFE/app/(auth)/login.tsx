@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Image, View, Text, TextInput, Pressable, StyleSheet, Alert, Platform, TouchableOpacity, ImageBackground } from 'react-native';
+import React, { useState, useEffect, useRef} from 'react';
+import { Image, View, Text, TextInput,  Animated, Easing, StyleSheet, Alert, Platform, TouchableOpacity, ImageBackground, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import axios, { AxiosError } from 'axios';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -10,7 +10,34 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
-  const image = {};
+
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener('keyboardWillShow', () => {
+      Animated.timing(slideAnim, {
+        toValue: -50, // pixels to move up
+        duration: 350,
+        easing: Easing.out(Easing.poly(4)),
+        useNativeDriver: true,
+      }).start();
+    });
+
+    const keyboardWillHide = Keyboard.addListener('keyboardWillHide', () => {
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 200,
+        easing: Easing.in(Easing.poly(1)),
+        useNativeDriver: true,
+      }).start();
+    });
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, []);
+
   
 
   const handleLogin = async () => {
@@ -38,7 +65,10 @@ export default function LoginScreen() {
   return (
     <ImageBackground source={require('../../assets/images/loginBG.png')} resizeMode="cover" style={styles.image}>
 
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <Animated.View style={[styles.container, { transform: [{ translateY: slideAnim }] }]}>
     <View style={{alignItems: 'center'}}> 
       <Image
         style={styles.logo}
@@ -73,7 +103,9 @@ export default function LoginScreen() {
           <Text style={styles.footerLink}> Register</Text>
         </TouchableOpacity>
       </View>
-    </View>
+      </Animated.View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
     </ImageBackground>
   );
 }
@@ -83,22 +115,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    marginBottom: 40,
+    //paddingHorizontal: 24,
+    //marginBottom: 50,
     //backgroundColor: '#FAFAFA',
   },
   title: {
     fontSize: 27,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
     color: '#5067b2',
   },
   subtitle: {
     fontSize: 18,
     textAlign: 'center',
-    marginBottom: 24,
-    color: '#666',
+    marginBottom: 40,
+    color: '#332F6E',
     fontWeight: 'bold',
   },
   input: {
@@ -112,6 +144,7 @@ const styles = StyleSheet.create({
     width: 320,
   },
   button: {
+    marginTop: 10,
     backgroundColor: '#B25FC3',
     borderRadius: 50,
     paddingVertical: 14,
