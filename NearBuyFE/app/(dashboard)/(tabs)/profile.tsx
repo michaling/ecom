@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
       shadowColor: 'gray',
       shadowRadius: 9,
       shadowOpacity: 0.5,
-      
+      elevation: 5,
     },
     header: {
         flexDirection: 'row',

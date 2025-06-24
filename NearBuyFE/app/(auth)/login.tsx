@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   
     // Shadow for Android
-    elevation: 5,
+    elevation: 3,
   },
   buttonText: {
     color: 'white',
