@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Pressable, Alert, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Switch } from 'react-native';
 import * as SecureStore from 'expo-secure-store'; // For saving login state later
@@ -55,6 +55,11 @@ export default function RegisterScreen() {
     }
   
     try {
+      if (isLocationEnabled) {
+        const granted = await Utils.requestForegroundLocationPermission();
+        if (!granted) return; // Stop registration if permission was denied
+      }
+
       const res = await axios.post(
          Utils.currentPath + 'auth/signup',
         {
@@ -135,15 +140,15 @@ export default function RegisterScreen() {
         <Text style={styles.smallerToggleLabel}>Don't worry - you can always turn this off later</Text>
       </View>
 
-      <Pressable style={styles.button} onPress={handleRegister}>
+      <TouchableOpacity style={styles.button} onPress={handleRegister}>
         <Text style={styles.buttonText}>REGISTER</Text>
-      </Pressable>
+      </TouchableOpacity>
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Already have an account?</Text>
-        <Pressable onPress={() => router.push('/login')}>
+        <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.footerLink}> Login</Text>
-        </Pressable>
+        </TouchableOpacity>
       </View>
     </View>
   );

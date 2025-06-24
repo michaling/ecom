@@ -1,9 +1,9 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
 import Checklist from '@/components/Checklist';
 import RecommendationItem from '@/components/RecommendationItem';
-import { AntDesign, Ionicons } from '@expo/vector-icons';
+import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
 import * as Utils from '../../../utils/utils';
 import axios from 'axios';
 
@@ -12,6 +12,13 @@ interface Item {
   id: string;
   name: string;
   isChecked: boolean;
+  deadline?: string | null;
+  geo_alert?: boolean;
+}
+
+interface Suggestion {
+  suggestion_id: string;
+  name: string;
 }
 
 export default function ListScreen() {
@@ -26,11 +33,14 @@ export default function ListScreen() {
 
     /* ────────── component state ────────── */
     const [items, setItems] = useState<Item[]>([]);
-    const [recommended, setRecommended] = useState<string[]>([]); // we’ll need it soon
+    const [recommended, setRecommended] = useState<Suggestion[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [newItemName, setNewItemName] = useState('');
-
+    const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const [editedTitle, setEditedTitle] = useState(list_name);
+    const [listGeoAlert, setListGeoAlert] = useState<boolean>(false);
+    const [listDeadline, setListDeadline] = useState<string | null>(null);
 
     /* ────────── helper: fetch list from BE ────────── */
   const loadList = useCallback(async () => {
@@ -46,16 +56,26 @@ export default function ListScreen() {
         `${Utils.currentPath}lists/${list_id}`,
         { headers: { token } },
       );
+      
+      setEditedTitle(res.data.name); 
 
-      //  { items: [...], suggested_items: [...] }
       const formatted: Item[] = res.data.items.map((it: any) => ({
         id: it.item_id,
         name: it.name,
         isChecked: it.is_checked,
+        deadline: it.deadline,
+        geo_alert: it.geo_alert,
       }));
 
       setItems(formatted);
-      setRecommended(res.data.suggestions?.map((s: any) => s.name) ?? []);
+      setListGeoAlert(res.data.geo_alert ?? false);
+      setListDeadline(res.data.deadline ?? null);
+      setRecommended(
+        res.data.suggestions?.map((s: any) => ({
+          suggestion_id: s.suggestion_id,
+          name: s.name,
+        })) ?? []
+      );
 
     } catch (err) {
       console.error('[LIST] load failed:', err);
@@ -114,6 +134,23 @@ export default function ListScreen() {
     }
   };
   
+  const changeListName = async (newName: string) => {
+    setIsEditingTitle(false);
+    if (newName.trim() === '' || newName === list_name) return;
+  
+    const token = await Utils.getValueFor('access_token');
+    try {
+      await axios.patch(`${Utils.currentPath}lists/${list_id}/name`, {
+        name: newName,
+      }, {
+        headers: { token },
+      });
+      setEditedTitle(newName);
+    } catch (err) {
+      console.error('[RENAME LIST FAILED]', err);
+    }
+  };
+
   const deleteItem = async (itemId: string) => {
     setItems(prev => prev.filter(item => item.id !== itemId));
     const token = await Utils.getValueFor('access_token');
@@ -141,7 +178,11 @@ export default function ListScreen() {
     try {
       const res = await axios.post(
         `${Utils.currentPath}lists/${list_id}/items`,
-        { item_name: newItemName },
+        {
+          item_name: newItemName,
+          geo_alert: listGeoAlert,
+          deadline: listDeadline,
+        },
         {headers: { token },}
       );
   
@@ -149,6 +190,8 @@ export default function ListScreen() {
         id: res.data.item_id,
         name: res.data.name,
         isChecked: false,
+        geo_alert: listGeoAlert,
+        deadline: listDeadline,
       };
   
       setItems(prev => [...prev, newItem]);
@@ -160,21 +203,87 @@ export default function ListScreen() {
   };
 
 
-  const handleAddRecommendation = (name: string) => {
-    const newItem = {
-      id: Date.now().toString(),
-      name,
-      isChecked: false,
-    };
-    setItems((prev) => [...prev, newItem]);
-    setRecommended((prev) => prev.filter((r) => r !== name));
+  const handleAddRecommendation = async (suggestion: Suggestion) => {
+    const token = await Utils.getValueFor('access_token');
+    try {
+      const res = await axios.post(
+        `${Utils.currentPath}lists/${list_id}/suggestions/${suggestion.suggestion_id}/accept`,
+        {
+          name: suggestion.name,
+          geo_alert: listGeoAlert,
+          deadline: listDeadline,
+        },
+        { headers: { token } }
+      );
+  
+      const newItem = {
+        id: res.data.item_id,
+        name: suggestion.name,
+        isChecked: false,
+        geo_alert: listGeoAlert,
+        deadline: listDeadline,
+      };
+  
+      setItems(prev => [...prev, newItem]);
+      setRecommended(prev => prev.filter(r => r.suggestion_id !== suggestion.suggestion_id));
+    } catch (err) {
+      console.error('[ADD SUGGESTION FAILED]', err);
+    }
+  };
+
+  const handleHideRecommendation = async (s: Suggestion) => {
+    const token = await Utils.getValueFor('access_token');
+    try {
+      await axios.post(
+        `${Utils.currentPath}lists/${list_id}/suggestions/${s.suggestion_id}/reject`,
+        {},
+        { headers: { token } }
+      );
+      setRecommended((prev) =>
+        prev.filter((r) => r.suggestion_id !== s.suggestion_id)
+      );
+    } catch (err) {
+      console.error('[REJECT SUGGESTION FAILED]', err);
+    }
   };
 
   return (
     <View style={styles.container}>
 
       <View style={[styles.header, { backgroundColor: background || '#E6E6FA' }]}>
-        <Text style={styles.title}>{list_name} </Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="chevron-back-outline" size={24} color="#007AFF" />
+              <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={{ position: 'absolute', top: 60, right: 20 }}
+          onPress={() => {
+            router.push({
+              pathname: '../listSettings',
+              params: {
+                list_id,
+                list_name,
+                list_color: background,
+              },
+            });
+          }}
+        >
+          <Feather name="settings" size={24} color="#333" />
+        </TouchableOpacity>
+        {isEditingTitle ? (
+        <TextInput
+          style={styles.title}
+          value={editedTitle}
+          onChangeText={setEditedTitle}
+          onBlur={() => changeListName(editedTitle)}
+          onSubmitEditing={() => changeListName(editedTitle)}
+          autoFocus
+        />
+      ) : (
+        <TouchableOpacity onPress={() => setIsEditingTitle(true)}>
+          <Text style={styles.title}>{editedTitle}</Text>
+        </TouchableOpacity>
+      )}
         <Text style={styles.subtitle}>
           {`${total} items, ${left} remaining`}
         </Text>
@@ -192,6 +301,7 @@ export default function ListScreen() {
               onToggle={toggleItem}
               onNameChange={changeItemName}
               onDelete={deleteItem}
+              listId={list_id}
             />
           </View>
           <View style={styles.addContainer}>
@@ -199,7 +309,7 @@ export default function ListScreen() {
               <TouchableOpacity style={styles.addButton}
                 onPress={() => setIsAdding(true)}
               >
-                <AntDesign name="plus" size={33} color="purple" />
+                <AntDesign name="plus" size={30} color="purple" />
                 {/*<Text style={styles.addButtonText}>Add Item</Text> */}
               </TouchableOpacity>
             )}
@@ -221,9 +331,10 @@ export default function ListScreen() {
             <Text style={styles.recommendTitle}>Recommended for you</Text>
             {recommended.slice(0, 3).map((rec) => (
               <RecommendationItem
-                key={rec}
-                name={rec}
+                key={rec.suggestion_id}
+                name={rec.name}
                 onAdd={() => handleAddRecommendation(rec)}
+                onHide={() => handleHideRecommendation(rec)}
               />
             ))}
           </View>
@@ -325,5 +436,18 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingLeft: 4,
   },
+
+  backButton: {
+    padding: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'absolute', top: 50, left: 10,
+  },
+  
+  backText: {
+    fontSize: 18,
+    color: '#007AFF',
+    fontWeight: '500',
+  }
 
 });

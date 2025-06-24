@@ -2,8 +2,14 @@ from fastapi import APIRouter, HTTPException
 from .schemas import SignInData, SignUpData
 from .logic import sign_in, sign_up
 from gotrue.errors import AuthError
+from supabase_client import supabase
+from pydantic import BaseModel
+
 
 router = APIRouter()
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
 
 @router.post("/signin")
 def signin_endpoint(data: SignInData):
@@ -13,7 +19,6 @@ def signin_endpoint(data: SignInData):
         return {"message": "Sign-in successful", "user_id": user.id, "access_token": session.access_token}
     except AuthError as e:
         raise HTTPException(status_code=401, detail=str(e))
-
 
 @router.post("/signup")
 def signup_endpoint(data: SignUpData):
@@ -29,3 +34,4 @@ def signup_endpoint(data: SignUpData):
     except AuthError as e:
         print("Supabase AuthError:", e)
         raise HTTPException(status_code=400, detail=str(e))
+

@@ -1,3 +1,4 @@
+import { Ionicons, FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
 export default function AppLayout() {
@@ -5,8 +6,16 @@ export default function AppLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#007AFF', // iOS blue
-        tabBarLabelStyle: { fontSize: 14 },
+        tabBarShowLabel: false,
+        tabBarActiveTintColor: '#B25FC3',
+        tabBarInactiveTintColor: '#999',
+        tabBarLabelStyle: { fontSize: 12 },
+        tabBarStyle: {
+          paddingBottom: 3, // reduce if it's too low
+          paddingTop: 8,
+          height: 70,
+        },
+        
       }}
     >
       <Tabs.Screen
@@ -14,16 +23,22 @@ export default function AppLayout() {
         options={{
           title: 'Home',
           tabBarLabel: 'Home',
+          tabBarIcon: ({ color, size }) => (
+            <FontAwesome name="list-ul" size={24} color={color} /> 
+          ),
         }}
       />
-       {/* <Tabs.Screen
+        <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
           tabBarLabel: 'Profile',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="manage-accounts" size={30} color={color} />
+          ),
         }} 
       />
-      <Tabs.Screen
+      {/*<Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',

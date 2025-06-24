@@ -20,6 +20,8 @@ import * as Utils from '../../../utils/utils';
 import ListCard from '@/components/ListCard';
 import { AntDesign } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { Alert } from 'react-native';
 
 
 const CARD_COLORS = [
@@ -41,6 +43,9 @@ export default function HomeScreen() {
   const [deadline, setDeadline] = useState<Date | null>(null);
   const [isDeadlineEnabled, setIsDeadlineEnabled] = useState(false);
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+  const [defaultGeoAlert, setDefaultGeoAlert] = useState<boolean>(false);
+  const [anyGeoEnabled, setAnyGeoEnabled] = useState(false);
+
 
   const resetForm = () => {
     setNewListName('');
@@ -69,22 +74,114 @@ export default function HomeScreen() {
         headers: { token },
       });
 
-      const listsWithColors = res.data.map((it: any, idx: number) => ({
+      const rawLists = res.data.lists;
+      setAnyGeoEnabled(res.data.any_geo_enabled ?? false);
+
+      const listsWithColors = rawLists.map((it: any, idx: number) => ({
         ...it,
         color: CARD_COLORS[idx % CARD_COLORS.length],
       }));
       setLists(listsWithColors);
+      
     } catch (err) {
       console.error('[HOME] fetch error', err);
     }
   }, []);
 
+  const checkBackgroundPermissionIfNeeded = async () => {
+    if (!anyGeoEnabled) return;
+  
+    const wasAsked = await Utils.wasAskedForBgPermission();
+    if (wasAsked) return;
+  
+    Alert.alert(
+      "Allow location access?",
+      "To get alerts near stores, the app needs location access at all times. Update your settings?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+          onPress: () => {
+            Utils.markAskedForBgPermission();
+          }
+        },
+        {
+          text: "Allow",
+          onPress: async () => {
+            const granted = await Utils.requestBackgroundLocationPermission();
+            await Utils.markAskedForBgPermission();
+  
+            if (!granted) {
+              console.warn('User denied background permission');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   useFocusEffect(
     React.useCallback(() => {
-      // call the async function but don’t return its Promise
-      fetchLists();
+      const run = async () => {
+        await fetchLists();
+        await checkBackgroundPermissionIfNeeded();
+      };
+      run();
     }, [fetchLists])
   );
+
+  useEffect(() => {
+    const fetchDefaultSettings = async () => {
+      const token = await Utils.getValueFor('access_token');
+      try {
+        const res = await axios.get(`${Utils.currentPath}profile`, {
+          headers: { token },
+        });
+        setDefaultGeoAlert(res.data.geo_alert ?? false);
+      } catch (err) {
+        console.error('[PROFILE LOAD FAILED]', err);
+      }
+    };
+  
+    fetchDefaultSettings();
+  }, []);
+
+  // useEffect(() => {
+  //   Utils.startLocationPolling(); // Start polling every 60s
+  
+  //   return () => {
+  //     Utils.stopLocationPolling(); // Cleanup when screen unmounts
+  //   };
+  // }, []);
+
+  const showAndroidDateTimePicker = () => {
+    // First: pick date
+    DateTimePickerAndroid.open({
+      value: deadline || new Date(),
+      mode: 'date',
+      is24Hour: true,
+      onChange: (event, selectedDate) => {
+        if (event.type === 'set' && selectedDate) {
+          // Second: pick time
+          DateTimePickerAndroid.open({
+            value: selectedDate,
+            mode: 'time',
+            is24Hour: true,
+            onChange: (event2, selectedTime) => {
+              if (event2.type === 'set' && selectedTime) {
+                // Combine date + time
+                const finalDate = new Date(selectedDate);
+                finalDate.setHours(selectedTime.getHours());
+                finalDate.setMinutes(selectedTime.getMinutes());
+                setDeadline(finalDate);
+              }
+            },
+          });
+        }
+      },
+    });
+  };
+  
 
   const renderItem = ({ item }: any) => <ListCard list={item} />;
 
@@ -98,7 +195,12 @@ export default function HomeScreen() {
         <TouchableOpacity style={styles.toolButton} onPress={() => {}}>
           <Text style={styles.toolButtonText}>Edit</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.toolButton} onPress={() => setAddModalVisible(true)}>
+        <TouchableOpacity style={styles.toolButton} 
+          onPress={() => {
+            setLocationEnabled(defaultGeoAlert);
+            setAddModalVisible(true);
+          }}
+          >
           <AntDesign name="plus" size={25} color="black" />
         </TouchableOpacity>
 
@@ -174,26 +276,13 @@ export default function HomeScreen() {
                 )}
 
                 {Platform.OS === 'android' && (
-                  <>
-                    <Pressable onPress={() => setDatePickerVisible(true)} style={styles.deadlineButton}>
-                      <Text style={styles.deadlineText}>
-                        {deadline ? deadline.toLocaleString() : 'Pick date & time'}
-                      </Text>
-                    </Pressable>
-
-                    {isDatePickerVisible && (
-                      <DateTimePicker
-                        value={deadline || new Date()}
-                        mode="datetime"
-                        display="default"
-                        onChange={(event, selectedDate) => {
-                          setDatePickerVisible(false);
-                          if (selectedDate) setDeadline(selectedDate);
-                        }}
-                      />
-                    )}
-                  </>
+                  <Pressable onPress={showAndroidDateTimePicker} style={styles.deadlineButton}>
+                    <Text style={styles.deadlineText}>
+                      {deadline ? deadline.toLocaleString() : 'Pick date & time'}
+                    </Text>
+                  </Pressable>
                 )}
+
 
                 {Platform.OS === 'web' && (
                   <>
@@ -230,10 +319,38 @@ export default function HomeScreen() {
               </Pressable>
 
               <Pressable
-                onPress={() => {
-                  // TODO: call axios POST here
-                  resetForm();
-                  setAddModalVisible(false);
+                onPress={async () => {
+                  try {
+                    if (!newListName.trim()) {
+                      Alert.alert('Missing Name', 'Please enter a name for your list.');
+                      return;
+                    }
+
+                    if (isDeadlineEnabled && !deadline) {
+                      Alert.alert('Incomplete Deadline', 'Please pick a deadline date and time');
+                      return;
+                    }
+
+                    const token = await Utils.getValueFor('access_token');
+                    const user_id = await Utils.getValueFor('user_id');
+
+                    await axios.post(`${Utils.currentPath}lists`, {
+                      name: newListName,
+                      geo_alert: isLocationEnabled,
+                      deadline: isDeadlineEnabled && deadline
+                      ? deadline.toLocaleString('sv-SE').replace('T', ' ')
+                      : null,
+                    }, {
+                      params: { user_id },
+                      headers: { token }
+                    });
+
+                    resetForm();
+                    setAddModalVisible(false);
+                    fetchLists(); // refresh
+                  } catch (err) {
+                    console.error('[CREATE LIST FAILED]', err);
+                  }
                 }}
                 style={styles.saveButton}
               >

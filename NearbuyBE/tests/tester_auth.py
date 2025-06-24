@@ -50,8 +50,8 @@ else:
 
 # Should work
 r = requests.post(f"{base_url}/signin", json={
-    "email": "tester3@gmail.com",
-    "password": "123456789"})
+    "email": "user@example.com",
+    "password": "123456"})
 if r.status_code == 200:
     print(r.json())
 else:
