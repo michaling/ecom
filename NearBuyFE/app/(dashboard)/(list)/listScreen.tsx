@@ -300,6 +300,21 @@ export default function ListScreen() {
         <Text style={styles.subtitle}>
           {`${total} items, ${left} remaining`}
         </Text>
+
+        <View style={styles.alertRow}>
+          {listDeadline && (
+            <View style={styles.alertItem}>
+              <Ionicons name="calendar-number-outline" size={16} color="#333" style={{ marginRight: 4 }} />
+              <Text style={styles.alertText}>Due to {new Date(listDeadline).toLocaleDateString()}</Text>
+            </View>
+          )}
+          {listGeoAlert && (
+            <View style={styles.alertItem}>
+              <Ionicons name="location-outline" size={16} color="#333" style={{ marginRight: 4 }} />
+              <Text style={styles.alertText}>Location Alerts On</Text>
+            </View>
+          )}
+        </View>
        
       </View>
       </ImageBackground>
@@ -478,7 +493,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   imageStyle: {
-    opacity: 0.7,
+    opacity: 0.65,
   },
   scrollContent: {
     flexGrow: 1,
@@ -486,6 +501,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-  }
+  },
+  alertRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 4,
+    flexWrap: 'wrap',
+  },
+  
+  alertItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(248, 248, 255, .6)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    //opacity: 0.7, 
+  },
+  
+  alertText: {
+    fontSize: 12,
+    color: '#333',
+  },
   
 });

@@ -113,7 +113,7 @@ export default function ShoppingItem({ item_id, list_id, name, isChecked, onTogg
         <View style={{ flexDirection: 'row', gap: 12, marginLeft: 10 }}>
           <TouchableOpacity onPress={() => openDeadlineModal()}>
             <Ionicons
-              name={deadlineAlert ? "alarm" : "alarm-outline"}
+              name={deadlineAlert ? "calendar-number" : "calendar-number-outline"}
               size={22}
               color={deadlineAlert ? '#007AFF' : '#c2c2c2'}
             />
