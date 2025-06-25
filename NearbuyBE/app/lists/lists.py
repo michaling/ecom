@@ -120,6 +120,7 @@ def create_list(
                 "last_update": now,
                 "deadline": deadline_str,
                 "geo_alert": list_geo,
+                "pic_path": user_list.pic_path,
             })
             .execute()
         )
@@ -196,6 +197,7 @@ def get_user_lists(user_id: str, token: str = Header(...)):
             "name": lst["name"],
             "deadline": lst["deadline"],
             "geo_alert": lst["geo_alert"],
+            "pic_path": lst.get("pic_path"),
             "items": items,
             "unchecked_count": unchecked,
             "suggested_items": suggestions
@@ -263,6 +265,7 @@ def get_list(list_id: str):
         "name": lst["name"],
         "deadline": lst["deadline"],
         "geo_alert": lst["geo_alert"],
+        "pic_path": lst.get("pic_path"),
         "items": items,
         "suggestions": filtered_suggestions
     }

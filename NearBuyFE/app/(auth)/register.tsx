@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Pressable, Alert, TouchableOpacity } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { View, Text, Image, TextInput, Animated, Easing, StyleSheet, Alert, TouchableOpacity, ImageBackground, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Switch } from 'react-native';
 import * as SecureStore from 'expo-secure-store'; // For saving login state later
@@ -21,14 +21,34 @@ export default function RegisterScreen() {
     return /\S+@\S+\.\S+/.test(email);
   };
 
-  //Phone number format (digits only, 9–15 digits) // Delete later
-  // const isValidPhone = (phone: string) => {
-  //   return /^\d{9,15}$/.test(phone);
-  // };
+  const slideAnim = useRef(new Animated.Value(0)).current;
 
-
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener('keyboardWillShow', () => {
+      Animated.timing(slideAnim, {
+        toValue: -70, // pixels to move up
+        duration: 350,
+        easing: Easing.out(Easing.poly(4)),
+        useNativeDriver: true,
+      }).start();
+    });
+  
+    const keyboardWillHide = Keyboard.addListener('keyboardWillHide', () => {
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 200,
+        easing: Easing.in(Easing.poly(1)),
+        useNativeDriver: true,
+      }).start();
+    });
+  
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, []);
+  
   // TODO: Strong password validation
-
 
 
   //check inputs validations
@@ -42,13 +62,7 @@ export default function RegisterScreen() {
       Alert.alert('Error', 'Please enter a valid email address.');
       return;
     }
-  
-    // Delete later
-    // if (!isValidPhone(phoneNumber)) {
-    //   Alert.alert('Error', 'Please enter a valid phone number.');
-    //   return;
-    // }
-  
+
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match.');
       return;
@@ -85,8 +99,21 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create Account</Text>
+    <ImageBackground source={require('../../assets/images/registerBG.png')} resizeMode="cover" style={styles.image}>
+     <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <Animated.View style={[styles.container, { transform: [{ translateY: slideAnim }] }]}>
+
+    <View style={{alignItems: 'center'}}> 
+      <Image
+        style={styles.logo}
+        source={require('../../assets/images/logo1.png')}/>
+        </View>
+      <Text style={styles.title}>Welcome to NearBuy </Text>
+      <Text style={styles.subtitle}>Create a new account</Text>
       <TextInput
         placeholder="Name"
         style={styles.input}
@@ -103,14 +130,6 @@ export default function RegisterScreen() {
         value={email}
         onChangeText={setEmail}
       />
-      {/* Delete later */}
-      {/* <TextInput
-        placeholder="Phone number"
-        keyboardType="phone-pad"
-        style={styles.input}
-        value={phoneNumber}
-        onChangeText={setNumber}
-      /> */}
       <TextInput
         placeholder="Password"
         secureTextEntry
@@ -131,7 +150,7 @@ export default function RegisterScreen() {
         <Switch
           value={isLocationEnabled}
           onValueChange={setIsLocationEnabled}
-          trackColor={{ false: '#ccc', true: '#4CAF50' }}
+          trackColor={{ false: '#ccc', true: '#007AFF' }}
           thumbColor={isLocationEnabled ? '#fff' : '#f4f3f4'}
         />
       </View>
@@ -150,7 +169,10 @@ export default function RegisterScreen() {
           <Text style={styles.footerLink}> Login</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </Animated.View>
+    </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
+    </ImageBackground>
   );
 }
 
@@ -158,45 +180,57 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1,
     justifyContent: 'center', 
+    alignItems: 'center',
     padding: 24, 
-    backgroundColor: '#FAFAFA'
+    //marginBottom: 20,
+    //backgroundColor: '#FAFAFA'
   },
-  title: { 
-    fontSize: 28, 
-    fontWeight: 'bold', 
-    textAlign: 'center', 
-    marginBottom: 24, 
-    color: '#333' 
+  
+  title: {
+    fontSize: 27,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+    color: '#5067b2',
+  },
+  subtitle: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 24,
+    color: '#332F6E',
+    fontWeight: 'bold',
   },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
-    padding: 12,
+    padding: 11,
     marginBottom: 16,
     fontSize: 16,
+    backgroundColor: '#FAFAFA',
+    width: 320,
   },
   button: {
-    backgroundColor: '#D1F0E5', // 🔁 Change to your preferred color
+    backgroundColor: '#B25FC3', // 🔁 Change to your preferred color
     borderRadius: 50,           // Fully rounded
     paddingVertical: 14,
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
     margin: 10,
-  
+    width: 200,
     // Shadow for iOS
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 3,
+    shadowOffset: { width: 1, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
   
     // Shadow for Android
-    elevation: 5,
+    elevation: 3,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: 'white',
+    fontSize: 15,
     fontWeight: 'bold',
   },
   footer: { 
@@ -219,8 +253,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 10,
-    marginRight: 60,
-    marginLeft: 16,
+    marginHorizontal: 50,
   },
   
   toggleLabel: {
@@ -235,5 +268,13 @@ const styles = StyleSheet.create({
   smallerToggleLabel: {
     fontSize: 12,
     color: '#333',
+  },
+  image: {
+    flex: 1,
+  },
+  logo: {
+    width: 55,
+    height: 89,
+    marginBottom: 16,
   },
 });

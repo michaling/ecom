@@ -95,7 +95,7 @@ export default function ProfileScreen() {
         <TouchableOpacity onPress={() => setIsEditing(true)}>
             <View style={styles.nameRow}>
                 
-            <FontAwesome5 name="pencil-alt" size={18} color="gray" style={{ marginLeft: 8 }} />
+            <FontAwesome5 name="pencil-alt" size={20} color="#B25FC3" style={{ marginLeft: 8 }} />
                 <Text style={styles.name}>{displayName ? displayName : "User Name"}</Text>
             </View>
         </TouchableOpacity>)}
@@ -106,6 +106,8 @@ export default function ProfileScreen() {
         <Text style={styles.settingLabel}>Enable location-based notifications by default</Text>
         <Switch
           value={locationEnabled}
+          trackColor={{ false: '#ccc', true: '#007AFF' }}
+          //thumbColor={isLocationEnabled ? '#fff' : '#f4f3f4'}
           onValueChange={async (val) => {
             if (val) {
               const granted = await Utils.requestForegroundLocationPermission();
@@ -131,7 +133,7 @@ export default function ProfileScreen() {
       {/* Logout Button */}
       <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
       <View style={styles.nameRow}>
-      <MaterialCommunityIcons name="logout-variant" size={24} color="gray" />
+      <MaterialCommunityIcons name="logout-variant" size={24} color="red" />
         <Text style={styles.logoutText}>Log Out</Text>
         </View>
       </TouchableOpacity>
@@ -146,14 +148,14 @@ const styles = StyleSheet.create({
       //flex: 1,
       padding: 24,
       marginHorizontal: 30,
-      marginTop: 100,
+      marginTop: 120,
       backgroundColor: '#FAFAFA',
       justifyContent: 'center',
       borderRadius: 15,
       shadowColor: 'gray',
       shadowRadius: 9,
       shadowOpacity: 0.5,
-      
+      elevation: 5,
     },
     header: {
         flexDirection: 'row',
@@ -164,7 +166,7 @@ const styles = StyleSheet.create({
     name: {
       fontSize: 24,
       fontWeight: 'bold',
-      marginLeft: 13,
+      marginLeft: 8,
       
     },
     settingRow: {
@@ -173,10 +175,10 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       marginVertical: 18,
       marginHorizontal: 5,
-      marginRight:40,
+      marginRight: 50,
     },
     settingLabel: {
-      fontSize: 17,
+      fontSize: 16,
     },
     logoutButton: {
       marginTop: 40,
@@ -187,7 +189,7 @@ const styles = StyleSheet.create({
     logoutText: {
       color: 'red',
       fontWeight: 'bold',
-      marginLeft: 12,
+      marginLeft: 6,
       fontSize: 15,
     },
 

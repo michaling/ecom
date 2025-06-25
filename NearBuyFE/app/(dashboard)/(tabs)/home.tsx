@@ -2,27 +2,20 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  FlatList,
-  ImageBackground,
-  Modal,
-  TouchableOpacity,
-  TextInput,
-  Switch,
-  Platform,
+  View, Text, Pressable, StyleSheet, FlatList, Image, Modal, TouchableOpacity, TextInput, Switch, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Utils from '../../../utils/utils';
 import ListCard from '@/components/ListCard';
-import { AntDesign } from '@expo/vector-icons';
+import { AntDesign, MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Alert } from 'react-native';
 
+
+
+const IMAGE_POOL = Array.from({ length: 11 }, (_, i) => `bg${i + 1}.png`);
 
 const CARD_COLORS = [
   '#FFE3E3', '#FFCDB3', '#FFEABE',
@@ -45,6 +38,7 @@ export default function HomeScreen() {
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [defaultGeoAlert, setDefaultGeoAlert] = useState<boolean>(false);
   const [anyGeoEnabled, setAnyGeoEnabled] = useState(false);
+  const [displayName, setDisplayName] = useState('');
 
 
   const resetForm = () => {
@@ -138,6 +132,7 @@ export default function HomeScreen() {
           headers: { token },
         });
         setDefaultGeoAlert(res.data.geo_alert ?? false);
+        setDisplayName(res.data.display_name || '');
       } catch (err) {
         console.error('[PROFILE LOAD FAILED]', err);
       }
@@ -188,7 +183,18 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.logoContainer}>
+      <Image
+        style={styles.logo}
+        source={require('../../../assets/images/logo1.png')}/>
+        <View style={{alignItems: 'center', justifyContent: 'center'}}> 
         <Text style={styles.logoText}>NearBuy</Text>
+        <Text style={styles.logoSubtitle}>NEED IT. NEAR IT. GET IT.</Text>
+        </View>
+      </View>
+
+      <View style={styles.header}> 
+        <Text style={styles.text1}> Welcome back {displayName || 'User'}, </Text>
+        <Text style={styles.text2}> What are you gonna buy today? </Text>
       </View>
 
       <View style={styles.toolsRow}>
@@ -201,7 +207,7 @@ export default function HomeScreen() {
             setAddModalVisible(true);
           }}
           >
-          <AntDesign name="plus" size={25} color="black" />
+          <MaterialIcons name="format-list-bulleted-add" size={28} color="#5067B2" />
         </TouchableOpacity>
 
       </View>
@@ -333,6 +339,9 @@ export default function HomeScreen() {
 
                     const token = await Utils.getValueFor('access_token');
                     const user_id = await Utils.getValueFor('user_id');
+                    const listCount = lists.length;
+                    const selectedImage = IMAGE_POOL[listCount % IMAGE_POOL.length];
+
 
                     await axios.post(`${Utils.currentPath}lists`, {
                       name: newListName,
@@ -340,6 +349,7 @@ export default function HomeScreen() {
                       deadline: isDeadlineEnabled && deadline
                       ? deadline.toLocaleString('sv-SE').replace('T', ' ')
                       : null,
+                      pic_path: selectedImage,
                     }, {
                       params: { user_id },
                       headers: { token }
@@ -373,8 +383,10 @@ const COLORS = ['#FFE3E3', '#FFCDB3', '#FFEABE', '#DAEDCE', '#C8E2FC', '#C8A2C8'
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
-    paddingHorizontal: 12,
+    backgroundColor: '#FBF8FF',
+    //backgroundColor: '#FAFAFA',
+    paddingHorizontal: 14,
+    
   },
   grid: {
     paddingBottom: 100,
@@ -382,34 +394,49 @@ const styles = StyleSheet.create({
   row: {
     justifyContent: 'space-between',
     marginBottom: 16,
+    paddingHorizontal: 2,
   },
   logoContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'center',
+    marginBottom: 18,
+    marginTop: 10,
   },
   logoText: {
-    fontSize: 24,
+    fontSize: 27,
     fontWeight: 'bold',
-    color: '#333333',
+    color: '#5067b2',
+    marginLeft: 5,
+    marginTop: 10,
+  },
+  logoSubtitle: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#F36D9A',
+    
   },
   toolsRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 10,
-    paddingHorizontal: 12,
-    marginBottom: 12,
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 5,
+    marginBottom: 8,
+    marginTop: 10,
   },
   toolButton: {
-    backgroundColor: '#fff',
-    borderColor: '#444',
-    borderWidth: 1.5,
-    borderRadius: 8,
+    //backgroundColor: '#fff',
+    //borderColor: '#444',
+    //borderWidth: 1,
+    //borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   toolButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
+    color: '#5067B2'
   },
 
   modalOverlay: {
@@ -430,6 +457,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: '#332F6E',
   },
   input: {
     borderWidth: 1,
@@ -462,7 +490,7 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   saveButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#B25FC3',
     padding: 10,
     borderRadius: 8,
   },
@@ -484,5 +512,26 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
 
-
+  logo: {
+    width: 37,
+    height: 60,
+    marginBottom: 16,
+  },
+  text1: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#332F6E',
+    marginBottom: 2,
+  },
+  text2: {
+    fontSize: 16,
+    //fontWeight: 'bold',
+    color: '#332F6E',
+    marginLeft: 30,
+  },
+  header: {
+    justifyContent: 'center',
+    marginBottom: 18,
+    marginHorizontal: 30,
+  },
 });
