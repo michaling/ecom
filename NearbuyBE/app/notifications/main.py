@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timedelta, timezone
+import uuid
 from uuid import UUID
 from typing import Optional
 
@@ -16,6 +17,8 @@ from dotenv import load_dotenv
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from .deadline_checker import check_deadlines_and_notify
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+
 
 from .models import (
     Base,
@@ -27,7 +30,9 @@ from .models import (
     StoreCategory,
     DeviceToken,
     UserStoreProximity,
-    StoreItemAvailability
+    StoreItemAvailability,
+    Alert,
+    AlertsItems
 )
 from .utils import haversine_distance
 from .expo_push import send_expo_push
@@ -368,6 +373,28 @@ async def location_update(
                             "store_id": str(store_id),
                             "items": available_names
                         })
+
+                    now_utc = datetime.utcnow()
+
+                    batch = Alert(
+                        user_id    = user_id,
+                        store_id   = store_id,
+                        alert_type = "geo_alert",
+                        last_triggered = now_utc
+                    )
+                    
+                    db.add(batch)
+                    db.commit()
+
+                    for item in item_rows:
+                        if item.name in available_names:
+                            stmt = pg_insert(AlertsItems).values(
+                            alert_id   = batch.alert_id,
+                            item_id    = item.item_id,
+                            ).on_conflict_do_nothing()
+                        db.execute(stmt)
+                    db.commit()
+
 
                 # mark notified
                 prox.notified = True

@@ -108,3 +108,16 @@ class StoreItemAvailability(Base):
     prediction = Column(Boolean, nullable=False)
     confidence = Column(Float,   nullable=False)
     reason = Column(String, nullable=True)
+
+class Alert(Base):
+    __tablename__   = "alerts"
+    alert_id        = Column(PGUUID(as_uuid=True), default=uuid.uuid4, primary_key=True)
+    user_id         = Column(PGUUID(as_uuid=True), ForeignKey("user_profiles.user_id", ondelete="CASCADE"), nullable=False)
+    store_id        = Column(PGUUID(as_uuid=True), ForeignKey("stores.store_id", ondelete="CASCADE"), nullable=True)
+    alert_type      = Column(String, nullable=False)
+    last_triggered = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+class AlertsItems(Base):
+    __tablename__   = "alerts_items"
+    alert_id        = Column(PGUUID(as_uuid=True), default=uuid.uuid4, primary_key=True)
+    item_id         = Column(PGUUID(as_uuid=True), ForeignKey("lists_items.item_id", ondelete="CASCADE"), primary_key=True)
