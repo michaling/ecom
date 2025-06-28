@@ -216,7 +216,7 @@ export default function ListScreen() {
       const res = await axios.post(
         `${Utils.currentPath}lists/${list_id}/suggestions/${suggestion.suggestion_id}/accept`,
         {
-          name: suggestion.name,
+          item_name: suggestion.name,
           geo_alert: listGeoAlert,
           deadline: listDeadline,
         },

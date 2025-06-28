@@ -3,8 +3,10 @@ from fastapi.testclient import TestClient
 from httpx import Response
 import respx
 
-from app.main import app  # assuming your FastAPI app is defined here
-from app.supabase_client import supabase
+from main import app  # assuming your FastAPI app is defined here
+from supabase_client import supabase
+from lists import lists
+import asyncio
 
 client = TestClient(app)
 
@@ -85,8 +87,6 @@ def test_refresh_all_recommendations():
     }))
 
     # Call refresh job directly
-    from app.lists import lists
-    import asyncio
     asyncio.run(lists.fetch_and_update_recommendations())
 
     # Check suggestions: should only have "Cake"

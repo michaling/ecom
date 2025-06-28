@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from app.auth.logic import sign_up
+from auth.logic import sign_up
 
 load_dotenv()
 
