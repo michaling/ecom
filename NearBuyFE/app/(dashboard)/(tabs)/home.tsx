@@ -82,6 +82,19 @@ export default function HomeScreen() {
     }
   }, []);
 
+  const fetchProfile = React.useCallback(async () => {
+    const token = await Utils.getValueFor('access_token');
+    if (!token) return;
+  
+    try {
+      const res = await axios.get(`${Utils.currentPath}profile`, { headers: { token } });
+      setDefaultGeoAlert(res.data.geo_alert ?? false);
+      setDisplayName(res.data.display_name || '');
+    } catch (err) {
+      console.error('[HOME] profile load failed', err);
+    }
+  }, []);
+
   const checkBackgroundPermissionIfNeeded = async () => {
     if (!anyGeoEnabled) return;
   
@@ -119,35 +132,12 @@ export default function HomeScreen() {
       const run = async () => {
         await fetchLists();
         await checkBackgroundPermissionIfNeeded();
+        await fetchProfile();
       };
       run();
-    }, [fetchLists])
+    }, [fetchLists, fetchProfile])
   );
-
-  useEffect(() => {
-    const fetchDefaultSettings = async () => {
-      const token = await Utils.getValueFor('access_token');
-      try {
-        const res = await axios.get(`${Utils.currentPath}profile`, {
-          headers: { token },
-        });
-        setDefaultGeoAlert(res.data.geo_alert ?? false);
-        setDisplayName(res.data.display_name || '');
-      } catch (err) {
-        console.error('[PROFILE LOAD FAILED]', err);
-      }
-    };
   
-    fetchDefaultSettings();
-  }, []);
-
-  // useEffect(() => {
-  //   Utils.startLocationPolling(); // Start polling every 60s
-  
-  //   return () => {
-  //     Utils.stopLocationPolling(); // Cleanup when screen unmounts
-  //   };
-  // }, []);
 
   const showAndroidDateTimePicker = () => {
     // First: pick date
