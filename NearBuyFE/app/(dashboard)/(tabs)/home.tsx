@@ -12,9 +12,12 @@ import { AntDesign, MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Alert } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import { I18nManager } from 'react-native';
 
-
-
+// Ensure RTL support is disabled
+I18nManager.allowRTL(false);
+I18nManager.forceRTL(false);
 const IMAGE_POOL = Array.from({ length: 11 }, (_, i) => `bg${i + 1}.png`);
 
 const CARD_COLORS = [
@@ -39,8 +42,17 @@ export default function HomeScreen() {
   const [defaultGeoAlert, setDefaultGeoAlert] = useState<boolean>(false);
   const [anyGeoEnabled, setAnyGeoEnabled] = useState(false);
   const [displayName, setDisplayName] = useState('');
+  Utils.registerForPushNotificationsAsync();
 
-
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+  
   const resetForm = () => {
     setNewListName('');
     setLocationEnabled(false);
@@ -48,8 +60,6 @@ export default function HomeScreen() {
     setIsDeadlineEnabled(false);
     setDatePickerVisible(false);
   };
-
-
 
   // fetch once each time Home gains focus
   const fetchLists = React.useCallback(async () => {
@@ -166,9 +176,24 @@ export default function HomeScreen() {
       },
     });
   };
-  
+
 
   const renderItem = ({ item }: any) => <ListCard list={item} />;
+
+  const sendTestNotification = async () => {
+    console.log('[TEST] Sending notification');
+    const perm = await Notifications.getPermissionsAsync();
+    console.log('[PERM]', perm);
+  
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '🛒 Reminder!',
+        body: 'This is your test NearBuy notification',
+        sound: 'default',
+      },
+      trigger: {seconds : 1}, // fire immediately
+    });
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -188,7 +213,7 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.toolsRow}>
-        <TouchableOpacity style={styles.toolButton} onPress={() => {}}>
+        <TouchableOpacity style={styles.toolButton} onPress={sendTestNotification}>
           <Text style={styles.toolButtonText}>Edit</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.toolButton} 

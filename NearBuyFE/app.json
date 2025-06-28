@@ -1,18 +1,19 @@
 {
   "expo": {
-    "name": "NearBuyFE",
-    "slug": "NearBuyFE",
+    "name": "NearBuy",
+    "slug": "NearBuy",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "nearbuyfe",
+    "scheme": "nearbuy",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.mylo.nearbuy",
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": ["location"],
+        "UIBackgroundModes": ["location", "remote-notification"],
+        "NSUserNotificationUsageDescription": "We use notifications to remind you about your lists and nearby deals.",
         "NSLocationWhenInUseUsageDescription": "We need your location to alert you when you are near relevant stores.",
         "NSLocationAlwaysUsageDescription": "We need your location in the background to send you shopping alerts near stores.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location at all times to send location-based shopping alerts."
@@ -27,7 +28,9 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION"
+        "ACCESS_BACKGROUND_LOCATION",
+        "POST_NOTIFICATIONS",
+        "FOREGROUND_SERVICE"
       ],
       "backgroundColor": "#ffffff",
       "edgeToEdgeEnabled": true
@@ -48,10 +51,16 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-notifications",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "supportsRTL": false,
+      "forcesRTL": false
     }
   }
 }
