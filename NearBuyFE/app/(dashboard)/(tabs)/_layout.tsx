@@ -26,6 +26,16 @@ export default function AppLayout() {
       }}
     >
       <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Notifications',
+          tabBarLabel: 'Notifications',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="notifications" size={24} color={color} /> 
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="home"
         options={{
           title: 'Home',

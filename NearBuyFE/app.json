@@ -12,7 +12,9 @@
       "bundleIdentifier": "com.mylo.nearbuy",
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": ["location"],
+        "UIBackgroundModes": [
+          "location"
+        ],
         "NSLocationWhenInUseUsageDescription": "We need your location to alert you when you are near relevant stores.",
         "NSLocationAlwaysUsageDescription": "We need your location in the background to send you shopping alerts near stores.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location at all times to send location-based shopping alerts."
@@ -48,7 +50,8 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
