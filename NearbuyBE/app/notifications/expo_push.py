@@ -1,8 +1,15 @@
 import requests
 import json
 from uuid import UUID
+import datetime
 
 EXPO_PUSH_URL = "to_be_filled"
+
+
+def _serialize_for_json(obj):
+    if isinstance(obj, datetime.datetime):
+        return obj.isoformat()
+    raise TypeError(f"Type {type(obj)} not serializable")
 
 def _serialize_uuid(obj):
     if isinstance(obj, UUID):

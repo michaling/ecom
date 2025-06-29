@@ -5,7 +5,20 @@ import re
 # At first run you will need to install browser binaries: playwright install
 from playwright.sync_api import sync_playwright
 from typing import Optional
+import requests
 
+def fetch_html(url: str) -> str:
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/114.0.0.0 Safari/537.36"
+        )
+    }
+    resp = requests.get(url, headers=headers, timeout=10)
+    resp.raise_for_status()
+    return resp.text
+"""
 def fetch_html(url: str, timeout: int = 10000) -> Optional[str]:
     try:
         with sync_playwright() as p:
@@ -37,7 +50,7 @@ def fetch_html(url: str, timeout: int = 10000) -> Optional[str]:
     except Exception as e:
         print(f"[ERROR] Failed to fetch HTML from {url}: {e}")
         return None
-
+"""
 
 
 def extract_text_from_html(html: str) -> str:

@@ -112,5 +112,5 @@ def check_deadlines_and_notify():
     except Exception as e:
         db.rollback()
         logger.error("Failed to commit deadline notifications: %s", e)
-    finally:
-        db.close()
+    #finally:
+        #db.close()
