@@ -16,8 +16,8 @@ import * as Notifications from 'expo-notifications';
 import { I18nManager } from 'react-native';
 
 // Ensure RTL support is disabled
-I18nManager.allowRTL(false);
-I18nManager.forceRTL(false);
+//I18nManager.allowRTL(false);
+//I18nManager.forceRTL(false);
 const IMAGE_POOL = Array.from({ length: 11 }, (_, i) => `bg${i + 1}.png`);
 
 const CARD_COLORS = [

@@ -137,10 +137,10 @@ export const stopBackgroundLocation = async () => {
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
   let token: string | null = null;
 
-  if (!Device.isDevice) {
-    alert('Must use physical device for Push Notifications');
-    return null;
-  }
+  // if (!Device.isDevice) {
+  //   alert('Must use physical device for Push Notifications');
+  //   return null;
+  // }
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
