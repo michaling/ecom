@@ -45,8 +45,9 @@ export default function ListScreen() {
     const [listDeadline, setListDeadline] = useState<string | null>(null);
     const [picPath, setPicPath] = useState<string | null>(null);
 
-    const imageSource = imageMap[picPath ?? ''] || require('@/assets/images/default-bg.png');
-
+    //const imageSource = imageMap[picPath ?? ''] || require('@/assets/images/default-bg.png');
+    const imageSource = picPath ? imageMap[picPath] : undefined;
+    
     /* ────────── helper: fetch list from BE ────────── */
   const loadList = useCallback(async () => {
     try {
@@ -259,7 +260,8 @@ export default function ListScreen() {
   <ImageBackground
           source={imageSource}
           resizeMode="cover"
-          style={styles.imageBackground}
+          //style={styles.imageBackground}
+          style={[styles.imageBackground, { backgroundColor: 'white' }]}
           imageStyle={styles.imageStyle}
         >
       <View style={styles.header}>
