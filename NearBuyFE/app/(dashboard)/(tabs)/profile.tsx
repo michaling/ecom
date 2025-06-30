@@ -95,7 +95,7 @@ export default function ProfileScreen() {
         <TouchableOpacity onPress={() => setIsEditing(true)}>
             <View style={styles.nameRow}>
                 
-            <FontAwesome5 name="pencil-alt" size={20} color="#B25FC3" style={{ marginLeft: 8 }} />
+            <FontAwesome5 name="pencil-alt" size={19} color="#332F6E" style={{ marginLeft: 8 }} />
                 <Text style={styles.name}>{displayName ? displayName : "User Name"}</Text>
             </View>
         </TouchableOpacity>)}
@@ -166,8 +166,8 @@ const styles = StyleSheet.create({
     name: {
       fontSize: 24,
       fontWeight: 'bold',
-      marginLeft: 8,
-      
+      marginLeft: 4,
+      color: '#332F6E',
     },
     settingRow: {
       flexDirection: 'row',
@@ -178,7 +178,8 @@ const styles = StyleSheet.create({
       marginRight: 50,
     },
     settingLabel: {
-      fontSize: 16,
+      fontSize: 15,
+      color: '#332F6E',
     },
     logoutButton: {
       marginTop: 40,

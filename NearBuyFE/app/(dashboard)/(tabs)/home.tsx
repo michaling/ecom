@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, Pressable, StyleSheet, FlatList, Image, Modal, TouchableOpacity, TextInput, Switch, Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -42,6 +44,8 @@ export default function HomeScreen() {
   const [defaultGeoAlert, setDefaultGeoAlert] = useState<boolean>(false);
   const [anyGeoEnabled, setAnyGeoEnabled] = useState(false);
   const [displayName, setDisplayName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
   Utils.registerForPushNotificationsAsync();
 
   Notifications.setNotificationHandler({
@@ -191,11 +195,20 @@ export default function HomeScreen() {
         body: 'This is your test NearBuy notification',
         sound: 'default',
       },
-      trigger: {seconds : 1}, // fire immediately
+      trigger: {
+        seconds: 1,
+      } as any,
     });
   };
 
+  const filteredLists = searchQuery.trim()
+  ? lists.filter((list) =>
+      list.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  : lists;
+
   return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.logoContainer}>
       <Image
@@ -212,7 +225,25 @@ export default function HomeScreen() {
         <Text style={styles.text2}> What are you gonna buy today? </Text>
       </View>
 
+      <View style={styles.toolsRowSearch}>
+      <View style={{justifyContent: 'flex-start', flexDirection:'row'}}> 
+      {searchQuery.trim() !== '' && (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <AntDesign name="closecircleo" size={18} color="#888" style={styles.clearIcon} />
+          </TouchableOpacity>
+        )}
+      <TextInput
+        placeholder="Type to search for a list..."
+        style={styles.searchInput}
+        keyboardType="default" 
+        autoCapitalize="words"
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        />
+         
+      </View>
       <View style={styles.toolsRow}>
+
         <TouchableOpacity style={styles.toolButton} onPress={sendTestNotification}>
           <Text style={styles.toolButtonText}>Edit</Text>
         </TouchableOpacity>
@@ -226,15 +257,21 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
       </View>
+      </View>
 
       <FlatList
-        data={lists}
+        data={filteredLists}
         renderItem={renderItem}
         keyExtractor={(list) => list.id}
         numColumns={2}
         contentContainerStyle={styles.grid}
         columnWrapperStyle={styles.row}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          searchQuery.trim() !== '' ? (
+            <Text style={styles.noResultsText}>No matching lists found.</Text>
+          ) : null
+        }
       />
 
       <Modal
@@ -243,6 +280,7 @@ export default function HomeScreen() {
         transparent
         onRequestClose={() => setAddModalVisible(false)}
       >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Create a New List</Text>
@@ -384,10 +422,12 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
+        </TouchableWithoutFeedback>
       </Modal>
 
 
     </SafeAreaView>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -430,6 +470,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#F36D9A',
     
+  },
+  toolsRowSearch: {
+    flexDirection: 'row',
+    justifyContent:'space-between',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 5,
+    marginBottom: 8,
+    marginTop: 10,
   },
   toolsRow: {
     flexDirection: 'row',
@@ -548,5 +597,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 18,
     marginHorizontal: 30,
+  },
+  searchInput: {
+    fontSize: 13,
+    justifyContent: 'flex-start',
+    marginLeft: 10,
+  },
+  clearIcon: {
+    marginLeft: 8,
+  },
+  noResultsText: {
+    textAlign: 'center',
+    fontSize: 14,
+    color: '#332F6E',
+    marginTop: 20,
   },
 });
