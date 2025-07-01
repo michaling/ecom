@@ -7,6 +7,7 @@ from lists.lists import router as lists_router, fetch_and_store_recommendations
 from lists.items import router as items_router
 from lists.cleanup import router as lists_cleanup_router
 from profile.profile import router as profile_router
+from alerts_tab.alerts_tab import router as alerts_tab_router
 from supabase_client import supabase
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import asyncio
@@ -15,9 +16,11 @@ app = FastAPI()
 
 # Register routers
 app.include_router(auth_router, prefix="/auth")
-app.include_router(lists_router, prefix="/lists")
-app.include_router(items_router, prefix="/items")
-app.include_router(lists_cleanup_router, prefix="/cleanup")
+app.include_router(lists_router)
+app.include_router(lists_cleanup_router)
+app.include_router(items_router)
+app.include_router(profile_router)
+app.include_router(alerts_tab_router)
 
 # CORS middleware
 app.add_middleware(
@@ -56,13 +59,6 @@ def start_scheduler():
         hour="0,12"
     )
     scheduler.start()
-
-
-app.include_router(auth_router, prefix="/auth")
-app.include_router(lists_router)
-app.include_router(lists_cleanup_router)
-app.include_router(items_router)
-app.include_router(profile_router)
 
 
 if __name__ == "__main__":

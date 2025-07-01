@@ -14,7 +14,7 @@ const POLLING_INTERVAL_MS = 60_000; // 60 seconds
 
 export const currentPath = 
           //'http://10.0.2.2:8000/' // for android emulator
-          'http://172.20.10.4:8000/' // for phone via USB / expo go app (take ip from ipconfig)
+          'http://10.0.0.49:8000/' // for phone via USB / expo go app (take ip from ipconfig)
           //'http://localhost:8000/' // for web
           ;
 

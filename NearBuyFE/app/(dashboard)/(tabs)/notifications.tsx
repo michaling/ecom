@@ -1,41 +1,58 @@
-// app/(tabs)/notifications.tsx
-
-import React from 'react';
-import { FlatList, StyleSheet } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { FlatList, StyleSheet, RefreshControl } from 'react-native';
 import NotificationCard from '@/components/NotificationCard';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import axios from 'axios';
+import * as Utils from '../../../utils/utils';
 
-const dummyData = [
-    {
-      type: 'location' as const,
-      timestamp: '5 min ago',
-      storeName: 'SuperMart',
-      itemsByList: [
-        { listName: 'Groceries', items: ['Milk', 'Bread'] },
-        { listName: 'Weekend Trip', items: ['Eggs'] },
-      ],
-    },
-    {
-      type: 'deadline' as const,
-      timestamp: '2 hours ago',
-      date: 'June 30',
-      itemsByList: [
-        { listName: 'Birthday Party', items: ['Cake', 'Gift Bag'] },
-      ],
-    },
-  ];
-  
-  
+interface AlertCard {
+  alert_id: string;
+  type: 'geo_alert' | 'deadline_alert';
+  timestamp: string;
+  storeName?: string;
+  date?: string;
+  itemsByList: { listName: string; items: string[] }[];
+}
 
 export default function NotificationsScreen() {
+  const [alerts, setAlerts] = useState<AlertCard[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchAlerts = async () => {
+    try {
+      const token = await Utils.getValueFor('access_token');
+      if (!token) return;
+
+      const res = await axios.get(`${Utils.currentPath}alerts_tab`, {
+        headers: { token },
+      });
+
+      setAlerts(res.data);
+    } catch (error) {
+      console.error('[fetchAlerts]', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchAlerts();
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchAlerts().finally(() => setRefreshing(false));
+  }, []);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <FlatList
-        data={dummyData}
-        keyExtractor={(_, index) => index.toString()}
+        data={alerts}
+        keyExtractor={(item) => item.alert_id}
         contentContainerStyle={styles.contentContainer}
         renderItem={({ item }) => <NotificationCard {...item} />}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       />
     </SafeAreaView>
   );

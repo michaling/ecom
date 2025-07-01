@@ -1,9 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
+
+type AlertType = 'geo_alert' | 'deadline_alert';
 
 interface Props {
-  type: 'location' | 'deadline';
+  type: AlertType;
   timestamp: string;
   storeName?: string;
   date?: string;
@@ -17,24 +23,22 @@ export default function NotificationCard({
   date,
   itemsByList,
 }: Props) {
-  const iconName = type === 'location' ? 'location-outline' : 'time-outline';
+  const isGeo = type === 'geo_alert';
 
-  const title =
-    type === 'location'
-      ? `Location Alert: ${storeName}`
-      : `Deadline Alert: ${date}`;
-
-  const message =
-    type === 'location'
-      ? `You have some items you can buy in ${storeName}!`
-      : `You have upcoming deadlines for items needed by ${date}.`;
+  const iconName = isGeo ? 'location-outline' : 'time-outline';
+  const title = isGeo
+    ? `Location Alert: ${storeName ?? ''}`
+    : `Deadline Alert: ${date ? dayjs(date).format('MMMM D') : ''}`;
+  const message = isGeo
+    ? `You have some items you can buy in ${storeName ?? 'this store'}!`
+    : `You have upcoming deadlines for items needed by ${date ? dayjs(date).format('MMMM D') : 'a deadline'}.`;
 
   return (
     <View style={styles.card}>
       <View style={styles.header}>
         <Ionicons name={iconName} size={20} color="#F36D9A" style={styles.icon} />
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.timestamp}>{timestamp}</Text>
+        <Text style={styles.timestamp}>{dayjs(timestamp).fromNow()}</Text>
       </View>
 
       <Text style={styles.message}>{message}</Text>
@@ -43,9 +47,7 @@ export default function NotificationCard({
         <View key={index} style={styles.listSection}>
           <Text style={styles.listName}>{listName}</Text>
           {items.map((item, i) => (
-            <Text key={i} style={styles.item}>
-              • {item}
-            </Text>
+            <Text key={i} style={styles.item}>• {item}</Text>
           ))}
         </View>
       ))}
