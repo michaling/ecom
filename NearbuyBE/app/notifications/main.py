@@ -250,172 +250,309 @@ async def register_expo_token(
 
 # -------------------- 10. Endpoint: Location Update --------------------
 
-@app.post("/location_update")
-async def location_update(
-    req: LocationUpdateRequest,
-    current_user_id: UUID = Depends(get_current_user_id),
-    db: Session = Depends(get_db),
-):
-    if req.user_id != current_user_id:
-        raise HTTPException(status_code=403, detail="Cannot send location for another user")
+# @app.post("/location_update")
+# async def location_update(
+#     req: LocationUpdateRequest,
+#     current_user_id: UUID = Depends(get_current_user_id),
+#     db: Session = Depends(get_db),
+# ):
+#     if req.user_id != current_user_id:
+#         raise HTTPException(status_code=403, detail="Cannot send location for another user")
+#
+#     user_id = req.user_id
+#     user_lat, user_lon, now_ts = req.latitude, req.longitude, req.timestamp
+#     if now_ts.tzinfo is None:
+#         now_ts = now_ts.replace(tzinfo=timezone.utc)
+#
+#     # 1) fetch all item IDs the user wants geo-alerts for
+#     item_rows = (
+#         db.query(ListItem)
+#           .join(List, List.list_id == ListItem.list_id)
+#           .filter(
+#               List.user_id == user_id,
+#               ListItem.geo_alert == True,
+#               ListItem.is_deleted == False,
+#               ListItem.is_checked  == False,
+#               (List.deadline.is_(None) | (List.deadline >= now_ts)),
+#               (ListItem.deadline.is_(None) | (ListItem.deadline >= now_ts))
+#           )
+#           .all()
+#     )
+#     if not item_rows:
+#         return {"status": "ok", "detail": "No geo_alert items"}
+#
+#     # 2a) first, look up all stores where we already know the item is available
+#     known_stores = (
+#         db
+#         .query(Store.store_id, Store.name, Store.latitude, Store.longitude)
+#         .all()
+#     )
+#     store_rows = known_stores
+#
+#     PROXIMITY_RADIUS = 500.0  # meters
+#     for store_id, store_name, store_lat, store_lon in store_rows:
+#         dist = haversine_distance(user_lat, user_lon, store_lat, store_lon)
+#
+#         if dist <= PROXIMITY_RADIUS:
+#             # enter or update dwell
+#             prox = db.query(UserStoreProximity).filter_by(user_id=user_id, store_id=store_id).first()
+#             if not prox:
+#                 prox = UserStoreProximity(user_id=user_id, store_id=store_id, entered_at=now_ts, notified=False)
+#                 db.add(prox)
+#                 db.commit()
+#
+#             #elif not prox.notified and (now_ts - prox.entered_at) >= timedelta(minutes=5):
+#             elif not prox.notified:
+#                 entered = prox.entered_at
+#                 if entered.tzinfo is not None:
+#                     entered = entered.astimezone(timezone.utc).replace(tzinfo=None)
+#
+#                 available_names = []
+#
+#                 if (now_ts.replace(tzinfo=None) - entered) >= timedelta(minutes=2):
+#                     # time to check availability & notify
+#
+#                     for item in item_rows:
+#                         # 1) see if we already ran this item/store
+#                         rec: StoreItemAvailability = (
+#                             db.query(StoreItemAvailability)
+#                             .filter_by(item_id=item.item_id, store_id=store_id)
+#                             .first()
+#                         )
+#                         if rec:
+#                             # if we previously thought it *was* available, include it
+#                             if rec.prediction:
+#                                 available_names.append(item.name)
+#                         else:
+#                             # call your ML agent
+#                             url = "http://localhost:8000/check_product_availability"
+#                             params = {
+#                                 "product": item.name,
+#                                 "store": store_name
+#                             }
+#
+#                             resp = requests.get(url, params=params)
+#                             if resp.status_code != 200:
+#                                 # handle agent‐service failure
+#                                 print(f"Agent call failed: {resp.status_code} {resp.text}")
+#                                 continue
+#
+#                             result = resp.json()
+#                             # extract confidence and apply your 75% threshold
+#                             confidence = float(result.get("confidence", 0.0))
+#                             available_flag = bool(result.get("answer", False))
+#                             reason_text    = result.get("reason")
+#
+#                             # insert into your new table
+#                             new_rec = StoreItemAvailability(
+#                                 item_id    = item.item_id,
+#                                 store_id   = store_id,
+#                                 last_run   = now_ts,
+#                                 prediction = available_flag,
+#                                 confidence = confidence,
+#                                 reason = reason_text
+#                             )
+#                             db.add(new_rec)
+#                             db.commit()
+#
+#                             # only consider it “available” for notification if confidence > .75
+#                             if available_flag:
+#                                 available_names.append(item.name)
+#
+#                 # 3) if anything is available, build & send the Expo push
+#                 if available_names:
+#                     MAX_SHOW = 5
+#                     shown    = available_names[:MAX_SHOW]
+#                     more     = len(available_names) - len(shown)
+#
+#                     bullet_list = "\n".join(f"• {n}" for n in shown)
+#                     body = (
+#                         f"You've been near {store_name} for 2 minutes.\n"
+#                         f"They carry these items from your list:\n{bullet_list}"
+#                         + (f"\n…and {more} more items." if more > 0 else "")
+#                     )
+#
+#                     tokens = db.query(DeviceToken.expo_push_token).filter(DeviceToken.user_id == user_id).all()
+#                     for (expo_token,) in tokens:
+#                         send_expo_push(expo_token, f"Store Nearby: {store_name}", body, {
+#                             "store_id": str(store_id),
+#                             "items": available_names
+#                         })
+#
+#                     now_utc = datetime.utcnow()
+#
+#                     batch = Alert(
+#                         user_id    = user_id,
+#                         store_id   = store_id,
+#                         alert_type = "geo_alert",
+#                         last_triggered = now_utc
+#                     )
+#
+#                     db.add(batch)
+#                     db.commit()
+#                     db.refresh(batch)
+#
+#                     for item in item_rows:
+#                         if item.name in available_names:
+#                             stmt = pg_insert(AlertsItems).values(
+#                             alert_id   = batch.alert_id,
+#                             item_id    = item.item_id,
+#                             list_id    = item.list_id
+#                             ).on_conflict_do_nothing()
+#                             db.execute(stmt)
+#                     db.commit()
+#
+#                     # mark notified
+#                     prox.notified = True
+#                     db.commit()
+#
+#         else:
+#             # reset if they wandered off
+#             prox = db.query(UserStoreProximity).filter_by(user_id=user_id, store_id=store_id).first()
+#             if prox:
+#                 db.delete(prox)
+#                 db.commit()
+#
+#     return {"status": "ok", "detail": "Processed location update"}
 
-    user_id = req.user_id
-    user_lat, user_lon, now_ts = req.latitude, req.longitude, req.timestamp
-    if now_ts.tzinfo is None:
-        now_ts = now_ts.replace(tzinfo=timezone.utc)
+@router.post("/location_update")
+def location_update(req: Dict, token: str = Header(...)):
+    try:
+        supabase.postgrest.auth(token)
+        user = supabase.auth.get_user()
+        if not user or not user.user:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        user_id = user.user.id
 
-    # 1) fetch all item IDs the user wants geo-alerts for
-    item_rows = (
-        db.query(ListItem)
-          .join(List, List.list_id == ListItem.list_id)
-          .filter(
-              List.user_id == user_id,
-              ListItem.geo_alert == True,
-              ListItem.is_deleted == False,
-              ListItem.is_checked  == False,
-              (List.deadline.is_(None) | (List.deadline >= now_ts)),
-              (ListItem.deadline.is_(None) | (ListItem.deadline >= now_ts))
-          )
-          .all()
-    )
-    if not item_rows:
-        return {"status": "ok", "detail": "No geo_alert items"}
+        db: Session = next(get_db())
 
-    # 2a) first, look up all stores where we already know the item is available
-    item_ids = [i.item_id for i in item_rows]
+        lat = req.get("latitude")
+        lon = req.get("longitude")
+        ts_str = req.get("timestamp")
+        if not lat or not lon or not ts_str:
+            raise HTTPException(400, "Missing lat/lon/timestamp")
 
-    known_stores = (
-        db
-        .query(Store.store_id, Store.name, Store.latitude, Store.longitude)
-        .all()
-    )
-    store_rows = known_stores
+        now_ts = datetime.fromisoformat(ts_str)
+        if now_ts.tzinfo is None:
+            now_ts = now_ts.replace(tzinfo=timezone.utc)
 
-    PROXIMITY_RADIUS = 500.0  # meters
-    for store_id, store_name, store_lat, store_lon in store_rows:
-        dist = haversine_distance(user_lat, user_lon, store_lat, store_lon)
+        item_rows = (
+            db.query(ListItem)
+            .join(List, List.list_id == ListItem.list_id)
+            .filter(
+                List.user_id == user_id,
+                ListItem.geo_alert == True,
+                ListItem.is_deleted == False,
+                ListItem.is_checked == False,
+                (List.deadline.is_(None) | (List.deadline >= now_ts)),
+                (ListItem.deadline.is_(None) | (ListItem.deadline >= now_ts))
+            )
+            .all()
+        )
+        if not item_rows:
+            return {"status": "ok", "detail": "No geo_alert items"}
 
-        if dist <= PROXIMITY_RADIUS:
-            # enter or update dwell
-            prox = db.query(UserStoreProximity).filter_by(user_id=user_id, store_id=store_id).first()
-            if not prox:
-                prox = UserStoreProximity(user_id=user_id, store_id=store_id, entered_at=now_ts, notified=False)
-                db.add(prox)
-                db.commit()
+        store_rows = db.query(Store.store_id, Store.name, Store.latitude, Store.longitude).all()
 
-            #elif not prox.notified and (now_ts - prox.entered_at) >= timedelta(minutes=5):
-            elif not prox.notified:
-                entered = prox.entered_at
-                if entered.tzinfo is not None:
-                    entered = entered.astimezone(timezone.utc).replace(tzinfo=None)
+        PROXIMITY_RADIUS = 500.0
+        for store_id, store_name, store_lat, store_lon in store_rows:
+            dist = haversine_distance(lat, lon, store_lat, store_lon)
 
-                available_names = []
+            if dist <= PROXIMITY_RADIUS:
+                prox = db.query(UserStoreProximity).filter_by(user_id=user_id, store_id=store_id).first()
+                if not prox:
+                    prox = UserStoreProximity(user_id=user_id, store_id=store_id, entered_at=now_ts, notified=False)
+                    db.add(prox)
+                    db.commit()
+                elif not prox.notified:
+                    entered = prox.entered_at
+                    if entered.tzinfo is not None:
+                        entered = entered.astimezone(timezone.utc).replace(tzinfo=None)
 
-                if (now_ts.replace(tzinfo=None) - entered) >= timedelta(minutes=2):
-                    # time to check availability & notify
+                    available_names = []
+                    if (now_ts.replace(tzinfo=None) - entered) >= timedelta(minutes=2):
+                        for item in item_rows:
+                            rec = db.query(StoreItemAvailability).filter_by(item_id=item.item_id,
+                                                                            store_id=store_id).first()
+                            if rec:
+                                if rec.prediction:
+                                    available_names.append(item.name)
+                            else:
+                                resp = requests.get("http://localhost:8000/check_product_availability", params={
+                                    "product": item.name,
+                                    "store": store_name
+                                })
+                                if resp.status_code != 200:
+                                    print(f"Agent call failed: {resp.status_code} {resp.text}")
+                                    continue
+                                result = resp.json()
+                                confidence = float(result.get("confidence", 0.0))
+                                available_flag = bool(result.get("answer", False))
+                                reason_text = result.get("reason")
+                                new_rec = StoreItemAvailability(
+                                    item_id=item.item_id,
+                                    store_id=store_id,
+                                    last_run=now_ts,
+                                    prediction=available_flag,
+                                    confidence=confidence,
+                                    reason=reason_text
+                                )
+                                db.add(new_rec)
+                                db.commit()
+                                if available_flag:
+                                    available_names.append(item.name)
 
-                    for item in item_rows:
-                        # 1) see if we already ran this item/store
-                        rec: StoreItemAvailability = (
-                            db.query(StoreItemAvailability)
-                            .filter_by(item_id=item.item_id, store_id=store_id)
-                            .first()
+                    if available_names:
+                        MAX_SHOW = 5
+                        shown = available_names[:MAX_SHOW]
+                        more = len(available_names) - len(shown)
+                        bullet_list = "\n".join(f"• {n}" for n in shown)
+                        body = (
+                                f"You've been near {store_name} for 2 minutes.\n"
+                                f"They carry these items from your list:\n{bullet_list}"
+                                + (f"\n…and {more} more items." if more > 0 else "")
                         )
-                        if rec:
-                            # if we previously thought it *was* available, include it
-                            if rec.prediction:
-                                available_names.append(item.name)
-                        else:
-                            # call your ML agent
-                            url = "http://localhost:8000/check_product_availability"
-                            params = {
-                                "product": item.name,
-                                "store": store_name
-                            }
+                        tokens = db.query(DeviceToken.expo_push_token).filter(DeviceToken.user_id == user_id).all()
+                        for (expo_token,) in tokens:
+                            send_expo_push(expo_token, f"Store Nearby: {store_name}", body, {
+                                "store_id": str(store_id),
+                                "items": available_names
+                            })
 
-                            resp = requests.get(url, params=params)
-                            if resp.status_code != 200:
-                                # handle agent‐service failure
-                                print(f"Agent call failed: {resp.status_code} {resp.text}")
-                                continue
+                        now_utc = datetime.utcnow()
+                        batch = Alert(
+                            user_id=user_id,
+                            store_id=store_id,
+                            alert_type="geo_alert",
+                            last_triggered=now_utc
+                        )
+                        db.add(batch)
+                        db.commit()
+                        db.refresh(batch)
 
-                            result = resp.json()
-                            # extract confidence and apply your 75% threshold
-                            confidence = float(result.get("confidence", 0.0))
-                            available_flag = bool(result.get("answer", False))
-                            reason_text    = result.get("reason")
+                        for item in item_rows:
+                            if item.name in available_names:
+                                stmt = pg_insert(AlertsItems).values(
+                                    alert_id=batch.alert_id,
+                                    item_id=item.item_id,
+                                    list_id=item.list_id
+                                ).on_conflict_do_nothing()
+                                db.execute(stmt)
+                        db.commit()
 
-                            # insert into your new table
-                            new_rec = StoreItemAvailability(
-                                item_id    = item.item_id,
-                                store_id   = store_id,
-                                last_run   = now_ts,
-                                prediction = available_flag,
-                                confidence = confidence,
-                                reason = reason_text
-                            )
-                            db.add(new_rec)
-                            db.commit()
-
-                            # only consider it “available” for notification if confidence > .75
-                            if available_flag:
-                                available_names.append(item.name)
-
-                # 3) if anything is available, build & send the Expo push
-                if available_names:
-                    MAX_SHOW = 5
-                    shown    = available_names[:MAX_SHOW]
-                    more     = len(available_names) - len(shown)
-
-                    bullet_list = "\n".join(f"• {n}" for n in shown)
-                    body = (
-                        f"You've been near {store_name} for 2 minutes.\n"
-                        f"They carry these items from your list:\n{bullet_list}"
-                        + (f"\n…and {more} more items." if more > 0 else "")
-                    )
-
-                    tokens = db.query(DeviceToken.expo_push_token).filter(DeviceToken.user_id == user_id).all()
-                    for (expo_token,) in tokens:
-                        send_expo_push(expo_token, f"Store Nearby: {store_name}", body, {
-                            "store_id": str(store_id),
-                            "items": available_names
-                        })
-
-                    now_utc = datetime.utcnow()
-
-                    batch = Alert(
-                        user_id    = user_id,
-                        store_id   = store_id,
-                        alert_type = "geo_alert",
-                        last_triggered = now_utc
-                    )
-                    
-                    db.add(batch)
-                    db.commit()
-                    db.refresh(batch)
-
-                    for item in item_rows:
-                        if item.name in available_names:
-                            stmt = pg_insert(AlertsItems).values(
-                            alert_id   = batch.alert_id,
-                            item_id    = item.item_id,
-                            list_id    = item.list_id
-                            ).on_conflict_do_nothing()
-                            db.execute(stmt)
+                        prox.notified = True
+                        db.commit()
+            else:
+                prox = db.query(UserStoreProximity).filter_by(user_id=user_id, store_id=store_id).first()
+                if prox:
+                    db.delete(prox)
                     db.commit()
 
-                    # mark notified
-                    prox.notified = True
-                    db.commit()
+        return {"status": "ok", "detail": "Processed location update"}
 
-        else:
-            # reset if they wandered off
-            prox = db.query(UserStoreProximity).filter_by(user_id=user_id, store_id=store_id).first()
-            if prox:
-                db.delete(prox)
-                db.commit()
-
-    return {"status": "ok", "detail": "Processed location update"}
+    except Exception as e:
+        print("[ERROR location_update]", e)
+        raise HTTPException(status_code=500, detail="Failed to process location update")
 
 # -------------------- 11. (Optional) Admin Endpoints --------------------
 # To run locally: uvicorn main:app --reload --host 0.0.0.0 --port 8000

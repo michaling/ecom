@@ -9,7 +9,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 
 const LOCATION_TASK_NAME = 'background-location-task';
-const POLLING_INTERVAL_MS = 60_000; // 60 seconds
+const POLLING_INTERVAL_MS = 1_000; // 60 seconds
 //let locationPollingInterval: number | null = null;
 
 export const currentPath = 
@@ -88,6 +88,7 @@ export const save = async (key: string, value: string) => {
 
 
   TaskManager.defineTask(LOCATION_TASK_NAME, async (taskBody: TaskManagerTaskBody) => {
+    console.log('[BG LOCATION TASK] running...');
     const { data, error } = taskBody;
   
     if (error) {
@@ -104,13 +105,16 @@ export const save = async (key: string, value: string) => {
       }
     }
   });
+  console.log('[TASK] Background-location task has been defined'); 
 
 export const startBackgroundLocation = async () => {
   const granted = await requestBackgroundLocationPermission();
   if (!granted) return;
+  //console.log(await Location.isBackgroundLocationAvailableAsync())
 
   const hasStarted = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME);
   if (!hasStarted) {
+    console.log('[BG LOCATION] Starting...');
     await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
       accuracy: Location.Accuracy.Highest,
       timeInterval: POLLING_INTERVAL_MS, // Minimum time between updates in ms
@@ -136,11 +140,6 @@ export const stopBackgroundLocation = async () => {
   
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
   let token: string | null = null;
-
-  //if (!Device.isDevice) {
-  //  alert('Must use physical device for Push Notifications');
-  //  return null;
-  //}
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;

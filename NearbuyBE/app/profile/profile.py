@@ -62,7 +62,6 @@ def update_geo_alert(req: dict, token: str = Header(...)):
         user = supabase.auth.get_user()
         if not user or not user.user:
             raise HTTPException(status_code=401, detail="Invalid token")
-
         user_id = user.user.id
         geo_alert = req.get("geo_alert")
 
