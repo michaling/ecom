@@ -5,6 +5,8 @@ import * as Location from 'expo-location';
 import { LocationObject } from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { TaskManagerTaskBody } from 'expo-task-manager';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 
 const LOCATION_TASK_NAME = 'background-location-task';
 const POLLING_INTERVAL_MS = 60_000; // 60 seconds
@@ -12,7 +14,7 @@ const POLLING_INTERVAL_MS = 60_000; // 60 seconds
 
 export const currentPath = 
           //'http://10.0.2.2:8000/' // for android emulator
-          'http://10.0.0.49:8000/' // for phone via USB / expo go app
+          'http://10.0.0.49:8000/' // for phone via USB / expo go app (take ip from ipconfig)
           //'http://localhost:8000/' // for web
           ;
 
@@ -132,29 +134,38 @@ export const stopBackgroundLocation = async () => {
   }
 };
   
-// export const startLocationPolling = () => {
-//   console.log('[STARTING LOCATION POLLING]');
-//   if (locationPollingInterval) return;
+export async function registerForPushNotificationsAsync(): Promise<string | null> {
+  let token: string | null = null;
 
-//   locationPollingInterval = setInterval(async () => {
-//     try {
-//       const { status } = await Location.getBackgroundPermissionsAsync();
-//       if (status !== 'granted') return;
+  //if (!Device.isDevice) {
+  //  alert('Must use physical device for Push Notifications');
+  //  return null;
+  //}
 
-//       const loc = await Location.getCurrentPositionAsync({});
-//       console.log('[POLLING] Location:', loc.coords);
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
 
-//       // You can send this to the backend here (POST request)
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
 
-//     } catch (err) {
-//       console.error('[POLLING ERROR]', err);
-//     }
-//   }, POLLING_INTERVAL_MS);
-// };
+  if (finalStatus !== 'granted') {
+    Alert.alert('Permission denied', 'Enable push notifications in settings to receive alerts.');
+    return null;
+  }
 
-// export const stopLocationPolling = () => {
-//   if (locationPollingInterval !== null) {
-//     clearInterval(locationPollingInterval);
-//     locationPollingInterval = null;
-//   }
-// };
+  token = (await Notifications.getExpoPushTokenAsync()).data;
+  console.log('[PUSH TOKEN]', token);
+
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#FF231F7C',
+    });
+  }
+
+  return token;
+}

@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException, Header
-from app.supabase_client import supabase
+from supabase_client import supabase
 from datetime import datetime
 from pydantic import BaseModel
-from app.utils import *
-from app.lists.models import RenameItemRequest, CheckItemRequest, DeleteItemRequest, UpdateItemGeoAlertRequest, UpdateItemDeadlineRequest
+from utils import *
+from lists.models import RenameItemRequest, CheckItemRequest, DeleteItemRequest, UpdateItemGeoAlertRequest, UpdateItemDeadlineRequest
 
 router = APIRouter()
 

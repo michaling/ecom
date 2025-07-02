@@ -1,11 +1,14 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, ImageBackground } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ImageBackground, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import imageMap from '@/utils/imageMap';
 
 export default function ListCard({ list }: { list: any }) {
   const router = useRouter();
+  const imageSource = imageMap[list.pic_path] || require('@/assets/images/default-bg.png');
+
   return (
-    <Pressable
+    <TouchableOpacity activeOpacity={.6}
       style={styles.cardContainer}
       onPress={() =>
         router.push({
@@ -21,9 +24,9 @@ export default function ListCard({ list }: { list: any }) {
     >
       <View style={styles.card}>
         <ImageBackground
-          source={list.image ? { uri: list.image } : undefined}
+          source={imageSource}
           resizeMode="cover"
-          style={[styles.imageBackground, { backgroundColor: list.color }]}
+          style={styles.imageBackground}
           imageStyle={styles.imageStyle}
         >
           <View style={styles.textContainer}>
@@ -34,7 +37,7 @@ export default function ListCard({ list }: { list: any }) {
           </View>
         </ImageBackground>
       </View>
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
@@ -48,8 +51,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
-    elevation: 5,
+    elevation: 3,
     backgroundColor: '#fff',
+    
   },
   card: {
     flex: 1,
@@ -64,7 +68,9 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   imageStyle: {
-    resizeMode: 'cover',
+    //resizeMode: 'cover',
+    borderRadius: 16,
+    paddingBottom: 30,
   },
   textContainer: {
     position: 'absolute',
@@ -78,12 +84,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#333333',
+    color: '#2A294B',
   },
   cardSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#444',
     marginTop: 4,
   },

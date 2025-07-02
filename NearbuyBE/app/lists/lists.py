@@ -1,27 +1,16 @@
-from fastapi import APIRouter, HTTPException, Header, path
-from app.lists.models import UserList, ListItem, CreateItemRequest
-from app.supabase_client import supabase
+from fastapi import APIRouter, HTTPException, Header, Path
+from lists.models import UserList, ListItem, CreateItemRequest
+from supabase_client import supabase
 from datetime import datetime
 from typing import Optional, List
 import os
 import requests
-from app.utils import *
+from utils import *
 from pydantic import BaseModel
 
 router = APIRouter()
 
 # ---------------------- Helpers ----------------------------------------- #
-
-# Does the same as get_profile_geo - Delete later (if not needed)
-# def user_has_global_geo_alert(user_id: str) -> bool:
-#     """Look at user_profiles.geo_alert once per request."""
-#     prof = (
-#         supabase.table("user_profiles")
-#         .select("geo_alert")
-#         .eq("user_id", user_id)
-#         .execute()
-#     )
-#     return bool(prof.data and prof.data.get("geo_alert"))
 
 def get_profile_geo(user_id: str) -> bool:
     """Return the user-level default (TRUE/FALSE)."""
@@ -37,11 +26,13 @@ def get_profile_geo(user_id: str) -> bool:
     return bool(res.data["geo_alert"])
 
 
-def convert_datetime_to_iso(value: Optional[datetime]) -> Optional[str]:
-    """Convert datetime to ISO string, or pass through None."""
+def convert_datetime_to_iso(value):
+    """Convert datetime object to ISO string if needed."""
     if value is None:
         return None
-    return value.isoformat()
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return value
 
 
 def fetch_and_store_recommendations(list_name: str, list_id: int):
@@ -120,6 +111,7 @@ def create_list(
                 "last_update": now,
                 "deadline": deadline_str,
                 "geo_alert": list_geo,
+                "pic_path": user_list.pic_path,
             })
             .execute()
         )
@@ -196,6 +188,7 @@ def get_user_lists(user_id: str, token: str = Header(...)):
             "name": lst["name"],
             "deadline": lst["deadline"],
             "geo_alert": lst["geo_alert"],
+            "pic_path": lst.get("pic_path"),
             "items": items,
             "unchecked_count": unchecked,
             "suggested_items": suggestions
@@ -263,60 +256,13 @@ def get_list(list_id: str):
         "name": lst["name"],
         "deadline": lst["deadline"],
         "geo_alert": lst["geo_alert"],
+        "pic_path": lst.get("pic_path"),
         "items": items,
         "suggestions": filtered_suggestions
     }
 
 
 # -------------------------------------------------------------------------- #
-# @router.put("/lists/{list_id}")
-# def update_list(list_id: str, user_list: UserList):
-#     now = datetime.now().isoformat()
-#
-#     # fetch owner to get default
-#     res = supabase.table("lists").select("user_id").eq("list_id", list_id).single().execute()
-#     if not res.data:
-#         raise HTTPException(status_code=404, detail="List not found")
-#
-#     user_id = res.data["user_id"]
-#     default_geo = get_profile_geo(user_id)
-#
-#     list_geo = user_list.geo_alert if user_list.geo_alert is not None else default_geo
-#     deadline_str = convert_datetime_to_iso(user_list.deadline)
-#
-#     # update list header
-#     supabase.table("lists").update({
-#         "name": user_list.name,
-#         "deadline": deadline_str,
-#         "geo_alert": list_geo,
-#         "last_update": now
-#     }).eq("list_id", list_id).execute()
-#
-#     # soft-delete old items (unchanged)
-#     supabase.table("lists_items").update({
-#         "is_deleted": True,
-#         "deleted_at": now
-#     }).eq("list_id", list_id).execute()
-#
-#     # insert new items
-#     items_payload = []
-#     for it in user_list.items:
-#         item_geo = it.geo_alert if it.geo_alert is not None else list_geo
-#         item_deadline_str = convert_datetime_to_iso(it.deadline)
-#
-#         items_payload.append({
-#             "list_id": list_id,
-#             "name": it.name,
-#             "is_checked": it.is_checked,
-#             "checked_at": now if it.is_checked else None,
-#             "created_at": now,
-#             "deadline": item_deadline_str,
-#             "geo_alert": item_geo
-#         })
-#     supabase.table("lists_items").insert(items_payload).execute()
-#
-#     return {"message": "List updated"}
-
 
 @router.patch("/lists/{list_id}/name")
 def update_list_name(list_id: str, body: dict, token: str = Header(...)):

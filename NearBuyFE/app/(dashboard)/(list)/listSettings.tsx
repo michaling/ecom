@@ -15,6 +15,7 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -138,7 +139,10 @@ export default function ListSettingsScreen() {
   }, []);
   
   return (   
+    
     <>
+    <ImageBackground source={require('../../../assets/images/loginBG.png')} resizeMode="cover" style={styles.image}>
+
      <View style={styles.headerRow}>
     <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
     <Ionicons name="chevron-back-outline" size={24} color="#007AFF" />
@@ -289,6 +293,7 @@ export default function ListSettingsScreen() {
           </View>
           
           </TouchableWithoutFeedback>
+          </ImageBackground>
           </>
   );
 }
@@ -298,15 +303,16 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 100,
     paddingHorizontal: 20,
+    //backgroundColor: "#FBF8FF",
   },
   title: {
-    fontSize: 35,
+    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 40,
-    marginLeft: 10,
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 20,
+    fontSize: 30,
     textAlign: 'center',
     fontWeight: 'bold',
     marginBottom: 30,
@@ -387,6 +393,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#007AFF',
     fontWeight: '500',
+  },
+  image: {
+    flex: 1,
   }
-  
 });

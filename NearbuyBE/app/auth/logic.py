@@ -1,4 +1,4 @@
-from app.supabase_client import supabase
+from supabase_client import supabase
 
 def _extract_msg(err: Exception) -> str:
     return str(err)

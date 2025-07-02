@@ -19,6 +19,7 @@ class UserList(BaseModel):
     name: str
     deadline: Optional[datetime] = None
     geo_alert: Optional[bool] = None
+    pic_path: Optional[str] = None
 
 class CreateItemRequest(BaseModel):
     item_name: str

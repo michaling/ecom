@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ImageBackground } from 'react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
 import Checklist from '@/components/Checklist';
@@ -6,7 +6,8 @@ import RecommendationItem from '@/components/RecommendationItem';
 import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
 import * as Utils from '../../../utils/utils';
 import axios from 'axios';
-
+import imageMap from '@/utils/imageMap';
+import { ScrollView } from 'react-native';
 
 interface Item {
   id: string;
@@ -28,6 +29,7 @@ export default function ListScreen() {
     list_name: string;
     list_color?: string | string[];
   }>();
+  
 
   const background = Array.isArray(list_color) ? list_color[0] : list_color;
 
@@ -41,7 +43,11 @@ export default function ListScreen() {
     const [editedTitle, setEditedTitle] = useState(list_name);
     const [listGeoAlert, setListGeoAlert] = useState<boolean>(false);
     const [listDeadline, setListDeadline] = useState<string | null>(null);
+    const [picPath, setPicPath] = useState<string | null>(null);
 
+    //const imageSource = imageMap[picPath ?? ''] || require('@/assets/images/default-bg.png');
+    const imageSource = picPath ? imageMap[picPath] : undefined;
+    
     /* ────────── helper: fetch list from BE ────────── */
   const loadList = useCallback(async () => {
     try {
@@ -58,6 +64,8 @@ export default function ListScreen() {
       );
       
       setEditedTitle(res.data.name); 
+
+      setPicPath(res.data.pic_path ?? null);
 
       const formatted: Item[] = res.data.items.map((it: any) => ({
         id: it.item_id,
@@ -209,7 +217,7 @@ export default function ListScreen() {
       const res = await axios.post(
         `${Utils.currentPath}lists/${list_id}/suggestions/${suggestion.suggestion_id}/accept`,
         {
-          name: suggestion.name,
+          item_name: suggestion.name,
           geo_alert: listGeoAlert,
           deadline: listDeadline,
         },
@@ -249,14 +257,21 @@ export default function ListScreen() {
 
   return (
     <View style={styles.container}>
-
-      <View style={[styles.header, { backgroundColor: background || '#E6E6FA' }]}>
+  <ImageBackground
+          source={imageSource}
+          resizeMode="cover"
+          //style={styles.imageBackground}
+          style={[styles.imageBackground, { backgroundColor: 'white' }]}
+          imageStyle={styles.imageStyle}
+        >
+      <View style={styles.header}>
+    
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back-outline" size={24} color="#007AFF" />
               <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={{ position: 'absolute', top: 60, right: 20 }}
+          style={{ position: 'absolute', top: 55, right: 20 }}
           onPress={() => {
             router.push({
               pathname: '../listSettings',
@@ -268,7 +283,7 @@ export default function ListScreen() {
             });
           }}
         >
-          <Feather name="settings" size={24} color="#333" />
+          <Feather name="settings" size={24} color="#007AFF" />
         </TouchableOpacity>
         {isEditingTitle ? (
         <TextInput
@@ -287,15 +302,33 @@ export default function ListScreen() {
         <Text style={styles.subtitle}>
           {`${total} items, ${left} remaining`}
         </Text>
+
+        <View style={styles.alertRow}>
+          {listDeadline && (
+            <View style={styles.alertItem}>
+              <Ionicons name="calendar-number-outline" size={16} color="#333" style={{ marginRight: 4 }} />
+              <Text style={styles.alertText}>Due to {new Date(listDeadline).toLocaleDateString()}</Text>
+            </View>
+          )}
+          {listGeoAlert && (
+            <View style={styles.alertItem}>
+              <Ionicons name="location-outline" size={16} color="#333" style={{ marginRight: 4 }} />
+              <Text style={styles.alertText}>Location Alerts On</Text>
+            </View>
+          )}
+        </View>
+       
       </View>
-  
+      </ImageBackground>
+
       <View style={styles.content}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
         >
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.topContent}>
-          <View style={{ flexGrow: 0 }}>
+          <View style={{ flexGrow: 0, justifyContent: 'space-between' }}>
             <Checklist
               items={items}
               onToggle={toggleItem}
@@ -309,7 +342,7 @@ export default function ListScreen() {
               <TouchableOpacity style={styles.addButton}
                 onPress={() => setIsAdding(true)}
               >
-                <AntDesign name="plus" size={30} color="purple" />
+                <AntDesign name="plus" size={30} color="#B25FC3" />
                 {/*<Text style={styles.addButtonText}>Add Item</Text> */}
               </TouchableOpacity>
             )}
@@ -339,6 +372,7 @@ export default function ListScreen() {
             ))}
           </View>
         )}
+        </ScrollView>
       </KeyboardAvoidingView>
       
       </View>
@@ -359,16 +393,24 @@ const styles = StyleSheet.create({
   },
   
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     marginBottom: 6,
-    color: '#333',
+    color: 'black',
+    shadowColor: 'white',
+    shadowRadius: 0.2,
+    shadowOffset: {
+      width: 1.5,
+      height: 1.3,
+    },
+    shadowOpacity: 1,
+
   },
   subtitle: {
-    fontSize: 14,
-    color: '#666',
-    paddingBottom: 10,
-    paddingLeft: 8,
+    fontSize: 15,
+    color: 'black',
+    paddingBottom: 8,
+    paddingLeft: 2,
   },
 
   content: {
@@ -394,14 +436,13 @@ const styles = StyleSheet.create({
 
   addContainer: {
     alignItems: 'center',
-    marginTop: 16,
   },
 
   addButton: {
-    borderWidth: 1,
-    borderColor: "purple",
-    padding: 12,
-    marginTop: 12,
+    borderWidth: 1.5,
+    borderColor: "#B25FC3",
+    padding: 10,
+    //marginTop: 12,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -418,6 +459,7 @@ const styles = StyleSheet.create({
     padding: 10,
     marginTop: 10,
     fontSize: 16,
+    width: 250,
   },
 
   recommendationsBox: {
@@ -427,8 +469,7 @@ const styles = StyleSheet.create({
   },
 
   recommendations: {
-    marginTop: 24,
-    marginBottom: 50,
+    marginTop: 80,
   },
   recommendTitle: {
     fontSize: 16,
@@ -441,13 +482,49 @@ const styles = StyleSheet.create({
     padding: 6,
     flexDirection: 'row',
     alignItems: 'center',
-    position: 'absolute', top: 50, left: 10,
+    position: 'absolute', top: 45, left: 7,
   },
   
   backText: {
     fontSize: 18,
     color: '#007AFF',
     fontWeight: '500',
-  }
-
+  },
+  imageBackground: {
+    justifyContent: 'flex-end',
+    padding: 12,
+  },
+  imageStyle: {
+    opacity: 0.65,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
+    backgroundColor: '#FAFAFA',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  alertRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 4,
+    flexWrap: 'wrap',
+  },
+  
+  alertItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(248, 248, 255, .6)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    //opacity: 0.7, 
+  },
+  
+  alertText: {
+    fontSize: 12,
+    color: '#333',
+  },
+  
 });

@@ -5,6 +5,13 @@ export default function AppLayout() {
   return (
     <Tabs
       screenOptions={{
+        animation: 'shift',
+        transitionSpec: {
+          animation: 'timing',
+          config: {
+            duration: 200,
+          },
+        },
         headerShown: false,
         tabBarShowLabel: false,
         tabBarActiveTintColor: '#B25FC3',
@@ -18,6 +25,16 @@ export default function AppLayout() {
         
       }}
     >
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Notifications',
+          tabBarLabel: 'Notifications',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="notifications" size={24} color={color} /> 
+          ),
+        }}
+      />
       <Tabs.Screen
         name="home"
         options={{
@@ -38,13 +55,7 @@ export default function AppLayout() {
           ),
         }} 
       />
-      {/*<Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-          tabBarLabel: 'Settings',
-        }}
-      /> */}
+
     </Tabs>
   );
 }

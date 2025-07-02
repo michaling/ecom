@@ -2,27 +2,25 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  FlatList,
-  ImageBackground,
-  Modal,
-  TouchableOpacity,
-  TextInput,
-  Switch,
-  Platform,
+  View, Text, Pressable, StyleSheet, FlatList, Image, Modal, TouchableOpacity, TextInput, Switch, Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Utils from '../../../utils/utils';
 import ListCard from '@/components/ListCard';
-import { AntDesign } from '@expo/vector-icons';
+import { AntDesign, MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Alert } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import { I18nManager } from 'react-native';
 
+// Ensure RTL support is disabled
+//I18nManager.allowRTL(false);
+//I18nManager.forceRTL(false);
+const IMAGE_POOL = Array.from({ length: 11 }, (_, i) => `bg${i + 1}.png`);
 
 const CARD_COLORS = [
   '#FFE3E3', '#FFCDB3', '#FFEABE',
@@ -45,8 +43,20 @@ export default function HomeScreen() {
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [defaultGeoAlert, setDefaultGeoAlert] = useState<boolean>(false);
   const [anyGeoEnabled, setAnyGeoEnabled] = useState(false);
+  const [displayName, setDisplayName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
+  Utils.registerForPushNotificationsAsync();
 
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+  
   const resetForm = () => {
     setNewListName('');
     setLocationEnabled(false);
@@ -54,8 +64,6 @@ export default function HomeScreen() {
     setIsDeadlineEnabled(false);
     setDatePickerVisible(false);
   };
-
-
 
   // fetch once each time Home gains focus
   const fetchLists = React.useCallback(async () => {
@@ -85,6 +93,19 @@ export default function HomeScreen() {
       
     } catch (err) {
       console.error('[HOME] fetch error', err);
+    }
+  }, []);
+
+  const fetchProfile = React.useCallback(async () => {
+    const token = await Utils.getValueFor('access_token');
+    if (!token) return;
+  
+    try {
+      const res = await axios.get(`${Utils.currentPath}profile`, { headers: { token } });
+      setDefaultGeoAlert(res.data.geo_alert ?? false);
+      setDisplayName(res.data.display_name || '');
+    } catch (err) {
+      console.error('[HOME] profile load failed', err);
     }
   }, []);
 
@@ -125,34 +146,12 @@ export default function HomeScreen() {
       const run = async () => {
         await fetchLists();
         await checkBackgroundPermissionIfNeeded();
+        await fetchProfile();
       };
       run();
-    }, [fetchLists])
+    }, [fetchLists, fetchProfile])
   );
-
-  useEffect(() => {
-    const fetchDefaultSettings = async () => {
-      const token = await Utils.getValueFor('access_token');
-      try {
-        const res = await axios.get(`${Utils.currentPath}profile`, {
-          headers: { token },
-        });
-        setDefaultGeoAlert(res.data.geo_alert ?? false);
-      } catch (err) {
-        console.error('[PROFILE LOAD FAILED]', err);
-      }
-    };
   
-    fetchDefaultSettings();
-  }, []);
-
-  // useEffect(() => {
-  //   Utils.startLocationPolling(); // Start polling every 60s
-  
-  //   return () => {
-  //     Utils.stopLocationPolling(); // Cleanup when screen unmounts
-  //   };
-  // }, []);
 
   const showAndroidDateTimePicker = () => {
     // First: pick date
@@ -181,18 +180,71 @@ export default function HomeScreen() {
       },
     });
   };
-  
+
 
   const renderItem = ({ item }: any) => <ListCard list={item} />;
 
+  const sendTestNotification = async () => {
+    console.log('[TEST] Sending notification');
+    const perm = await Notifications.getPermissionsAsync();
+    console.log('[PERM]', perm);
+  
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '🛒 Reminder!',
+        body: 'This is your test NearBuy notification',
+        sound: 'default',
+      },
+      trigger: {
+        seconds: 1,
+      } as any,
+    });
+  };
+
+  const filteredLists = searchQuery.trim()
+  ? lists.filter((list) =>
+      list.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  : lists;
+
   return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.logoContainer}>
+      <Image
+        style={styles.logo}
+        source={require('../../../assets/images/logo1.png')}/>
+        <View style={{alignItems: 'center', justifyContent: 'center'}}> 
         <Text style={styles.logoText}>NearBuy</Text>
+        <Text style={styles.logoSubtitle}>NEED IT. NEAR IT. GET IT.</Text>
+        </View>
       </View>
 
+      <View style={styles.header}> 
+        <Text style={styles.text1}> Welcome back {displayName || 'User'}, </Text>
+        <Text style={styles.text2}> What are you gonna buy today? </Text>
+      </View>
+
+      <View style={styles.toolsRowSearch}>
+      <View style={{justifyContent: 'flex-start', flexDirection:'row'}}> 
+      {searchQuery.trim() !== '' && (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <AntDesign name="closecircleo" size={18} color="#888" style={styles.clearIcon} />
+          </TouchableOpacity>
+        )}
+      <TextInput
+        placeholder="Type to search for a list..."
+        style={styles.searchInput}
+        keyboardType="default" 
+        autoCapitalize="words"
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        />
+         
+      </View>
       <View style={styles.toolsRow}>
-        <TouchableOpacity style={styles.toolButton} onPress={() => {}}>
+
+        <TouchableOpacity style={styles.toolButton} onPress={sendTestNotification}>
           <Text style={styles.toolButtonText}>Edit</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.toolButton} 
@@ -201,19 +253,25 @@ export default function HomeScreen() {
             setAddModalVisible(true);
           }}
           >
-          <AntDesign name="plus" size={25} color="black" />
+          <MaterialIcons name="format-list-bulleted-add" size={28} color="#5067B2" />
         </TouchableOpacity>
 
       </View>
+      </View>
 
       <FlatList
-        data={lists}
+        data={filteredLists}
         renderItem={renderItem}
         keyExtractor={(list) => list.id}
         numColumns={2}
         contentContainerStyle={styles.grid}
         columnWrapperStyle={styles.row}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          searchQuery.trim() !== '' ? (
+            <Text style={styles.noResultsText}>No matching lists found.</Text>
+          ) : null
+        }
       />
 
       <Modal
@@ -222,6 +280,7 @@ export default function HomeScreen() {
         transparent
         onRequestClose={() => setAddModalVisible(false)}
       >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Create a New List</Text>
@@ -333,6 +392,9 @@ export default function HomeScreen() {
 
                     const token = await Utils.getValueFor('access_token');
                     const user_id = await Utils.getValueFor('user_id');
+                    const listCount = lists.length;
+                    const selectedImage = IMAGE_POOL[listCount % IMAGE_POOL.length];
+
 
                     await axios.post(`${Utils.currentPath}lists`, {
                       name: newListName,
@@ -340,6 +402,7 @@ export default function HomeScreen() {
                       deadline: isDeadlineEnabled && deadline
                       ? deadline.toLocaleString('sv-SE').replace('T', ' ')
                       : null,
+                      pic_path: selectedImage,
                     }, {
                       params: { user_id },
                       headers: { token }
@@ -359,10 +422,12 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
+        </TouchableWithoutFeedback>
       </Modal>
 
 
     </SafeAreaView>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -373,8 +438,10 @@ const COLORS = ['#FFE3E3', '#FFCDB3', '#FFEABE', '#DAEDCE', '#C8E2FC', '#C8A2C8'
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
-    paddingHorizontal: 12,
+    backgroundColor: '#FBF8FF',
+    //backgroundColor: '#FAFAFA',
+    paddingHorizontal: 14,
+    
   },
   grid: {
     paddingBottom: 100,
@@ -382,34 +449,58 @@ const styles = StyleSheet.create({
   row: {
     justifyContent: 'space-between',
     marginBottom: 16,
+    paddingHorizontal: 2,
   },
   logoContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'center',
+    marginBottom: 18,
+    marginTop: 10,
   },
   logoText: {
-    fontSize: 24,
+    fontSize: 27,
     fontWeight: 'bold',
-    color: '#333333',
+    color: '#5067b2',
+    marginLeft: 5,
+    marginTop: 10,
+  },
+  logoSubtitle: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#F36D9A',
+    
+  },
+  toolsRowSearch: {
+    flexDirection: 'row',
+    justifyContent:'space-between',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 5,
+    marginBottom: 8,
+    marginTop: 10,
   },
   toolsRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 10,
-    paddingHorizontal: 12,
-    marginBottom: 12,
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 5,
+    marginBottom: 8,
+    marginTop: 10,
   },
   toolButton: {
-    backgroundColor: '#fff',
-    borderColor: '#444',
-    borderWidth: 1.5,
-    borderRadius: 8,
+    //backgroundColor: '#fff',
+    //borderColor: '#444',
+    //borderWidth: 1,
+    //borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   toolButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
+    color: '#5067B2'
   },
 
   modalOverlay: {
@@ -430,6 +521,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: '#332F6E',
   },
   input: {
     borderWidth: 1,
@@ -462,7 +554,7 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   saveButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#B25FC3',
     padding: 10,
     borderRadius: 8,
   },
@@ -484,5 +576,40 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
 
-
+  logo: {
+    width: 37,
+    height: 60,
+    marginBottom: 16,
+  },
+  text1: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#332F6E',
+    marginBottom: 2,
+  },
+  text2: {
+    fontSize: 16,
+    //fontWeight: 'bold',
+    color: '#332F6E',
+    marginLeft: 30,
+  },
+  header: {
+    justifyContent: 'center',
+    marginBottom: 18,
+    marginHorizontal: 30,
+  },
+  searchInput: {
+    fontSize: 13,
+    justifyContent: 'flex-start',
+    marginLeft: 10,
+  },
+  clearIcon: {
+    marginLeft: 8,
+  },
+  noResultsText: {
+    textAlign: 'center',
+    fontSize: 14,
+    color: '#332F6E',
+    marginTop: 20,
+  },
 });

@@ -46,11 +46,9 @@ def update_display_name(req: dict, token: str = Header(...)):
 
         if not display_name:
             raise HTTPException(400, "Missing display_name")
-        print("GOT HERE 1")
         supabase.table("user_profiles").update({
             "display_name": display_name
         }).eq("user_id", user_id).execute()
-        print("GOT HERE 2")
         return {"message": "Display name updated"}
 
     except Exception as e:
