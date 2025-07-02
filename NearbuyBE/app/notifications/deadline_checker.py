@@ -16,6 +16,8 @@ def check_deadlines_and_notify():
         now = datetime.utcnow()
         window_end = now + timedelta(hours=24)
 
+        list_alert_map: dict[UUID, UUID] = {}
+
         # --- 1) Notify lists approaching deadline ---
         due_lists = (
             db.query(List)
@@ -44,14 +46,18 @@ def check_deadlines_and_notify():
             alert = Alert(
                 user_id    = user_id,
                 alert_type = "deadline_alert",
-                last_triggered = now
+                last_triggered = now,
+                list_id = lst.list_id
             )
             db.add(alert)
             db.commit()  # populate alert.alert_id
 
+            list_alert_map[lst.list_id] = alert.alert_id
+
             # Mark list as notified
             lst.deadline_notified = True
             db.commit()
+
 
         # --- 2) Notify individual items approaching deadline ---
         due_items = (
@@ -75,9 +81,20 @@ def check_deadlines_and_notify():
             )
             user_id: UUID = parent_list.user_id
 
-            # skip if this item's deadline equals the list's deadline (list already notified)
+            # insert to alerts_items if this item's deadline equals the list's deadline (list already notified)
             if item.deadline == parent_list.deadline:
-                item.deadline_notified = True
+                alert_id = list_alert_map.get(item.list_id)
+                if alert_id:
+                    stmt = pg_insert(AlertsItems).values(
+                        alert_id = alert_id,
+                        item_id  = item.item_id,
+                        list_id  = item.list_id
+                    ).on_conflict_do_nothing()
+                    db.execute(stmt)
+
+                    item.deadline_notified = True
+                    db.commit()
+                    
                 continue
 
             tokens = db.query(DeviceToken.expo_push_token).filter(DeviceToken.user_id == user_id).all()
@@ -101,7 +118,8 @@ def check_deadlines_and_notify():
             # link alert to this item in join table
             stmt = pg_insert(AlertsItems).values(
                 alert_id = alert.alert_id,
-                item_id  = item.item_id
+                item_id  = item.item_id,
+                list_id  = item.list_id
             ).on_conflict_do_nothing()
             db.execute(stmt)
 

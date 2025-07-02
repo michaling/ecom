@@ -121,3 +121,4 @@ class AlertsItems(Base):
     __tablename__   = "alerts_items"
     alert_id        = Column(PGUUID(as_uuid=True), default=uuid.uuid4, primary_key=True)
     item_id         = Column(PGUUID(as_uuid=True), ForeignKey("lists_items.item_id", ondelete="CASCADE"), primary_key=True)
+    list_id         = Column(PGUUID(as_uuid=True), ForeignKey("lists.list_id", ondelete="CASCADE"), nullable=False)

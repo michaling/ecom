@@ -256,7 +256,6 @@ async def location_update(
     current_user_id: UUID = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    print(f"Checking at start")
     if req.user_id != current_user_id:
         raise HTTPException(status_code=403, detail="Cannot send location for another user")
 
@@ -266,7 +265,6 @@ async def location_update(
         now_ts = now_ts.replace(tzinfo=timezone.utc)
 
     # 1) fetch all item IDs the user wants geo-alerts for
-    print(f"Checking at start 1")
     item_rows = (
         db.query(ListItem)
           .join(List, List.list_id == ListItem.list_id)
@@ -284,7 +282,6 @@ async def location_update(
         return {"status": "ok", "detail": "No geo_alert items"}
 
     # 2a) first, look up all stores where we already know the item is available
-    print(f"2")
     item_ids = [i.item_id for i in item_rows]
 
     known_stores = (
@@ -293,15 +290,12 @@ async def location_update(
         .all()
     )
     store_rows = known_stores
-    print(f"3")
 
     PROXIMITY_RADIUS = 500.0  # meters
     for store_id, store_name, store_lat, store_lon in store_rows:
-        print(f"4")
         dist = haversine_distance(user_lat, user_lon, store_lat, store_lon)
 
         if dist <= PROXIMITY_RADIUS:
-            print(f"Checking at dist")
             # enter or update dwell
             prox = db.query(UserStoreProximity).filter_by(user_id=user_id, store_id=store_id).first()
             if not prox:
@@ -318,7 +312,6 @@ async def location_update(
                 available_names = []
 
                 if (now_ts.replace(tzinfo=None) - entered) >= timedelta(minutes=5):
-                    print(f"Checking at time")
                     # time to check availability & notify
 
                     for item in item_rows:
@@ -334,7 +327,6 @@ async def location_update(
                                 available_names.append(item.name)
                         else:
                             # call your ML agent
-                            print(f"Checking at agent call")
                             url = "http://localhost:8000/check_product_availability"
                             params = {
                                 "product": item.name,
@@ -354,7 +346,6 @@ async def location_update(
                             reason_text    = result.get("reason")
 
                             # insert into your new table
-                            print(f"Checking at inserting")
                             new_rec = StoreItemAvailability(
                                 item_id    = item.item_id,
                                 store_id   = store_id,
@@ -372,7 +363,6 @@ async def location_update(
 
                 # 3) if anything is available, build & send the Expo push
                 if available_names:
-                    print(f"Checking at available")
                     MAX_SHOW = 5
                     shown    = available_names[:MAX_SHOW]
                     more     = len(available_names) - len(shown)
@@ -409,6 +399,7 @@ async def location_update(
                             stmt = pg_insert(AlertsItems).values(
                             alert_id   = batch.alert_id,
                             item_id    = item.item_id,
+                            list_id    = item.list_id
                             ).on_conflict_do_nothing()
                             db.execute(stmt)
                     db.commit()
