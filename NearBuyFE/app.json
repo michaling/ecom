@@ -54,7 +54,13 @@
       "expo-secure-store",
       "expo-notifications",
       "expo-localization",
-      "expo-task-manager"
+      "expo-task-manager",
+      [
+        "expo-location",
+        {
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
