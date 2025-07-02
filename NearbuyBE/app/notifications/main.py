@@ -311,7 +311,7 @@ async def location_update(
 
                 available_names = []
 
-                if (now_ts.replace(tzinfo=None) - entered) >= timedelta(minutes=5):
+                if (now_ts.replace(tzinfo=None) - entered) >= timedelta(minutes=2):
                     # time to check availability & notify
 
                     for item in item_rows:
@@ -369,7 +369,7 @@ async def location_update(
 
                     bullet_list = "\n".join(f"• {n}" for n in shown)
                     body = (
-                        f"You've been near {store_name} for 5 minutes.\n"
+                        f"You've been near {store_name} for 2 minutes.\n"
                         f"They carry these items from your list:\n{bullet_list}"
                         + (f"\n…and {more} more items." if more > 0 else "")
                     )
