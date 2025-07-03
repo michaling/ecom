@@ -269,10 +269,6 @@ def location_update(req: Dict, token: str = Header(...)):
         print("location: ", lat, ", ", lon)
 
         now_ts = datetime.now().replace(tzinfo=None)
-        #now_ts = datetime.now().isoformat()
-        # now_ts = datetime.fromisoformat(ts_str)
-        # if now_ts.tzinfo is None:
-        #     now_ts = now_ts.replace(tzinfo=timezone.utc)
 
         item_rows = (
             db.query(ListItem)
@@ -288,16 +284,18 @@ def location_update(req: Dict, token: str = Header(...)):
             .all()
         )
         if not item_rows:
-            return {"status": "ok", "detail": "No geo_alert items"}
+            return {"status": "ok", "detail": "No geo_alert items", "alerts": []}
 
         store_rows = db.query(Store.store_id, Store.name, Store.latitude, Store.longitude).all()
 
         PROXIMITY_RADIUS = 500.0
+        alerts = []
+
         for store_id, store_name, store_lat, store_lon in store_rows:
             dist = haversine_distance(lat, lon, store_lat, store_lon)
 
             if dist <= PROXIMITY_RADIUS:
-                # print(f"[DEBUG] {store_name}: distance={dist:.1f} m (radius {PROXIMITY_RADIUS})")
+                print(store_name, " is nearby")
                 prox = db.query(UserStoreProximity).filter_by(user_id=user_id, store_id=store_id).first()
                 if not prox:
                     prox = UserStoreProximity(user_id=user_id, store_id=store_id, entered_at=now_ts, notified=False)
@@ -311,9 +309,10 @@ def location_update(req: Dict, token: str = Header(...)):
                     available_names = []
                     if (now_ts.replace(tzinfo=None) - entered) >= timedelta(minutes=2):
                         for item in item_rows:
-                            rec = db.query(StoreItemAvailability).filter_by(item_id=item.item_id,
-                                                                            store_id=store_id).first()
+                            print(f" Checking availability for: {item.name}")
+                            rec = db.query(StoreItemAvailability).filter_by(item_id=item.item_id, store_id=store_id).first()
                             if rec:
+                                print("found availability record")
                                 if rec.prediction:
                                     available_names.append(item.name)
                             else:
@@ -340,26 +339,16 @@ def location_update(req: Dict, token: str = Header(...)):
                                 db.commit()
                                 if available_flag:
                                     available_names.append(item.name)
-
+                    print("available_names: ", available_names)
                     if available_names:
                         print(f"[DEBUG] MATCH! sending push for {store_name} with items: {available_names}")
-                        MAX_SHOW = 5
-                        shown = available_names[:MAX_SHOW]
-                        more = len(available_names) - len(shown)
-                        bullet_list = "\n".join(f"• {n}" for n in shown)
-                        body = (
-                                f"You've been near {store_name} for 2 minutes.\n"
-                                f"They carry these items from your list:\n{bullet_list}"
-                                + (f"\n…and {more} more items." if more > 0 else "")
-                        )
-                        tokens = db.query(DeviceToken.expo_push_token).filter(DeviceToken.user_id == user_id).all()
-                        for (expo_token,) in tokens:
-                            send_expo_push(expo_token, f"Store Nearby: {store_name}", body, {
-                                "store_id": str(store_id),
-                                "items": available_names
-                            })
+                        alerts.append({
+                            "store_id": str(store_id),
+                            "store_name": store_name,
+                            "items": available_names
+                        })
 
-                        now_utc = datetime.utcnow()
+                        now_utc = datetime.now()
                         batch = Alert(
                             user_id=user_id,
                             store_id=store_id,
@@ -388,7 +377,7 @@ def location_update(req: Dict, token: str = Header(...)):
                     db.delete(prox)
                     db.commit()
 
-        return {"status": "ok", "detail": "Processed location update"}
+        return {"status": "ok", "detail": "Processed location update", "alerts": alerts}
 
     except Exception as e:
         print("[ERROR location_update]", e)

@@ -9,7 +9,7 @@ import { TaskManagerTaskBody } from 'expo-task-manager';
 import { Alert, Platform } from 'react-native';
 
 const LOCATION_TASK_NAME = 'background-location-task';
-const POLLING_INTERVAL_MS = 30_000; // 60 seconds
+const POLLING_INTERVAL_MS = 60_000; // 60 seconds
 //let locationPollingInterval: number | null = null;
 
 export const currentPath = 
@@ -89,31 +89,28 @@ export const save = async (key: string, value: string) => {
 
 // Location polling task and functions
 
-  TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: TaskManagerTaskBody) => {
-    try {
-      if (error) throw error;
-      if (!(data as { locations?: LocationObject[] })?.locations?.length) return;
-  
-      const loc = ((data as { locations?: LocationObject[] }).locations || [])[0];
-      console.log(`[BG LOCATION]: ${loc.coords.latitude}, ${loc.coords.longitude}`);
-      sendLocationToBackend(loc.coords.latitude, loc.coords.longitude)
-        .catch(e => console.log('[location_update]', e?.response?.data || e));
-    } catch (e) {
-      console.log('[TASK ERROR]', e);
-    }
-  });
+TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: TaskManagerTaskBody) => {
+  try {
+    if (error) throw error;
+    if (!(data as { locations?: LocationObject[] })?.locations?.length) return;
 
-
-
+    const loc = ((data as { locations?: LocationObject[] }).locations || [])[0];
+    console.log(`[BG LOCATION]: ${loc.coords.latitude}, ${loc.coords.longitude}`);
+    sendLocationToBackend(loc.coords.latitude, loc.coords.longitude)
+      .catch(e => console.log('[location_update]', e?.response?.data || e));
+  } catch (e) {
+    console.log('[TASK ERROR]', e);
+  }
+});
 
   export const sendLocationToBackend = async (lat: number, lon: number) => {
     const user_id = await getValueFor('user_id');
-    const access  = await getValueFor('access_token');
+    const access = await getValueFor('access_token');
     if (!user_id || !access) return;
   
     try {
       console.log(`[location_update] Sending location: ${lat}, ${lon}`);
-      await axios.post(
+      const res = await axios.post(
         `${currentPath}location_update`,
         {
           user_id,
@@ -123,7 +120,15 @@ export const save = async (key: string, value: string) => {
         },
         { headers: { token: access } }
       );
-      sendTestNotification();
+  
+      const alerts = res.data?.alerts || [];
+      for (const alert of alerts) {
+        const shown = alert.items.slice(0, 3);
+        const more = alert.items.length - shown.length;
+        const body = `You’re near a store that may have: ${shown.join(', ')}${more > 0 ? ', and more from your shopping lists' : ''}`;
+        await sendNotification(`${alert.store_name} has your items!`, body);
+      }
+  
     } catch (e: any) {
       console.log('[location_update] ', e?.response?.data || e);
     }
@@ -191,20 +196,23 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
   return token;
 }
 
-// Function to send a notification
-export const sendTestNotification = async () => {
-  console.log('[TEST] Sending notification');
-  const perm = await Notifications.getPermissionsAsync();
-  console.log('[PERM]', perm);
+// Notification functions
+export const sendNotification = async (title: string, body: string) => {
+  try {
+    const perm = await Notifications.getPermissionsAsync();
+    if (perm.status !== 'granted') return;
 
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: '🛒 Reminder!',
-      body: 'This is your test NearBuy notification',
-      sound: 'default',
-    },
-    trigger: {
-      seconds: 1,
-    } as any,
-  });
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        sound: 'default',
+      },
+      trigger: {
+        seconds: 1,
+      } as any,
+    });
+  } catch (err) {
+    console.error('[sendNotification] Failed:', err);
+  }
 };
