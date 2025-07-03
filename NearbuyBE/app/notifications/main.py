@@ -64,26 +64,6 @@ app.add_middleware(
 
 # -------------------- Scheduler Setup --------------------
 
-@router.on_event("startup")
-def startup_event():
-    scheduler = BackgroundScheduler()
-    # Run the job every 1 hour. Adjust minutes or hours if you prefer a different frequency.
-    scheduler.add_job(
-        check_deadlines_and_notify,
-        trigger=IntervalTrigger(hours=1),
-        name="Check upcoming deadlines every hour",
-        replace_existing=True
-    )
-    scheduler.start()
-    # Attach to app so we can shut it down later:
-    app.state.scheduler = scheduler
-
-# On shutdown, remove the scheduler
-@router.on_event("shutdown")
-def shutdown_event():
-    scheduler: BackgroundScheduler = app.state.scheduler
-    scheduler.shutdown()
-
 
 # -------------------- 3. Authentication Stub --------------------
 # Replace with real JWT/Supabase Auth in production.

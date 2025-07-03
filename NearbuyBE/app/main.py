@@ -12,6 +12,9 @@ from notifications.main import router as notifications_router
 from supabase_client import supabase
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import asyncio
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+from notifications.deadline_checker import check_deadlines_and_notify
 
 app = FastAPI()
 
@@ -61,6 +64,25 @@ def start_scheduler():
         hour="0,12"
     )
     scheduler.start()
+
+
+@app.on_event("startup")
+def start_notification_scheduler():
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(
+        check_deadlines_and_notify,
+        trigger=IntervalTrigger(hours=1),
+        name="geo-alert checker",
+        replace_existing=True
+    )
+    scheduler.start()
+    app.state.notification_scheduler = scheduler
+
+@app.on_event("shutdown")
+def stop_notification_scheduler():
+    scheduler = getattr(app.state, "notification_scheduler", None)
+    if scheduler:
+        scheduler.shutdown()
 
 
 if __name__ == "__main__":
