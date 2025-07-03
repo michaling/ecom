@@ -8,6 +8,7 @@ from lists.items import router as items_router
 from lists.cleanup import router as lists_cleanup_router
 from profile.profile import router as profile_router
 from alerts_tab.alerts_tab import router as alerts_tab_router
+from notifications.main import router as notifications_router
 from supabase_client import supabase
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import asyncio
@@ -21,6 +22,7 @@ app.include_router(lists_cleanup_router)
 app.include_router(items_router)
 app.include_router(profile_router)
 app.include_router(alerts_tab_router)
+app.include_router(notifications_router)
 
 # CORS middleware
 app.add_middleware(

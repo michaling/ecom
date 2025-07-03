@@ -3,7 +3,7 @@ import json
 from uuid import UUID
 import datetime
 
-EXPO_PUSH_URL = "to_be_filled"
+EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
 
 
 def _serialize_for_json(obj):

@@ -1,15 +1,15 @@
-import { Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
+import axios from 'axios';
 import * as Location from 'expo-location';
 import { LocationObject } from 'expo-location';
+import * as Notifications from 'expo-notifications';
+import * as SecureStore from 'expo-secure-store';
 import * as TaskManager from 'expo-task-manager';
 import { TaskManagerTaskBody } from 'expo-task-manager';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
+import { Alert, Platform } from 'react-native';
 
 const LOCATION_TASK_NAME = 'background-location-task';
-const POLLING_INTERVAL_MS = 1_000; // 60 seconds
+const POLLING_INTERVAL_MS = 30_000; // 60 seconds
 //let locationPollingInterval: number | null = null;
 
 export const currentPath = 
@@ -53,6 +53,7 @@ export const save = async (key: string, value: string) => {
     }
   }
 
+  // Location permission functions
   export const requestForegroundLocationPermission = async () => {
     const { status } = await Location.getForegroundPermissionsAsync();
     if (status !== 'granted') {
@@ -86,26 +87,47 @@ export const save = async (key: string, value: string) => {
     await save('asked_bg_perm', 'true');
   };
 
+// Location polling task and functions
 
-  TaskManager.defineTask(LOCATION_TASK_NAME, async (taskBody: TaskManagerTaskBody) => {
-    console.log('[BG LOCATION TASK] running...');
-    const { data, error } = taskBody;
+  TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: TaskManagerTaskBody) => {
+    try {
+      if (error) throw error;
+      if (!(data as { locations?: LocationObject[] })?.locations?.length) return;
   
-    if (error) {
-      console.error('[TASK ERROR]', error);
-      return;
-    }
-  
-    if (data && Array.isArray((data as any).locations)) {
-      const locations = (data as any).locations as LocationObject[];
-      const loc = locations[0];
-      if (loc) {
-        console.log(`[BG LOCATION]: ${loc.coords.latitude}, ${loc.coords.longitude}`);
-        // Send to backend here
-      }
+      const loc = ((data as { locations?: LocationObject[] }).locations || [])[0];
+      console.log(`[BG LOCATION]: ${loc.coords.latitude}, ${loc.coords.longitude}`);
+      sendLocationToBackend(loc.coords.latitude, loc.coords.longitude)
+        .catch(e => console.log('[location_update]', e?.response?.data || e));
+    } catch (e) {
+      console.log('[TASK ERROR]', e);
     }
   });
-  console.log('[TASK] Background-location task has been defined'); 
+
+
+
+
+  export const sendLocationToBackend = async (lat: number, lon: number) => {
+    const user_id = await getValueFor('user_id');
+    const access  = await getValueFor('access_token');
+    if (!user_id || !access) return;
+  
+    try {
+      console.log(`[location_update] Sending location: ${lat}, ${lon}`);
+      await axios.post(
+        `${currentPath}location_update`,
+        {
+          user_id,
+          latitude: lat,
+          longitude: lon,
+          timestamp: new Date().toISOString(),
+        },
+        { headers: { token: access } }
+      );
+      sendTestNotification();
+    } catch (e: any) {
+      console.log('[location_update] ', e?.response?.data || e);
+    }
+  };
 
 export const startBackgroundLocation = async () => {
   const granted = await requestBackgroundLocationPermission();
@@ -114,7 +136,7 @@ export const startBackgroundLocation = async () => {
 
   const hasStarted = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME);
   if (!hasStarted) {
-    console.log('[BG LOCATION] Starting...');
+    //console.log('[BG LOCATION] Starting...');
     await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
       accuracy: Location.Accuracy.Highest,
       timeInterval: POLLING_INTERVAL_MS, // Minimum time between updates in ms
@@ -126,7 +148,7 @@ export const startBackgroundLocation = async () => {
         notificationColor: '#007AFF',
       },
     });
-    console.log('[BG LOCATION] Started');
+    //console.log('[BG LOCATIO/N] Started');
   }
 };
 
@@ -134,7 +156,7 @@ export const stopBackgroundLocation = async () => {
   const hasStarted = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME);
   if (hasStarted) {
     await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
-    console.log('[BG LOCATION] Stopped');
+    //console.log('[BG LOCATION] Stopped');
   }
 };
   
@@ -168,3 +190,21 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 
   return token;
 }
+
+// Function to send a notification
+export const sendTestNotification = async () => {
+  console.log('[TEST] Sending notification');
+  const perm = await Notifications.getPermissionsAsync();
+  console.log('[PERM]', perm);
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: '🛒 Reminder!',
+      body: 'This is your test NearBuy notification',
+      sound: 'default',
+    },
+    trigger: {
+      seconds: 1,
+    } as any,
+  });
+};
