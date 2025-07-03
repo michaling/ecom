@@ -84,7 +84,7 @@ def fetch_and_store_recommendations(list_name: str, list_id: int):
     supabase.table("items_suggestions").delete().eq("list_id", list_id).execute()
 
     # 6) Insert new suggestions
-    payload = [{"list_id": list_id, "suggestion_text": item} for item in filtered]
+    payload = [{"list_id": list_id, "name": item} for item in filtered]
     if payload:
         supabase.table("items_suggestions").insert(payload).execute()
 

@@ -38,6 +38,7 @@ from .utils import haversine_distance
 from .expo_push import send_expo_push
 from .database import get_db, engine
 import requests
+from fastapi import APIRouter
 
 # -------------------- 1. Load environment & set up DB --------------------
 
@@ -45,8 +46,13 @@ import requests
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="nearBuy (Expo + Notification)")
+router = APIRouter(
+  prefix="/notifications",
+  tags=["notifications"],
+)
 
+#app = FastAPI(title="nearBuy (Expo + Notification)")
+"""
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # In production, restrict to your frontend domain(s)
@@ -54,10 +60,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+"""
 
 # -------------------- Scheduler Setup --------------------
 
-@app.on_event("startup")
+@router.on_event("startup")
 def startup_event():
     scheduler = BackgroundScheduler()
     # Run the job every 1 hour. Adjust minutes or hours if you prefer a different frequency.
@@ -72,7 +79,7 @@ def startup_event():
     app.state.scheduler = scheduler
 
 # On shutdown, remove the scheduler
-@app.on_event("shutdown")
+@router.on_event("shutdown")
 def shutdown_event():
     scheduler: BackgroundScheduler = app.state.scheduler
     scheduler.shutdown()
@@ -224,7 +231,7 @@ def get_matching_item_names(db: Session, user_id: UUID, store_id: int) -> list[s
 
 # -------------------- 9. Endpoint: Register Expo Push Token --------------------
 
-@app.post("/register_expo_token")
+@router.post("/register_expo_token")
 async def register_expo_token(
     req: RegisterExpoTokenRequest,
     current_user_id: UUID = Depends(get_current_user_id),
@@ -250,7 +257,7 @@ async def register_expo_token(
 
 # -------------------- 10. Endpoint: Location Update --------------------
 
-@app.post("/location_update")
+@router.post("/location_update")
 async def location_update(
     req: LocationUpdateRequest,
     current_user_id: UUID = Depends(get_current_user_id),
@@ -421,7 +428,7 @@ async def location_update(
 # To run locally: uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 # tester for the deadline alerts
-@app.get("/admin/trigger_deadline_check")
+@router.get("/admin/trigger_deadline_check")
 async def manual_deadline_check(
     current_user_id: UUID = Depends(get_current_user_id),  # optional auth
 ):
@@ -432,7 +439,8 @@ async def manual_deadline_check(
     check_deadlines_and_notify()
     return {"status": "ok", "detail": "Deadline check triggered"}
 
-@app.post("/run_deadline_check")
+
+@router.post("/run_deadline_check")
 async def run_deadline_check(
     db: Session = Depends(get_db),
 ):
