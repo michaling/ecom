@@ -37,7 +37,7 @@ def convert_datetime_to_iso(value):
 
 def fetch_and_store_recommendations(list_name: str, list_id: int):
     """Fetch recommendations from ML API both per-item and per-list, filter out existing items, and store them."""
-    ml_base = os.getenv("ML_API_BASE_URL", "http://localhost:8001")
+    ml_base = os.getenv("ML_API_BASE_URL", "http://localhost:8000")
     # 1) Gather existing list items
     existing_rows = (
         supabase.table("lists_items")
