@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "NearBuy",
-    "slug": "NearBuy",
+    "slug": "NearBuyFE",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -53,7 +53,14 @@
       ],
       "expo-secure-store",
       "expo-notifications",
-      "expo-localization"
+      "expo-localization",
+      "expo-task-manager",
+      [
+        "expo-location",
+        {
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
