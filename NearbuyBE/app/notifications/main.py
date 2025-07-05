@@ -365,9 +365,8 @@ def location_update(req: Dict, token: str = Header(...)):
         raise HTTPException(status_code=500, detail="Failed to process location update")
 
 # -------------------- 11. (Optional) Admin Endpoints --------------------
-# To run locally: uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
-# tester for the deadline alerts
+# Tester for the deadline alerts
 @router.get("/admin/trigger_deadline_check")
 async def manual_deadline_check(
     current_user_id: UUID = Depends(get_current_user_id),  # optional auth

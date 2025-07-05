@@ -1,22 +1,21 @@
 // app/(tabs)/profile.tsx
 
-import React, { useState, useEffect } from 'react';
+import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
+import axios from 'axios';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
+  ImageBackground,
+  Keyboard,
   StyleSheet,
   Switch,
-  TouchableOpacity,
+  Text,
   TextInput,
-  Modal,
+  TouchableOpacity,
   TouchableWithoutFeedback,
-  Keyboard,
-  ImageBackground,
+  View
 } from 'react-native';
-import { MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import axios from 'axios';
 import * as Utils from '../../../utils/utils';
 
 export default function ProfileScreen() {
@@ -96,7 +95,7 @@ export default function ProfileScreen() {
             <View style={styles.nameRow}>
                 
             <FontAwesome5 name="pencil-alt" size={19} color="#332F6E" style={{ marginLeft: 8 }} />
-                <Text style={styles.name}>{displayName ? displayName : "User Name"}</Text>
+                <Text style={styles.name}>{displayName}</Text>
             </View>
         </TouchableOpacity>)}
       </View>

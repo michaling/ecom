@@ -1,9 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
-import { View, Text, Image, TextInput, Animated, Easing, StyleSheet, Alert, TouchableOpacity, ImageBackground, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Switch } from 'react-native';
-import * as SecureStore from 'expo-secure-store'; // For saving login state later
 import axios, { AxiosError } from 'axios';
+import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Animated, Easing, Image, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Switch, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import * as Utils from '../../utils/utils';
 
 
@@ -12,7 +10,6 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  //const [phoneNumber, setNumber] = useState(''); // Delete later
   const [userName, setUserName] = useState('');
   const [isLocationEnabled, setIsLocationEnabled] = useState(true); // default: ON
 

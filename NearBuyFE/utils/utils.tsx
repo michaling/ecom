@@ -10,7 +10,7 @@ import { Alert, Platform } from 'react-native';
 
 const LOCATION_TASK_NAME = 'background-location-task';
 const POLLING_INTERVAL_MS = 60_000; // 60 seconds
-//let locationPollingInterval: number | null = null;
+let lastTimestamp = 0; 
 
 export const currentPath = 
           //'http://10.0.2.2:8000/' // for android emulator
@@ -59,6 +59,7 @@ export const save = async (key: string, value: string) => {
     if (status !== 'granted') {
       const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
       if (newStatus !== 'granted') {
+        console.log("Foreground location permission not granted");
         Alert.alert("Location permission is required for geo alerts.");
         return false;
       }
@@ -71,6 +72,7 @@ export const save = async (key: string, value: string) => {
     if (status !== 'granted') {
       const { status: newStatus } = await Location.requestBackgroundPermissionsAsync();
       if (newStatus !== 'granted') {
+        console.log("Backdround location permission not granted");
         Alert.alert("Location permission is required for geo alerts.");
         return false;
       }
@@ -95,10 +97,13 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: TaskManagerTa
     if (!(data as { locations?: LocationObject[] })?.locations?.length) return;
 
     const loc = ((data as { locations?: LocationObject[] }).locations || [])[0];
+    if (!loc || loc.timestamp - lastTimestamp < 5_000) return;
+    lastTimestamp = loc.timestamp;
     console.log(`[BG LOCATION]: ${loc.coords.latitude}, ${loc.coords.longitude}`);
     sendLocationToBackend(loc.coords.latitude, loc.coords.longitude)
       .catch(e => console.log('[location_update]', e?.response?.data || e));
-  } catch (e) {
+      lastTimestamp = loc.timestamp;
+    } catch (e) {
     console.log('[TASK ERROR]', e);
   }
 });

@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import * as Utils from '../utils/utils';
 import axios from 'axios';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import * as Utils from '../utils/utils';
 
 export default function IndexRedirect() {
   const router = useRouter();
@@ -14,6 +14,7 @@ export default function IndexRedirect() {
       const userId = await Utils.getValueFor('user_id');
 
       if (token && userId) {
+        console.log('Token found, checking profile...');
         try {
           await axios.get(`${Utils.currentPath}profile`, {
             headers: { token },
@@ -27,7 +28,7 @@ export default function IndexRedirect() {
         router.replace('/login');
       }
     };
-    checkAuth(); // no need to delay it
+    checkAuth(); 
   }, []);
 
   return (
