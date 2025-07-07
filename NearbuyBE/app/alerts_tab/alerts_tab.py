@@ -66,7 +66,7 @@ def get_alerts(
             for l in (
                     supabase.table("lists")
                     .select("list_id, name")
-                    .in_("list_id", list_ids or ["00000000-0000-0000-0000-000000000000"])
+                    .in_("list_id", list_ids)
                     .execute()
                     .data
                     or []
@@ -125,7 +125,7 @@ def get_alerts(
                     ],
                 )
             )
-        print(result)
+        # print(result)
         return result
 
     except HTTPException:

@@ -22,6 +22,7 @@ def send_expo_push(to_token: str, title: str, body: str, data: dict = None) -> b
     # Returns True if Expo responds with "ok", False otherwise.
     # Converts any UUIDs in `data` to strings so payload is JSON-serializable.
     # Ensure data values are JSON-compatible (cast UUIDs to str)
+    print("Got to send_expo_push")
     clean_data = {}
     if data:
         for key, value in data.items():

@@ -1,21 +1,28 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { useFocusEffect } from '@react-navigation/native';
-import {
-  View, Text, Pressable, StyleSheet, FlatList, Image, Modal, TouchableOpacity, TextInput, Switch, Platform,
-  TouchableWithoutFeedback,
-  Keyboard,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import * as Utils from '../../../utils/utils';
 import ListCard from '@/components/ListCard';
 import { AntDesign, MaterialIcons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { Alert } from 'react-native';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { useFocusEffect } from '@react-navigation/native';
+import axios from 'axios';
 import * as Notifications from 'expo-notifications';
-import { I18nManager } from 'react-native';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import {
+  Alert,
+  FlatList, Image,
+  Keyboard,
+  Modal,
+  Platform,
+  Pressable, StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Utils from '../../../utils/utils';
+
 
 // Ensure RTL support is disabled
 //I18nManager.allowRTL(false);
@@ -184,22 +191,6 @@ export default function HomeScreen() {
 
   const renderItem = ({ item }: any) => <ListCard list={item} />;
 
-  const sendTestNotification = async () => {
-    console.log('[TEST] Sending notification');
-    const perm = await Notifications.getPermissionsAsync();
-    console.log('[PERM]', perm);
-  
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: '🛒 Reminder!',
-        body: 'This is your test NearBuy notification',
-        sound: 'default',
-      },
-      trigger: {
-        seconds: 1,
-      } as any,
-    });
-  };
 
   const filteredLists = searchQuery.trim()
   ? lists.filter((list) =>
@@ -244,7 +235,7 @@ export default function HomeScreen() {
       </View>
       <View style={styles.toolsRow}>
 
-        <TouchableOpacity style={styles.toolButton} onPress={sendTestNotification}>
+        <TouchableOpacity style={styles.toolButton} onPress={Utils.sendTestNotification}>
           <Text style={styles.toolButtonText}>Edit</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.toolButton} 

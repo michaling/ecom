@@ -9,6 +9,7 @@ from lists.cleanup import router as lists_cleanup_router
 from profile.profile import router as profile_router
 from alerts_tab.alerts_tab import router as alerts_tab_router
 from notifications.main import router as notifications_router
+from notifications.token import router as token_router
 from supabase_client import supabase
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import asyncio
@@ -26,6 +27,7 @@ app.include_router(items_router)
 app.include_router(profile_router)
 app.include_router(alerts_tab_router)
 app.include_router(notifications_router)
+app.include_router(token_router)
 
 # CORS middleware
 app.add_middleware(
@@ -71,8 +73,9 @@ def start_notification_scheduler():
     scheduler = BackgroundScheduler()
     scheduler.add_job(
         check_deadlines_and_notify,
-        trigger=IntervalTrigger(hours=1),
-        name="geo-alert checker",
+        # trigger=IntervalTrigger(hours=1),
+        trigger=IntervalTrigger(minutes=1),
+        name="deadline notification checker",
         replace_existing=True
     )
     scheduler.start()
