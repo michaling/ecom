@@ -186,8 +186,27 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
     return null;
   }
 
-  token = (await Notifications.getExpoPushTokenAsync()).data;
-  console.log('[PUSH TOKEN]', token);
+  try {
+    const expoTokenData = await Notifications.getExpoPushTokenAsync();
+    token = expoTokenData.data;
+    console.log('[PUSH TOKEN]', token);
+  } catch (err) {
+    console.error('[PUSH TOKEN] Could not fetch:', err);
+    return null;
+  }
+
+  try {
+    const accessToken = await getValueFor('access_token');
+    if (accessToken && token) {
+      await axios.post(`${currentPath}device_token`, {
+        expo_push_token: token,
+      }, {
+        headers: { token: accessToken },
+      });
+    }
+  } catch (err) {
+    console.error('[REGISTER PUSH] Failed to send token to backend:', err);
+  }
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {

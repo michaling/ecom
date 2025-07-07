@@ -12,11 +12,16 @@
       "bundleIdentifier": "com.mylo.nearbuy",
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": ["location", "remote-notification"],
+        "UIBackgroundModes": [
+          "location",
+          "remote-notification"
+        ],
         "NSUserNotificationUsageDescription": "We use notifications to remind you about your lists and nearby deals.",
         "NSLocationWhenInUseUsageDescription": "We need your location to alert you when you are near relevant stores.",
         "NSLocationAlwaysUsageDescription": "We need your location in the background to send you shopping alerts near stores.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location at all times to send location-based shopping alerts."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location at all times to send location-based shopping alerts.",
+        "ExpoLocalization_supportsRTL": false,
+        "ExpoLocalization_forcesRTL": false
       }
     },
     "android": {
@@ -30,10 +35,16 @@
         "ACCESS_COARSE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
         "POST_NOTIFICATIONS",
-        "FOREGROUND_SERVICE"
+        "FOREGROUND_SERVICE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
       ],
       "backgroundColor": "#ffffff",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -67,7 +78,11 @@
     },
     "extra": {
       "supportsRTL": false,
-      "forcesRTL": false
+      "forcesRTL": false,
+      "router": {},
+      "eas": {
+        "projectId": "86f6b464-1a57-40e8-9157-ce641173af20"
+      }
     }
   }
 }
