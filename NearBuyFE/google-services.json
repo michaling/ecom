@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "563011426324",
+    "project_id": "nearbuy-b2480",
+    "storage_bucket": "nearbuy-b2480.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:563011426324:android:1597a91ff409c07ca06f01",
+        "android_client_info": {
+          "package_name": "com.mylo.nearbuy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBKvtWzeHafXnSy0ScdarKCX-HhvAq4M_Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
