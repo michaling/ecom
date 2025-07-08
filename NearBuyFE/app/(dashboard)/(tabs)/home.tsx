@@ -235,7 +235,7 @@ export default function HomeScreen() {
       </View>
       <View style={styles.toolsRow}>
 
-        <TouchableOpacity style={styles.toolButton} onPress={Utils.sendTestNotification}>
+        <TouchableOpacity style={styles.toolButton} onPress={() => {}}>
           <Text style={styles.toolButtonText}>Edit</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.toolButton} 
