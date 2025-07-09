@@ -116,6 +116,7 @@ class Alert(Base):
     store_id        = Column(PGUUID(as_uuid=True), ForeignKey("stores.store_id", ondelete="CASCADE"), nullable=True)
     alert_type      = Column(String, nullable=False)
     last_triggered = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    list_id         = Column(PGUUID(as_uuid=True), ForeignKey("lists.list_id", ondelete="CASCADE"), nullable=True)
 
 class AlertsItems(Base):
     __tablename__   = "alerts_items"
