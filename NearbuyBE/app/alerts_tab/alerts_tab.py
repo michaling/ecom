@@ -91,7 +91,7 @@ def get_alerts(
 
         result: List[AlertCard] = []
         for alert in alerts:
-            grouped: Dict[str, List[str]] = defaultdict(list)
+            grouped: Dict[str, Tuple[str, List[str]]] = {}
             deadlines: List[str] = []
 
             item_ids_for_alert = alert_to_items.get(alert["alert_id"], [])
@@ -102,7 +102,7 @@ def get_alerts(
                 for list_id, list_obj in list_map.items():
                     if list_obj.get("deadline"):
                         list_name = list_obj["name"]
-                        grouped[list_name] = []
+                        grouped[list_id] = (list_name, [])
                         deadlines.append(list_obj["deadline"])
                         break  # Add just one for now
 
@@ -111,8 +111,11 @@ def get_alerts(
                     it = item_map.get(iid)
                     if not it:
                         continue
-                    list_name = list_name_map.get(it["list_id"], "Unnamed List")
-                    grouped[list_name].append(it["name"])
+                    list_id = it["list_id"]
+                    list_name = list_name_map.get(list_id, "Unnamed List")
+                    if list_id not in grouped:
+                        grouped[list_id] = (list_name, [])
+                    grouped[list_id][1].append(it["name"])
                     if it.get("deadline"):
                         deadlines.append(it["deadline"])
 
@@ -144,8 +147,8 @@ def get_alerts(
                     else None,
                     date=date_str,
                     itemsByList=[
-                        ListWithItems(listName=ln, items=its)
-                        for ln, its in grouped.items()
+                        ListWithItems(listId=lid, listName=ln, items=its)
+                        for lid, (ln, its) in grouped.items()
                     ],
                 )
             )

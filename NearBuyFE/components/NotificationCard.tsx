@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { useRouter } from 'expo-router';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 dayjs.extend(relativeTime);
 
@@ -13,7 +14,7 @@ interface Props {
   timestamp: string;
   storeName?: string;
   date?: string;
-  itemsByList: { listName: string; items: string[] }[];
+  itemsByList: { listId: string; listName: string; items: string[] }[]
 }
 
 export default function NotificationCard({
@@ -23,6 +24,7 @@ export default function NotificationCard({
   date,
   itemsByList,
 }: Props) {
+  const router = useRouter();
   const isGeo = type === 'geo_alert';
   const allItems = itemsByList.flatMap(g => g.items);
   const isOnlyListLevel = allItems.length === 0;
@@ -47,9 +49,19 @@ export default function NotificationCard({
       
           <Text style={styles.message}>{message}</Text>
       
-          {itemsByList.map(({ listName, items }, index) => (
+          {itemsByList.map(({ listId, listName, items }, index) => (
             <View key={index} style={styles.listSection}>
-              <Text style={styles.listName}>{listName}</Text>
+              <Pressable onPress={() =>
+                router.push({
+                  pathname: '/(dashboard)/(list)/listScreen',
+                  params: {
+                    list_id: listId,
+                    list_name: listName,
+                  }
+                })
+              }>
+                <Text style={styles.listName}>{listName}</Text>
+              </Pressable>
               {items.slice(0, 3).map((item, i) => (
                 <Text key={i} style={styles.item}>• {item}</Text>
               ))}

@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 class ListWithItems(BaseModel):
+    listId: str
     listName: str
     items: List[str]
 
