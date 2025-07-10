@@ -234,7 +234,6 @@ def get_matching_item_names(db: Session, user_id: UUID, store_id: int) -> list[s
 @router.post("/location_update")
 def location_update(req: Dict, token: str = Header(...)):
     try:
-        # authenticate via Supabase
         supabase.postgrest.auth(token)
         user = supabase.auth.get_user()
         if not user or not user.user:
@@ -243,82 +242,67 @@ def location_update(req: Dict, token: str = Header(...)):
 
         db: Session = next(get_db())
 
-        # parse and validate input
         lat = req.get("latitude")
         lon = req.get("longitude")
         ts_str = req.get("timestamp")
-        if lat is None or lon is None or ts_str is None:
-            raise HTTPException(status_code=400, detail="Missing latitude, longitude, or timestamp")
+        if not lat or not lon or not ts_str:
+            raise HTTPException(400, "Missing lat/lon/timestamp")
+        print("location: ", lat, ", ", lon)
 
-        print("location:", lat, ",", lon)
         now_ts = datetime.now().replace(tzinfo=None)
 
-        # 1) find all geo-alert items for this user
         item_rows = (
             db.query(ListItem)
-              .join(List, List.list_id == ListItem.list_id)
-              .filter(
-                  List.user_id == user_id,
-                  ListItem.geo_alert == True,
-                  ListItem.is_deleted == False,
-                  ListItem.is_checked == False,
-                  (List.deadline.is_(None) | (List.deadline >= now_ts)),
-                  (ListItem.deadline.is_(None) | (ListItem.deadline >= now_ts))
-              )
-              .all()
+            .join(List, List.list_id == ListItem.list_id)
+            .filter(
+                List.user_id == user_id,
+                ListItem.geo_alert == True,
+                ListItem.is_deleted == False,
+                ListItem.is_checked == False,
+                (List.deadline.is_(None) | (List.deadline >= now_ts)),
+                (ListItem.deadline.is_(None) | (ListItem.deadline >= now_ts))
+            )
+            .all()
         )
         if not item_rows:
             return {"status": "ok", "detail": "No geo_alert items", "alerts": []}
 
-        # 2) loop through stores to check proximity
         store_rows = db.query(Store.store_id, Store.name, Store.latitude, Store.longitude).all()
-        PROXIMITY_RADIUS = 500.0  # meters
-        alerts: List[Dict] = []
+
+        PROXIMITY_RADIUS = 500.0
+        alerts = []
 
         for store_id, store_name, store_lat, store_lon in store_rows:
             dist = haversine_distance(lat, lon, store_lat, store_lon)
+
             if dist <= PROXIMITY_RADIUS:
-                prox = (
-                    db.query(UserStoreProximity)
-                      .filter_by(user_id=user_id, store_id=store_id)
-                      .first()
-                )
-                # first time in range
+                print(store_name, " is nearby")
+                prox = db.query(UserStoreProximity).filter_by(user_id=user_id, store_id=store_id).first()
                 if not prox:
-                    prox = UserStoreProximity(
-                        user_id=user_id,
-                        store_id=store_id,
-                        entered_at=now_ts,
-                        notified=False
-                    )
+                    prox = UserStoreProximity(user_id=user_id, store_id=store_id, entered_at=now_ts, notified=False)
                     db.add(prox)
                     db.commit()
-                # if in range and not yet notified
                 elif not prox.notified:
                     entered = prox.entered_at
                     if entered.tzinfo is not None:
                         entered = entered.astimezone(timezone.utc).replace(tzinfo=None)
 
-                    # only check after 2 minutes of dwell
-                    available_names: List[str] = []
+                    available_names = []
                     if (now_ts.replace(tzinfo=None) - entered) >= timedelta(minutes=2):
                         for item in item_rows:
-                            # see if we already recorded availability
-                            rec = (
-                                db.query(StoreItemAvailability)
-                                  .filter_by(item_id=item.item_id, store_id=store_id)
-                                  .first()
-                            )
+                            print(f" Checking availability for: {item.name}")
+                            rec = db.query(StoreItemAvailability).filter_by(item_id=item.item_id, store_id=store_id).first()
                             if rec:
+                                print("found availability record")
                                 if rec.prediction:
                                     available_names.append(item.name)
                             else:
-                                # call the availability service
-                                resp = requests.get(
-                                    "http://localhost:8000/check_product_availability",
-                                    params={"product": item.name, "store": store_name}
-                                )
+                                resp = requests.get("http://localhost:8000/check_product_availability", params={
+                                    "product": item.name,
+                                    "store": store_name
+                                })
                                 if resp.status_code != 200:
+                                    print(f"Agent call failed: {resp.status_code} {resp.text}")
                                     continue
                                 result = resp.json()
                                 confidence = float(result.get("confidence", 0.0))
@@ -336,40 +320,16 @@ def location_update(req: Dict, token: str = Header(...)):
                                 db.commit()
                                 if available_flag:
                                     available_names.append(item.name)
-
-                    # if any items are available, trigger push & record alert
+                    print("available_names: ", available_names)
                     if available_names:
-                        # 3a) build return payload
+                        print(f"[DEBUG] MATCH! sending push for {store_name} with items: {available_names}")
                         alerts.append({
                             "store_id": str(store_id),
                             "store_name": store_name,
                             "items": available_names
                         })
 
-                        # 3b) send push notifications
-                        MAX_SHOW = 5
-                        shown = available_names[:MAX_SHOW]
-                        more = len(available_names) - len(shown)
-                        bullet_list = "\n".join(f"• {n}" for n in shown)
-                        body = (
-                            f"You've been near {store_name} for 2 minutes.\n"
-                            f"They carry these items from your list:\n{bullet_list}"
-                            + (f"\n…and {more} more items." if more > 0 else "")
-                        )
-
-                        tokens = db.query(DeviceToken.expo_push_token).filter(
-                            DeviceToken.user_id == user_id
-                        ).all()
-                        for (push_token,) in tokens:
-                            send_expo_push(
-                                push_token,
-                                f"Store Nearby: {store_name}",
-                                body,
-                                {"store_id": str(store_id), "items": available_names}
-                            )
-
-                        # 3c) record alert in DB
-                        now_utc = datetime.utcnow()
+                        now_utc = datetime.now()
                         batch = Alert(
                             user_id=user_id,
                             store_id=store_id,
@@ -390,17 +350,10 @@ def location_update(req: Dict, token: str = Header(...)):
                                 db.execute(stmt)
                         db.commit()
 
-                        # 3d) mark as notified so we don’t repeat
                         prox.notified = True
                         db.commit()
-
             else:
-                # reset proximity if the user leaves range
-                prox = (
-                    db.query(UserStoreProximity)
-                      .filter_by(user_id=user_id, store_id=store_id)
-                      .first()
-                )
+                prox = db.query(UserStoreProximity).filter_by(user_id=user_id, store_id=store_id).first()
                 if prox:
                     db.delete(prox)
                     db.commit()

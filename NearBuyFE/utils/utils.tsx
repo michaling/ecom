@@ -14,8 +14,8 @@ const POLLING_INTERVAL_MS = 60_000; // 60 seconds
 let lastTimestamp = 0;
 
 export const currentPath =
-  'http://10.0.2.2:8000/' // for android emulator
-  // 'http://10.0.0.49:8000/' // for phone via USB / expo go app
+  // 'http://10.0.2.2:8000/' // for android emulator
+  'http://10.0.0.49:8000/' // for phone via USB / expo go app
   // 'http://localhost:8000/' // for web
   ;
 
@@ -71,7 +71,10 @@ export const requestBackgroundLocationPermission = async (): Promise<boolean> =>
   if (status !== 'granted') {
     const { status: newStatus } = await Location.requestBackgroundPermissionsAsync();
     if (newStatus !== 'granted') {
-      Alert.alert("Background location permission is required for geo alerts.");
+      Alert.alert(
+        "Permission required",
+        "Background location permission is required for geo alerts."
+      );
       return false;
     }
   }
@@ -185,9 +188,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
   try {
     const deviceTokenData = await Notifications.getDevicePushTokenAsync();
     token = deviceTokenData.data;
-    console.log('[FCM TOKEN]', token);
   } catch (err) {
-    console.error('[FCM TOKEN] Could not fetch:', err);
     return null;
   }
 
