@@ -149,7 +149,7 @@ def get_alerts(
                     ],
                 )
             )
-        print(result)
+        # print(result)
         return result
 
     except HTTPException:

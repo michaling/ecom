@@ -19,7 +19,8 @@ export const currentPath =
   // 'http://localhost:8000/' // for web
   ;
 
-// Platform-aware save/get/delete
+// Platform-aware save/get/delete functions
+
 export const save = async (key: string, value: string) => {
   try {
     if (Platform.OS === 'web') {
@@ -192,13 +193,13 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
     return null;
   }
 
-  // 3) Send it to your backend exactly as before
+  // 3) Send it to your backend
   try {
     const accessToken = await getValueFor('access_token');
     if (accessToken && token) {
       await axios.post(
         `${currentPath}device_token`,
-        { expo_push_token: token },       // your backend can keep expecting `expo_push_token`
+        { expo_push_token: token },
         { headers: { token: accessToken } }
       );
     }

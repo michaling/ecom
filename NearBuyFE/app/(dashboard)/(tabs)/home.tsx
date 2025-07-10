@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   FlatList, Image,
@@ -53,7 +53,6 @@ export default function HomeScreen() {
   const [displayName, setDisplayName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  Utils.registerForPushNotificationsAsync();
 
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -147,6 +146,19 @@ export default function HomeScreen() {
       ]
     );
   };
+
+  useEffect(() => {
+    const registerIfNeeded = async () => {
+      const alreadySent = await Utils.getValueFor('push_token_sent');
+      if (!alreadySent) {
+        const token = await Utils.registerForPushNotificationsAsync();
+        if (token) {
+          await Utils.save('push_token_sent', 'true');
+        }
+      }
+    };
+    registerIfNeeded();
+  }, []);
 
   useFocusEffect(
     React.useCallback(() => {

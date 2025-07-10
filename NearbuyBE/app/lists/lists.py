@@ -412,12 +412,33 @@ def update_list_deadline(list_id: str, body: dict, token: str = Header(...)):
         supabase.postgrest.auth(token)
         deadline = body.get("deadline")
 
+        # Fetch current deadline
+        res = (
+            supabase.table("lists")
+            .select("deadline")
+            .eq("list_id", list_id)
+            .single()
+            .execute()
+        )
+        old_deadline = res.data.get("deadline")
+        # old_dt = datetime.fromisoformat(old_deadline).isoformat()
+
+        # Update list deadline
         supabase.table("lists").update({
             "deadline": deadline,
+            "deadline_notified": False,
             "last_update": datetime.now().isoformat()
         }).eq("list_id", list_id).execute()
 
+        # Update items in this list that had the old deadline
+        if old_deadline:
+            supabase.table("lists_items").update({
+                "deadline": deadline,
+                "deadline_notified": False
+            }).eq("list_id", list_id).eq("deadline", old_deadline).execute()
+
         return {"message": "Deadline updated"}
+
     except Exception as e:
         print("[ERROR update_list_deadline]", e)
         raise HTTPException(500, "Failed to update deadline")
