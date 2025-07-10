@@ -10,7 +10,7 @@ import { TaskManagerTaskBody } from 'expo-task-manager';
 import { Alert, Platform } from 'react-native';
 
 const LOCATION_TASK_NAME = 'background-location-task';
-const POLLING_INTERVAL_MS = 60_000; // 60 seconds
+const POLLING_INTERVAL_MS = 120_000; // every 2 minutes
 let lastTimestamp = 0;
 
 export const currentPath =
@@ -19,7 +19,8 @@ export const currentPath =
   // 'http://localhost:8000/' // for web
   ;
 
-// Platform-aware save/get/delete functions
+
+// ───────────────────────── Platform-aware save/get/delete functions ─────────────────────────
 
 export const save = async (key: string, value: string) => {
   try {
@@ -54,7 +55,7 @@ export const deleteValueFor = async (key: string) => {
   }
 };
 
-// Location permission helpers
+// ───────────────────────── Location permission helpers ─────────────────────────
 export const requestForegroundLocationPermission = async (): Promise<boolean> => {
   const { status } = await Location.getForegroundPermissionsAsync();
   if (status !== 'granted') {
@@ -69,6 +70,7 @@ export const requestForegroundLocationPermission = async (): Promise<boolean> =>
 
 export const requestBackgroundLocationPermission = async (): Promise<boolean> => {
   const { status } = await Location.getBackgroundPermissionsAsync();
+  console.log('Background location permission status:', status);
   if (status !== 'granted') {
     const { status: newStatus } = await Location.requestBackgroundPermissionsAsync();
     if (newStatus !== 'granted') {
@@ -91,7 +93,31 @@ export const markAskedForBgPermission = async (): Promise<void> => {
   await save('asked_bg_perm', 'true');
 };
 
-// Background location task
+
+export const ensureFullLocationPermissions = async (): Promise<boolean> => {
+  const fgStatus = await Location.getForegroundPermissionsAsync();
+  const bgStatus = await Location.getBackgroundPermissionsAsync();
+
+  if (fgStatus.status === 'granted' && bgStatus.status === 'granted') {
+    return true;
+  }
+
+  const fgGranted = await requestForegroundLocationPermission();
+  if (!fgGranted) {
+    console.warn("User denied foreground permission");
+    return false;
+  }
+
+  const bgGranted = await requestBackgroundLocationPermission();
+  if (!bgGranted) {
+    console.warn("User denied background permission");
+    return false;
+  }
+
+  return true;
+};
+
+// ───────────────────────── Background Location Task ─────────────────────────
 TaskManager.defineTask(
   LOCATION_TASK_NAME,
   async ({ data, error }: TaskManagerTaskBody) => {
@@ -195,7 +221,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
       );
     }
   } catch (err) {
-    console.error('[REGISTER PUSH] Failed to send token to backend:', err);
+    console.log('[REGISTER PUSH] Failed to send token to backend:', err);
   }
 
   // 4) Create Android channel if needed
@@ -222,6 +248,6 @@ export const sendNotification = async (title: string, body: string) => {
       trigger: { seconds: 1 } as any,
     });
   } catch (err) {
-    console.error('[sendNotification] Failed:', err);
+    console.log('[sendNotification] Failed:', err);
   }
 };

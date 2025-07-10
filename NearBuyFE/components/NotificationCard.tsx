@@ -44,27 +44,20 @@ export default function NotificationCard({
             <Text style={styles.title}>{title}</Text>
             <Text style={styles.timestamp}>{dayjs(timestamp).fromNow()}</Text>
           </View>
-    
+      
           <Text style={styles.message}>{message}</Text>
-    
-          {itemsByList.slice(0, 3).map(({ listName, items }, index) => (
-          <View key={index} style={styles.listSection}>
-            <Text style={styles.listName}>{listName}</Text>
-            {items.slice(0, 3).map((item, i) => (
-              <Text key={i} style={styles.item}>• {item}</Text>
-            ))}
-            {items.length > 3 && (
-              <Text style={styles.item}>• and more...</Text>
-            )}
-          </View>
-        ))}
-
-        {itemsByList.length > 3 && (
-          <Text style={styles.listName}>
-            ...and more lists
-          </Text>
-        )}
-
+      
+          {itemsByList.map(({ listName, items }, index) => (
+            <View key={index} style={styles.listSection}>
+              <Text style={styles.listName}>{listName}</Text>
+              {items.slice(0, 3).map((item, i) => (
+                <Text key={i} style={styles.item}>• {item}</Text>
+              ))}
+              {items.length > 3 && (
+                <Text style={styles.item}>• and more...</Text>
+              )}
+            </View>
+          ))}
         </View>
       );
     }

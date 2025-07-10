@@ -106,10 +106,9 @@ export default function ProfileScreen() {
         <Switch
           value={locationEnabled}
           trackColor={{ false: '#ccc', true: '#007AFF' }}
-          //thumbColor={isLocationEnabled ? '#fff' : '#f4f3f4'}
           onValueChange={async (val) => {
             if (val) {
-              const granted = await Utils.requestForegroundLocationPermission();
+              const granted = await Utils.ensureFullLocationPermissions();
               if (!granted) return; // Don’t allow enabling if permission denied
             }
           

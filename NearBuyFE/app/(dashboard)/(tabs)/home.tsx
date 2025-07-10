@@ -23,7 +23,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Utils from '../../../utils/utils';
 
-
 // Ensure RTL support is disabled
 //I18nManager.allowRTL(false);
 //I18nManager.forceRTL(false);
@@ -115,12 +114,12 @@ export default function HomeScreen() {
     }
   }, []);
 
-  const checkBackgroundPermissionIfNeeded = async () => {
+  const ensureLocationPermissions = async () => {
     if (!anyGeoEnabled) return;
-  
+
     const wasAsked = await Utils.wasAskedForBgPermission();
     if (wasAsked) return;
-  
+
     Alert.alert(
       "Allow location access?",
       "To get alerts near stores, the app needs location access at all times. Update your settings?",
@@ -130,19 +129,16 @@ export default function HomeScreen() {
           style: "cancel",
           onPress: () => {
             Utils.markAskedForBgPermission();
-          }
+          },
         },
         {
           text: "Allow",
           onPress: async () => {
-            const granted = await Utils.requestBackgroundLocationPermission();
+            const granted = await Utils.ensureFullLocationPermissions();
             await Utils.markAskedForBgPermission();
-  
-            if (!granted) {
-              console.warn('User denied background permission');
-            }
-          }
-        }
+            if (!granted) console.warn("User denied permissions");
+          },
+        },
       ]
     );
   };
@@ -164,7 +160,7 @@ export default function HomeScreen() {
     React.useCallback(() => {
       const run = async () => {
         await fetchLists();
-        await checkBackgroundPermissionIfNeeded();
+        await ensureLocationPermissions();
         await fetchProfile();
       };
       run();

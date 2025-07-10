@@ -304,6 +304,7 @@ def location_update(req: Dict, token: str = Header(...)):
                                 if resp.status_code != 200:
                                     print(f"Agent call failed: {resp.status_code} {resp.text}")
                                     continue
+                                print("[GEO NOTIFICATIONS] Agent called successfully")
                                 result = resp.json()
                                 confidence = float(result.get("confidence", 0.0))
                                 available_flag = bool(result.get("answer", False))

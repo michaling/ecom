@@ -67,7 +67,7 @@ export default function RegisterScreen() {
   
     try {
       if (isLocationEnabled) {
-        const granted = await Utils.requestForegroundLocationPermission();
+        const granted = await Utils.ensureFullLocationPermissions();
         if (!granted) return; // Stop registration if permission was denied
       }
 
