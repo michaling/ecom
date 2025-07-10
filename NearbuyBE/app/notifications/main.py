@@ -358,7 +358,20 @@ def location_update(req: Dict, token: str = Header(...)):
                     db.delete(prox)
                     db.commit()
 
-        return {"status": "ok", "detail": "Processed location update", "alerts": alerts}
+        if alerts:
+            for alert in alerts:
+                title = f"{alert['store_name']} has your items!"
+                shown = alert["items"][:3]
+                more = len(alert["items"]) - len(shown)
+                body = f"You’re near a store that may have: {', '.join(shown)}" + (
+                    f" and more from your shopping lists" if more > 0 else "")
+
+                # Send push to all tokens for this user
+                tokens = db.query(DeviceToken.expo_push_token).filter(DeviceToken.user_id == user_id).all()
+                for (expo_token,) in tokens:
+                    send_expo_push(expo_token, title, body, {"store": alert["store_name"]})
+
+        return {"status": "ok", "detail": "Processed location update"}
 
     except Exception as e:
         print("[ERROR location_update]", e)

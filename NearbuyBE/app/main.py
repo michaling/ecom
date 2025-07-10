@@ -73,8 +73,7 @@ def start_notification_scheduler():
     scheduler = BackgroundScheduler()
     scheduler.add_job(
         check_deadlines_and_notify,
-        # trigger=IntervalTrigger(hours=1),
-        trigger=IntervalTrigger(minutes=1),
+        trigger=IntervalTrigger(hours=12),
         name="deadline notification checker",
         replace_existing=True
     )

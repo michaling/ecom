@@ -127,16 +127,7 @@ export const sendLocationToBackend = async (lat: number, lon: number) => {
       },
       { headers: { token: access } }
     );
-
-    const alerts = res.data?.alerts || [];
-    for (const alert of alerts) {
-      const shown = alert.items.slice(0, 3);
-      const more = alert.items.length - shown.length;
-      const body = `You’re near a store that may have: ${shown.join(
-        ', '
-      )}${more > 0 ? ', and more from your shopping lists' : ''}`;
-      await sendNotification(`${alert.store_name} has your items!`, body);
-    }
+    console.log('[location_update] Success');
   } catch (e: any) {
     console.log('[location_update] ', e?.response?.data || e);
   }
