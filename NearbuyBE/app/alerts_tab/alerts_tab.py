@@ -61,17 +61,19 @@ def get_alerts(
         item_map = {it["item_id"]: it for it in items}
         list_ids = {it["list_id"] for it in items}
 
-        list_name_map = {
-            l["list_id"]: l["name"]
+        list_map = {
+            l["list_id"]: l
             for l in (
                     supabase.table("lists")
-                    .select("list_id, name")
+                    .select("list_id, name, deadline")
                     .in_("list_id", list_ids)
                     .execute()
                     .data
                     or []
             )
         }
+
+        list_name_map = {k: v["name"] for k, v in list_map.items()}
 
         store_name_map = {}
         if store_ids:
@@ -92,23 +94,45 @@ def get_alerts(
             grouped: Dict[str, List[str]] = defaultdict(list)
             deadlines: List[str] = []
 
-            for iid in alert_to_items.get(alert["alert_id"], []):
-                it = item_map.get(iid)
-                if not it:
-                    continue
-                list_name = list_name_map.get(it["list_id"], "Unnamed List")
-                grouped[list_name].append(it["name"])
-                if it.get("deadline"):
-                    deadlines.append(it["deadline"])
+            item_ids_for_alert = alert_to_items.get(alert["alert_id"], [])
+
+            # If there are no items, try to find a list with a deadline
+            if not item_ids_for_alert and alert["alert_type"] == "deadline_alert":
+                # Try to find any list with a deadline
+                for list_id, list_obj in list_map.items():
+                    if list_obj.get("deadline"):
+                        list_name = list_obj["name"]
+                        grouped[list_name] = []
+                        deadlines.append(list_obj["deadline"])
+                        break  # Add just one for now
+
+            else:
+                for iid in item_ids_for_alert:
+                    it = item_map.get(iid)
+                    if not it:
+                        continue
+                    list_name = list_name_map.get(it["list_id"], "Unnamed List")
+                    grouped[list_name].append(it["name"])
+                    if it.get("deadline"):
+                        deadlines.append(it["deadline"])
 
             # earliest deadline → "June 30"
             date_str = None
-            if alert["alert_type"] == "deadline_alert" and deadlines:
-                try:
-                    dt = datetime.fromisoformat(min(deadlines))
-                    date_str = dt.strftime("%B %-d")
-                except Exception:
-                    date_str = min(deadlines)[:10]
+            if alert["alert_type"] == "deadline_alert":
+                all_deadlines = deadlines.copy()
+
+                # Add list-level deadlines
+                for list_id in grouped:
+                    list_obj = list_map.get(list_id)
+                    if list_obj and list_obj.get("deadline"):
+                        all_deadlines.append(list_obj["deadline"])
+
+                if all_deadlines:
+                    try:
+                        dt = datetime.fromisoformat(min(all_deadlines))
+                        date_str = dt.strftime("%B %-d")
+                    except Exception:
+                        date_str = min(all_deadlines)[0:10]
 
             result.append(
                 AlertCard(
@@ -125,7 +149,7 @@ def get_alerts(
                     ],
                 )
             )
-        # print(result)
+        print(result)
         return result
 
     except HTTPException:

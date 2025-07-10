@@ -16,7 +16,6 @@ def check_deadlines_and_notify():
     db_gen = get_db()
     db: Session = next(db_gen)
     try:
-        # now = datetime.utcnow()
         now = datetime.now()
         window_end = now + timedelta(hours=24)
 

@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
 dayjs.extend(relativeTime);
 
@@ -24,37 +24,51 @@ export default function NotificationCard({
   itemsByList,
 }: Props) {
   const isGeo = type === 'geo_alert';
-
+  const allItems = itemsByList.flatMap(g => g.items);
+  const isOnlyListLevel = allItems.length === 0;
   const iconName = isGeo ? 'location-outline' : 'time-outline';
+  
   const title = isGeo
     ? `Location Alert: ${storeName ?? ''}`
     : `Deadline Alert: ${date ? dayjs(date).format('MMMM D') : ''}`;
-  const message = isGeo
+    const message = isGeo
     ? `You have some items you can buy in ${storeName ?? 'this store'}!`
-    : `You have upcoming deadlines for items needed by ${date ? dayjs(date).format('MMMM D') : 'a deadline'}.`;
+    : isOnlyListLevel
+      ? `You have an upcoming deadline for list needed by ${date ? dayjs(date).format('MMMM D') : 'a deadline'}.`
+      : `You have upcoming deadlines for items needed by ${date ? dayjs(date).format('MMMM D') : 'a deadline'}.`;
 
-  return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <Ionicons name={iconName} size={20} color="#F36D9A" style={styles.icon} />
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.timestamp}>{dayjs(timestamp).fromNow()}</Text>
-      </View>
+      return (
+        <View style={styles.card}>
+          <View style={styles.header}>
+            <Ionicons name={iconName} size={20} color="#F36D9A" style={styles.icon} />
+            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.timestamp}>{dayjs(timestamp).fromNow()}</Text>
+          </View>
+    
+          <Text style={styles.message}>{message}</Text>
+    
+          {itemsByList.slice(0, 3).map(({ listName, items }, index) => (
+          <View key={index} style={styles.listSection}>
+            <Text style={styles.listName}>{listName}</Text>
+            {items.slice(0, 3).map((item, i) => (
+              <Text key={i} style={styles.item}>• {item}</Text>
+            ))}
+            {items.length > 3 && (
+              <Text style={styles.item}>• and more...</Text>
+            )}
+          </View>
+        ))}
 
-      <Text style={styles.message}>{message}</Text>
+        {itemsByList.length > 3 && (
+          <Text style={styles.listName}>
+            ...and more lists
+          </Text>
+        )}
 
-      {itemsByList.map(({ listName, items }, index) => (
-        <View key={index} style={styles.listSection}>
-          <Text style={styles.listName}>{listName}</Text>
-          {items.map((item, i) => (
-            <Text key={i} style={styles.item}>• {item}</Text>
-          ))}
         </View>
-      ))}
-    </View>
-  );
-}
-
+      );
+    }
+    
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',

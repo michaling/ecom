@@ -6,7 +6,7 @@ router = APIRouter()
 
 @router.delete("/cleanup")
 def cleanup_old_deleted():
-    threshold = (datetime.utcnow() - timedelta(days=30)).isoformat()
+    threshold = (datetime.now() - timedelta(days=30)).isoformat()
 
     # 1. Delete old deleted items
     old_items = supabase.table("lists_items") \

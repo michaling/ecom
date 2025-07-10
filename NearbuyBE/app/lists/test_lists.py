@@ -21,7 +21,7 @@ user_id = "18293cd2-18b4-4b88-9f92-85ae3e50dc68"
 
 # ───────────────────────── helpers ──────────────────────────
 def iso_after(days: int) -> str:
-    return (datetime.utcnow() + timedelta(days=days)).isoformat() + "Z"
+    return (datetime.now() + timedelta(days=days)).isoformat() + "Z"
 
 
 def set_global_geo(flag: bool) -> None:

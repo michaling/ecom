@@ -97,7 +97,7 @@ def create_list(
 ):
     try:
         supabase.postgrest.auth(token)
-        now = datetime.utcnow().isoformat()
+        now = datetime.now().isoformat()
         default_geo = get_profile_geo(user_id)
         list_geo = user_list.geo_alert if user_list.geo_alert is not None else default_geo
         deadline_str = convert_datetime_to_iso(user_list.deadline)
@@ -286,7 +286,7 @@ def update_list_name(list_id: str, body: dict, token: str = Header(...)):
 # -------------------------------------------------------------------------- #
 @router.delete("/lists/{list_id}")
 def delete_list(list_id: str):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
     supabase.table("lists").update({"is_deleted": True, "deleted_at": now}).eq("list_id", list_id).execute()
     supabase.table("lists_items").update({"is_deleted": True, "deleted_at": now}).eq("list_id", list_id).execute()
     return {"message": "List deleted"}
@@ -295,7 +295,7 @@ def delete_list(list_id: str):
 # -------------------------------------------------------------------------- #
 @router.post("/lists/{list_id}/restore")
 def restore_list(list_id: str):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
     lst = supabase.table("lists").select("*").eq("list_id", list_id).single().execute().data
     if not lst:
         raise HTTPException(404, "List not found")
