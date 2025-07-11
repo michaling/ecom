@@ -120,7 +120,7 @@ def seed_geo_alert_scenario(db):
     db.add(StoreItemAvailability(
         item_id=item.item_id,
         store_id=store.store_id,
-        last_run=datetime.utcnow(),
+        last_run=datetime.now(),
         prediction=True,
         confidence=0.9,
         reason="in stock"
@@ -134,7 +134,7 @@ def seed_deadline_scenario(db):
     user = User(user_id=uuid.uuid4())
     db.add(user)
 
-    due = datetime.utcnow() + timedelta(hours=12)
+    due = datetime.now() + timedelta(hours=12)
     lst = List(
         list_id=uuid.uuid4(),
         user_id=user.user_id,
@@ -167,7 +167,7 @@ def test_geo_alert_inserts_alerts_and_link_rows(db_session, client):
         "user_id": str(user.user_id),
         "latitude": store.latitude,
         "longitude": store.longitude,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now().isoformat()
     }
     resp = client.post(
         "/location_update",

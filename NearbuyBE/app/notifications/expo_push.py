@@ -6,7 +6,7 @@ from uuid import UUID
 
 # ─── CONFIGURE THESE ──────────────────────────────────────────────────────────
 # Path to the service-account JSON you downloaded from GCP
-SA_JSON = r"C:\Dev\E-commerce\NearBuyFE\firebase-service-account.json"
+SA_JSON = "../../NearBuyFE/firebase-service-account.json"
 # Your Firebase project ID (from Firebase Console → Project settings → General)
 PROJECT_ID = "nearbuy-b2480"
 FCM_V1_URL = f"https://fcm.googleapis.com/v1/projects/{PROJECT_ID}/messages:send"

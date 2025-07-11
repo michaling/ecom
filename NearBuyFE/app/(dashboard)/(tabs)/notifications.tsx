@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { FlatList, StyleSheet, RefreshControl } from 'react-native';
 import NotificationCard from '@/components/NotificationCard';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import axios from 'axios';
+import React, { useCallback, useEffect, useState } from 'react';
+import { FlatList, RefreshControl, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Utils from '../../../utils/utils';
 
 interface AlertCard {

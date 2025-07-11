@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   FlatList, Image,
@@ -22,7 +22,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Utils from '../../../utils/utils';
-
 
 // Ensure RTL support is disabled
 //I18nManager.allowRTL(false);
@@ -53,7 +52,6 @@ export default function HomeScreen() {
   const [displayName, setDisplayName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  Utils.registerForPushNotificationsAsync();
 
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -116,12 +114,12 @@ export default function HomeScreen() {
     }
   }, []);
 
-  const checkBackgroundPermissionIfNeeded = async () => {
+  const ensureLocationPermissions = async () => {
     if (!anyGeoEnabled) return;
-  
+
     const wasAsked = await Utils.wasAskedForBgPermission();
     if (wasAsked) return;
-  
+
     Alert.alert(
       "Allow location access?",
       "To get alerts near stores, the app needs location access at all times. Update your settings?",
@@ -131,28 +129,38 @@ export default function HomeScreen() {
           style: "cancel",
           onPress: () => {
             Utils.markAskedForBgPermission();
-          }
+          },
         },
         {
           text: "Allow",
           onPress: async () => {
-            const granted = await Utils.requestBackgroundLocationPermission();
+            const granted = await Utils.ensureFullLocationPermissions();
             await Utils.markAskedForBgPermission();
-  
-            if (!granted) {
-              console.warn('User denied background permission');
-            }
-          }
-        }
+            if (!granted) console.warn("User denied permissions");
+          },
+        },
       ]
     );
   };
+
+  useEffect(() => {
+    const registerIfNeeded = async () => {
+      const alreadySent = await Utils.getValueFor('push_token_sent');
+      if (!alreadySent) {
+        const token = await Utils.registerForPushNotificationsAsync();
+        if (token) {
+          await Utils.save('push_token_sent', 'true');
+        }
+      }
+    };
+    registerIfNeeded();
+  }, []);
 
   useFocusEffect(
     React.useCallback(() => {
       const run = async () => {
         await fetchLists();
-        await checkBackgroundPermissionIfNeeded();
+        await ensureLocationPermissions();
         await fetchProfile();
       };
       run();

@@ -1,8 +1,9 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 dayjs.extend(relativeTime);
 
@@ -13,7 +14,7 @@ interface Props {
   timestamp: string;
   storeName?: string;
   date?: string;
-  itemsByList: { listName: string; items: string[] }[];
+  itemsByList: { listId: string; listName: string; items: string[] }[]
 }
 
 export default function NotificationCard({
@@ -23,38 +24,56 @@ export default function NotificationCard({
   date,
   itemsByList,
 }: Props) {
+  const router = useRouter();
   const isGeo = type === 'geo_alert';
-
+  const allItems = itemsByList.flatMap(g => g.items);
+  const isOnlyListLevel = allItems.length === 0;
   const iconName = isGeo ? 'location-outline' : 'time-outline';
+  
   const title = isGeo
     ? `Location Alert: ${storeName ?? ''}`
     : `Deadline Alert: ${date ? dayjs(date).format('MMMM D') : ''}`;
-  const message = isGeo
+    const message = isGeo
     ? `You have some items you can buy in ${storeName ?? 'this store'}!`
-    : `You have upcoming deadlines for items needed by ${date ? dayjs(date).format('MMMM D') : 'a deadline'}.`;
+    : isOnlyListLevel
+      ? `You have an upcoming deadline for list needed by ${date ? dayjs(date).format('MMMM D') : 'a deadline'}.`
+      : `You have upcoming deadlines for items needed by ${date ? dayjs(date).format('MMMM D') : 'a deadline'}.`;
 
-  return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <Ionicons name={iconName} size={20} color="#F36D9A" style={styles.icon} />
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.timestamp}>{dayjs(timestamp).fromNow()}</Text>
-      </View>
-
-      <Text style={styles.message}>{message}</Text>
-
-      {itemsByList.map(({ listName, items }, index) => (
-        <View key={index} style={styles.listSection}>
-          <Text style={styles.listName}>{listName}</Text>
-          {items.map((item, i) => (
-            <Text key={i} style={styles.item}>• {item}</Text>
+      return (
+        <View style={styles.card}>
+          <View style={styles.header}>
+            <Ionicons name={iconName} size={20} color="#F36D9A" style={styles.icon} />
+            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.timestamp}>{dayjs(timestamp).fromNow()}</Text>
+          </View>
+      
+          <Text style={styles.message}>{message}</Text>
+      
+          {itemsByList.map(({ listId, listName, items }, index) => (
+            <View key={index} style={styles.listSection}>
+              <Pressable onPress={() =>
+                router.push({
+                  pathname: '/(dashboard)/(list)/listScreen',
+                  params: {
+                    list_id: listId,
+                    list_name: listName,
+                  }
+                })
+              }>
+                <Text style={styles.listName}>{listName}</Text>
+              </Pressable>
+              {items.slice(0, 3).map((item, i) => (
+                <Text key={i} style={styles.item}>• {item}</Text>
+              ))}
+              {items.length > 3 && (
+                <Text style={styles.item}>• and more...</Text>
+              )}
+            </View>
           ))}
         </View>
-      ))}
-    </View>
-  );
-}
-
+      );
+    }
+    
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',

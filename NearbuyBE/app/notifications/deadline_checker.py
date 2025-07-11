@@ -11,11 +11,11 @@ logger = logging.getLogger(__name__)
 
 
 def check_deadlines_and_notify():
+    print("[DEADLINE] Starts looking for deadline notification")
     # db: Session = next(())
     db_gen = get_db()
     db: Session = next(db_gen)
     try:
-        # now = datetime.utcnow()
         now = datetime.now()
         window_end = now + timedelta(hours=24)
 
@@ -34,19 +34,22 @@ def check_deadlines_and_notify():
             .all()
         )
 
-        print(f"[DEBUG] found {len(due_lists)} due lists")
+        print(f"[DEADLINE] found {len(due_lists)} due lists")
 
         for lst in due_lists:
             user_id: UUID = lst.user_id
             tokens = db.query(DeviceToken.expo_push_token).filter(DeviceToken.user_id == user_id).all()
 
             title = "List Deadline Approaching"
-            deadline_str = lst.deadline.strftime("%Y-%m-%d %H:%M UTC")
-            body = f"Your list \"{lst.name}\" is due on {deadline_str} (within 24 h)."
+            day = lst.deadline.day
+            month = lst.deadline.strftime("%B")
+            time = lst.deadline.strftime("%H:%M")
+            deadline_str = f"{day} {month} {time}"
+            body = f'Your list "{lst.name}" is due on {deadline_str}'
 
-            print("tokens: ", tokens)
+            # print("tokens: ", tokens)
             for (expo_token,) in tokens:
-                print("found token: ", expo_token)
+                # print("found token: ", expo_token)
                 send_expo_push(expo_token, title, body, {"list_name": lst.name})
 
             # create Alert record
@@ -78,7 +81,7 @@ def check_deadlines_and_notify():
             .all()
         )
 
-        print(f"[DEBUG] found {len(due_items)} due items")
+        print(f"[DEADLINE] found {len(due_items)} due items")
 
         for item in due_items:
             # find the owning list to get user_id

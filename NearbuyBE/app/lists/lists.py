@@ -97,7 +97,7 @@ def create_list(
 ):
     try:
         supabase.postgrest.auth(token)
-        now = datetime.utcnow().isoformat()
+        now = datetime.now().isoformat()
         default_geo = get_profile_geo(user_id)
         list_geo = user_list.geo_alert if user_list.geo_alert is not None else default_geo
         deadline_str = convert_datetime_to_iso(user_list.deadline)
@@ -286,7 +286,7 @@ def update_list_name(list_id: str, body: dict, token: str = Header(...)):
 # -------------------------------------------------------------------------- #
 @router.delete("/lists/{list_id}")
 def delete_list(list_id: str):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
     supabase.table("lists").update({"is_deleted": True, "deleted_at": now}).eq("list_id", list_id).execute()
     supabase.table("lists_items").update({"is_deleted": True, "deleted_at": now}).eq("list_id", list_id).execute()
     return {"message": "List deleted"}
@@ -295,7 +295,7 @@ def delete_list(list_id: str):
 # -------------------------------------------------------------------------- #
 @router.post("/lists/{list_id}/restore")
 def restore_list(list_id: str):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
     lst = supabase.table("lists").select("*").eq("list_id", list_id).single().execute().data
     if not lst:
         raise HTTPException(404, "List not found")
@@ -412,12 +412,33 @@ def update_list_deadline(list_id: str, body: dict, token: str = Header(...)):
         supabase.postgrest.auth(token)
         deadline = body.get("deadline")
 
+        # Fetch current deadline
+        res = (
+            supabase.table("lists")
+            .select("deadline")
+            .eq("list_id", list_id)
+            .single()
+            .execute()
+        )
+        old_deadline = res.data.get("deadline")
+        # old_dt = datetime.fromisoformat(old_deadline).isoformat()
+
+        # Update list deadline
         supabase.table("lists").update({
             "deadline": deadline,
+            "deadline_notified": False,
             "last_update": datetime.now().isoformat()
         }).eq("list_id", list_id).execute()
 
+        # Update items in this list that had the old deadline
+        if old_deadline:
+            supabase.table("lists_items").update({
+                "deadline": deadline,
+                "deadline_notified": False
+            }).eq("list_id", list_id).eq("deadline", old_deadline).execute()
+
         return {"message": "Deadline updated"}
+
     except Exception as e:
         print("[ERROR update_list_deadline]", e)
         raise HTTPException(500, "Failed to update deadline")
