@@ -169,7 +169,7 @@ class ProductAvailabilityAgent:
             parsed = {
                 "answer": False,
                 "confidence": 0.0,
-                "reason": result.get("answer", "Unknown"),
+                "reason": result["answer"].strip() if result.get("answer", "").strip() else "UNKNOWN",
                 "price": None
             }
 

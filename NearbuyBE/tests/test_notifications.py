@@ -118,12 +118,12 @@ def seed_geo_alert_scenario(db):
     db.add(DeviceToken(user_id=user.user_id, expo_push_token="dummy-token"))
 
     db.add(StoreItemAvailability(
-        item_id=item.item_id,
         store_id=store.store_id,
         last_run=datetime.now(),
         prediction=True,
         confidence=0.9,
-        reason="in stock"
+        reason="in stock",
+        item_name=item.name
     ))
 
     db.commit()

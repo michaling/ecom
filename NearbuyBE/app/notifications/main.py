@@ -291,7 +291,7 @@ def location_update(req: Dict, token: str = Header(...)):
                     if (now_ts.replace(tzinfo=None) - entered) >= timedelta(minutes=2):
                         for item in item_rows:
                             print(f" Checking availability for: {item.name}")
-                            rec = db.query(StoreItemAvailability).filter_by(item_id=item.item_id, store_id=store_id).first()
+                            rec = db.query(StoreItemAvailability).filter_by(item_name=item.name, store_id=store_id).first()
                             if rec:
                                 print("found availability record")
                                 if rec.prediction:
@@ -310,12 +310,12 @@ def location_update(req: Dict, token: str = Header(...)):
                                 available_flag = bool(result.get("answer", False))
                                 reason_text = result.get("reason")
                                 new_rec = StoreItemAvailability(
-                                    item_id=item.item_id,
                                     store_id=store_id,
                                     last_run=now_ts,
                                     prediction=available_flag,
                                     confidence=confidence,
-                                    reason=reason_text
+                                    reason=reason_text,
+                                    item_name=item.name
                                 )
                                 db.add(new_rec)
                                 db.commit()

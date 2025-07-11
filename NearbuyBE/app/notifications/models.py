@@ -102,12 +102,12 @@ class UserStoreProximity(Base):
 
 class StoreItemAvailability(Base):
     __tablename__ = "store_item_availability"
-    item_id    = Column(PGUUID(as_uuid=True), ForeignKey("lists_items.item_id", ondelete="CASCADE"), primary_key=True)
     store_id   = Column(PGUUID(as_uuid=True), ForeignKey("stores.store_id",  ondelete="CASCADE"), primary_key=True)
     last_run   = Column(DateTime(timezone=True), nullable=False)
     prediction = Column(Boolean, nullable=False)
     confidence = Column(Float,   nullable=False)
     reason = Column(String, nullable=True)
+    item_name   = Column(String, primary_key=True, nullable=False)
 
 class Alert(Base):
     __tablename__   = "alerts"
