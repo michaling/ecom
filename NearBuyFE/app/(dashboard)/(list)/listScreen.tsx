@@ -181,7 +181,10 @@ export default function ListScreen() {
 
 
   const addNewItem = async () => {
-    if (newItemName.trim() === '') return;
+    if (newItemName.trim() === '') {
+      setIsAdding(false);
+      return;
+    } 
     const token = await Utils.getValueFor('access_token');
     try {
       const res = await axios.post(
@@ -353,6 +356,7 @@ export default function ListScreen() {
                 onChangeText={setNewItemName}
                 placeholder="Enter item name"
                 onSubmitEditing={addNewItem}
+                onBlur={addNewItem}
                 autoFocus
               />
             )}
