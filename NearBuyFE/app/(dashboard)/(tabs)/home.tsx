@@ -326,6 +326,7 @@ export default function HomeScreen() {
                     value={deadline || new Date()}
                     mode="datetime"
                     display="spinner"
+                    minimumDate={new Date()}
                     onChange={(event, selectedDate) => {
                       if (selectedDate) setDeadline(selectedDate);
                     }}
