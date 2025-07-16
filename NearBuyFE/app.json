@@ -79,10 +79,8 @@
     "extra": {
       "supportsRTL": false,
       "forcesRTL": false,
-      "router": {},
-      "eas": {
-        "projectId": "86f6b464-1a57-40e8-9157-ce641173af20"
-      }
+      "router": {}
+      
     }
   }
 }
