@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    paddingTop: 120,
+    paddingTop: 105,
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
   },
@@ -465,15 +465,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     width: 250,
   },
-
-  recommendationsBox: {
-    borderTopWidth: 1,
-    borderTopColor: '#ddd',
-    paddingTop: 12,
-  },
-
   recommendations: {
-    marginTop: 80,
+    marginTop: 50,
   },
   recommendTitle: {
     fontSize: 16,
@@ -499,7 +492,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   imageStyle: {
-    opacity: 0.65,
+    opacity: 0.7,
   },
   scrollContent: {
     flexGrow: 1,
