@@ -126,7 +126,8 @@ TaskManager.defineTask(
       const locs = (data as { locations?: LocationObject[] })?.locations;
       if (!locs?.length) return;
       const loc = locs[0];
-      if (!loc || loc.timestamp - lastTimestamp < 5_000) return;
+      console.log('Diff: ', loc.timestamp - lastTimestamp);
+      if (!loc || loc.timestamp - lastTimestamp < POLLING_INTERVAL_MS / 2) return;
       lastTimestamp = loc.timestamp;
       console.log(`[BG LOCATION]: ${loc.coords.latitude}, ${loc.coords.longitude}`);
       await sendLocationToBackend(loc.coords.latitude, loc.coords.longitude);
@@ -168,12 +169,12 @@ export const startBackgroundLocation = async () => {
     await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
       accuracy: Location.Accuracy.Highest,
       timeInterval: POLLING_INTERVAL_MS,
-      distanceInterval: 0,
+      distanceInterval: 10, // 10 meters
       showsBackgroundLocationIndicator: true,
       foregroundService: {
         notificationTitle: 'NearBuy is running',
         notificationBody: 'Tracking your location for geo alerts',
-        notificationColor: '#007AFF',
+        notificationColor: '#E6E6E6',
       },
     });
   }
