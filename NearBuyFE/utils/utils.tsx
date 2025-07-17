@@ -126,7 +126,6 @@ TaskManager.defineTask(
       const locs = (data as { locations?: LocationObject[] })?.locations;
       if (!locs?.length) return;
       const loc = locs[0];
-      console.log('Diff: ', loc.timestamp - lastTimestamp);
       if (!loc || loc.timestamp - lastTimestamp < POLLING_INTERVAL_MS / 2) return;
       lastTimestamp = loc.timestamp;
       console.log(`[BG LOCATION]: ${loc.coords.latitude}, ${loc.coords.longitude}`);
