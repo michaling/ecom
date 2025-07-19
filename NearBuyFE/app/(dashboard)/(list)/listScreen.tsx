@@ -355,7 +355,7 @@ export default function ListScreen() {
                 value={newItemName}
                 onChangeText={setNewItemName}
                 placeholder="Enter item name"
-                onSubmitEditing={addNewItem}
+                //onSubmitEditing={addNewItem}
                 onBlur={addNewItem}
                 autoFocus
               />
