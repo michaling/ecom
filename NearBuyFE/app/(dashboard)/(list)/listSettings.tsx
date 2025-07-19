@@ -1,29 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import { FontAwesome5 } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import axios from 'axios';
-import { useFocusEffect } from '@react-navigation/native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
+  ImageBackground,
+  Keyboard,
+  Platform,
   Pressable,
   StyleSheet,
-  FlatList,
-  ImageBackground,
-  Modal,
-  TouchableOpacity,
-  TextInput,
   Switch,
-  Platform,
+  Text,
+  TextInput,
+  TouchableOpacity,
   TouchableWithoutFeedback,
-  Keyboard,
-  
+  View
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Utils from '../../../utils/utils';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { FontAwesome5 } from '@expo/vector-icons';
 
 
 

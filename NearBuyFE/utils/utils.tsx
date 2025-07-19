@@ -15,7 +15,7 @@ let lastTimestamp = 0;
 
 export const currentPath =
   //'http://172.30.124.49:8001/' // for android emulator
-   'http://192.168.1.119:8000/' // for phone via USB / expo go app
+   'http://10.0.0.49:8000/' // for phone via USB / expo go app
   // 'http://localhost:8000/' // for web
   ;
 
@@ -60,10 +60,7 @@ export const requestForegroundLocationPermission = async (): Promise<boolean> =>
   const { status } = await Location.getForegroundPermissionsAsync();
   if (status !== 'granted') {
     const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
-    if (newStatus !== 'granted') {
-      Alert.alert("Location permission is required for geo alerts.");
-      return false;
-    }
+    return newStatus === 'granted';
   }
   return true;
 };
@@ -73,13 +70,7 @@ export const requestBackgroundLocationPermission = async (): Promise<boolean> =>
   console.log('Background location permission status:', status);
   if (status !== 'granted') {
     const { status: newStatus } = await Location.requestBackgroundPermissionsAsync();
-    if (newStatus !== 'granted') {
-      Alert.alert(
-        "Permission required",
-        "Background location permission is required for geo alerts."
-      );
-      return false;
-    }
+    return newStatus === 'granted';
   }
   return true;
 };
@@ -104,12 +95,14 @@ export const ensureFullLocationPermissions = async (): Promise<boolean> => {
 
   const fgGranted = await requestForegroundLocationPermission();
   if (!fgGranted) {
+    Alert.alert("Permission required", "Location access is needed to send alerts near stores.");
     console.warn("User denied foreground permission");
     return false;
   }
 
   const bgGranted = await requestBackgroundLocationPermission();
   if (!bgGranted) {
+    Alert.alert("Permission required", "Background location access is needed to send alerts near stores.");
     console.warn("User denied background permission");
     return false;
   }
@@ -126,7 +119,7 @@ TaskManager.defineTask(
       const locs = (data as { locations?: LocationObject[] })?.locations;
       if (!locs?.length) return;
       const loc = locs[0];
-      if (!loc || loc.timestamp - lastTimestamp < POLLING_INTERVAL_MS / 2) return;
+      if (!loc || loc.timestamp - lastTimestamp < POLLING_INTERVAL_MS/2) return;
       lastTimestamp = loc.timestamp;
       console.log(`[BG LOCATION]: ${loc.coords.latitude}, ${loc.coords.longitude}`);
       await sendLocationToBackend(loc.coords.latitude, loc.coords.longitude);
@@ -168,7 +161,7 @@ export const startBackgroundLocation = async () => {
     await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
       accuracy: Location.Accuracy.Highest,
       timeInterval: POLLING_INTERVAL_MS,
-      distanceInterval: 10, // 10 meters
+      distanceInterval: 0, 
       showsBackgroundLocationIndicator: true,
       foregroundService: {
         notificationTitle: 'NearBuy is running',

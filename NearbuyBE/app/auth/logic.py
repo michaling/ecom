@@ -39,7 +39,6 @@ def sign_up(email: str, password: str, display_name: str, geo_alert: bool):
             "display_name": display_name,
             "geo_alert": geo_alert
         }).execute()
-        print(profile_res)
 
         try:
             # if there is an error

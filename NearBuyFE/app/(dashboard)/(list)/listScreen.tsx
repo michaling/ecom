@@ -1,13 +1,12 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ImageBackground } from 'react-native';
-import React, { useCallback, useEffect, useState } from 'react';
-import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
 import Checklist from '@/components/Checklist';
 import RecommendationItem from '@/components/RecommendationItem';
-import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
-import * as Utils from '../../../utils/utils';
-import axios from 'axios';
 import imageMap from '@/utils/imageMap';
-import { ScrollView } from 'react-native';
+import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import * as Utils from '../../../utils/utils';
 
 interface Item {
   id: string;
@@ -50,6 +49,7 @@ export default function ListScreen() {
     
     /* ────────── helper: fetch list from BE ────────── */
   const loadList = useCallback(async () => {
+    console.log('[LIST] loading list', list_id);
     try {
       setLoading(true);
       const token = await Utils.getValueFor('access_token');
@@ -260,7 +260,7 @@ export default function ListScreen() {
 
   return (
     <View style={styles.container}>
-  <ImageBackground
+    <ImageBackground
           source={imageSource}
           resizeMode="cover"
           //style={styles.imageBackground}
