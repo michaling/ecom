@@ -44,11 +44,8 @@ export default function RegisterScreen() {
       keyboardWillHide.remove();
     };
   }, []);
-  
-  // TODO: Strong password validation
 
-
-  //check inputs validations
+  // Handle registration
   const handleRegister = async () => {
     if (!email || !password || !confirmPassword || !userName) {
       Alert.alert('Error', 'Please fill out all fields.');
@@ -86,7 +83,6 @@ export default function RegisterScreen() {
         {
           email,
           password,
-          //phone: phoneNumber, // Delete later
           display_name: userName,
           geo_alert: isLocationEnabled,
         }
