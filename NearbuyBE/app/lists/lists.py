@@ -7,6 +7,7 @@ import os
 import requests
 from utils import *
 from pydantic import BaseModel
+from uuid import UUID
 
 router = APIRouter()
 
@@ -76,7 +77,7 @@ def fetch_and_store_recommendations(list_name: str, list_id: int):
             resp = requests.get(
                 f"{ml_base}/recommend_similar_products",
                 params={"product_name": prod, "top_k": 5},
-                timeout=10
+                timeout=20
             )
             resp.raise_for_status()
             recs.update(resp.json().get("similar_products", []))
@@ -87,7 +88,7 @@ def fetch_and_store_recommendations(list_name: str, list_id: int):
         resp2 = requests.get(
             f"{ml_base}/recommend_by_list_name",
             params={"list_name": list_name},
-            timeout=10
+            timeout=20
         )
         resp2.raise_for_status()
         recs.update(resp2.json().get("recommended_products", []))
@@ -95,6 +96,12 @@ def fetch_and_store_recommendations(list_name: str, list_id: int):
         print(f"[ML Error] by-name for '{list_name}': {e}")
 
     # 4) Filter out existing items and preserved suggestions
+    for item in recs:
+        print(item)
+
+    if len(recs) == 0:
+        print("nothing here!")
+
     filtered = [
         item for item in recs
         if item not in existing_names and item not in preserved_names
@@ -469,3 +476,25 @@ def update_list_deadline(list_id: str, body: dict, token: str = Header(...)):
     except Exception as e:
         print("[ERROR update_list_deadline]", e)
         raise HTTPException(500, "Failed to update deadline")
+    
+
+@router.post("/lists/{list_id}/recommendations", status_code=204)
+def generate_recommendations_for_list(list_id: UUID):
+    list_id_str = str(list_id)
+    # 1) look up the list name
+    res = supabase.table("lists") \
+        .select("name") \
+        .eq("list_id", list_id) \
+        .single() \
+        .execute()
+
+    if not res.data:
+        raise HTTPException(404, f"List {list_id} not found")
+
+    list_name = res.data["name"]
+
+    # 2) call your helper
+    fetch_and_store_recommendations(list_name, list_id_str)
+
+    # 3) return no-content
+    return
