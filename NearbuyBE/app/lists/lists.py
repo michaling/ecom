@@ -36,56 +36,83 @@ def convert_datetime_to_iso(value):
 
 
 def fetch_and_store_recommendations(list_name: str, list_id: int):
-    """Fetch recommendations from ML API both per-item and per-list, filter out existing items, and store them."""
+    """Fetch recommendations from ML API both per-item and per-list,
+    filter out existing items and any suggestions already used/rejected,
+    then store the rest."""
+
     ml_base = os.getenv("ML_API_BASE_URL", "http://localhost:8000")
+
     # 1) Gather existing list items
     existing_rows = (
-        supabase.table("lists_items")
+        supabase
+        .table("lists_items")
         .select("name")
         .eq("list_id", list_id)
         .eq("is_deleted", False)
         .execute()
         .data or []
     )
-    existing_names = {row["name"] for row in existing_rows}
+    existing_names = {r["name"] for r in existing_rows}
 
-    # 2) Collect recommendations from similar-products endpoint
+    # 2) Pull all suggestions for this list, then preserve those used or rejected
+    all_sugs = (
+        supabase
+        .table("items_suggestions")
+        .select("name, used, rejected")
+        .eq("list_id", list_id)
+        .execute()
+        .data or []
+    )
+    preserved_names = {
+        row["name"]
+        for row in all_sugs
+        if row.get("used") or row.get("rejected")
+    }
+
+    # 3) Collect fresh recommendations from the ML service
     recs = set()
     for prod in existing_names:
         try:
-            r = requests.get(
+            resp = requests.get(
                 f"{ml_base}/recommend_similar_products",
                 params={"product_name": prod, "top_k": 5},
-                timeout=5
+                timeout=10
             )
-            r.raise_for_status()
-            sims = r.json().get("similar_products", [])
-            recs.update(sims)
+            resp.raise_for_status()
+            recs.update(resp.json().get("similar_products", []))
         except Exception as e:
             print(f"[ML Error] similar for '{prod}': {e}")
 
-    # 3) Also fetch recommendations by list name
     try:
-        r2 = requests.get(
+        resp2 = requests.get(
             f"{ml_base}/recommend_by_list_name",
             params={"list_name": list_name},
-            timeout=5
+            timeout=10
         )
-        r2.raise_for_status()
-        by_name = r2.json().get("recommended_products", [])
-        recs.update(by_name)
+        resp2.raise_for_status()
+        recs.update(resp2.json().get("recommended_products", []))
     except Exception as e:
         print(f"[ML Error] by-name for '{list_name}': {e}")
 
-    # 4) Filter out any items already present and ensure no duplicates
-    filtered = list(recs - existing_names)
+    # 4) Filter out existing items and preserved suggestions
+    filtered = [
+        item for item in recs
+        if item not in existing_names and item not in preserved_names
+    ]
 
-    # 5) Clear old suggestions
-    supabase.table("items_suggestions").delete().eq("list_id", list_id).execute()
+    # 5) Delete only the old, still-pending suggestions for this list
+    (supabase
+        .table("items_suggestions")
+        .delete()
+        .eq("list_id", list_id)
+        .eq("used", False)
+        .eq("rejected", False)
+        .execute()
+    )
 
-    # 6) Insert new suggestions
-    payload = [{"list_id": list_id, "name": item} for item in filtered]
-    if payload:
+    # 6) Insert the new suggestions
+    if filtered:
+        payload = [{"list_id": list_id, "name": item} for item in filtered]
         supabase.table("items_suggestions").insert(payload).execute()
 
 # -------------------------------------------------------------------------- #
