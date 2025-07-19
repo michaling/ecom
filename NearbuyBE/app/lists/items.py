@@ -60,9 +60,6 @@ def rename_item(
 
         bump_list_timestamp(req.list_id)
 
-        # Delete availability records for this item (since its name changed) - DELETE LATER
-        supabase.table("store_item_availability").delete().eq("item_id", item_id).execute()
-
         return {"message": "Item renamed", "item_id": item_id}
 
     except Exception as e:

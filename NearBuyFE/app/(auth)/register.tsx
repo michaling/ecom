@@ -64,11 +64,21 @@ export default function RegisterScreen() {
       Alert.alert('Error', 'Passwords do not match.');
       return;
     }
+
+    if (password.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters long.');
+      return;
+    }
   
     try {
       if (isLocationEnabled) {
         const granted = await Utils.ensureFullLocationPermissions();
-        if (!granted) return; // Stop registration if permission was denied
+        if (!granted) {
+          Alert.alert(
+            'Notice',
+            'Location-based notifications will be disabled until you grant location access. You can enable it later in your settings.'
+          );
+        }
       }
 
       const res = await axios.post(

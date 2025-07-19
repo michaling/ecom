@@ -14,8 +14,8 @@ const POLLING_INTERVAL_MS = 120_000; // every 2 minutes
 let lastTimestamp = 0;
 
 export const currentPath =
-  'http://172.20.10.4:8001/' // for android emulator
-  // 'http://10.0.0.49:8000/' // for phone via USB / expo go app
+  //'http://172.30.124.49:8001/' // for android emulator
+   'http://192.168.1.119:8000/' // for phone via USB / expo go app
   // 'http://localhost:8000/' // for web
   ;
 
@@ -126,7 +126,7 @@ TaskManager.defineTask(
       const locs = (data as { locations?: LocationObject[] })?.locations;
       if (!locs?.length) return;
       const loc = locs[0];
-      if (!loc || loc.timestamp - lastTimestamp < 5_000) return;
+      if (!loc || loc.timestamp - lastTimestamp < POLLING_INTERVAL_MS / 2) return;
       lastTimestamp = loc.timestamp;
       console.log(`[BG LOCATION]: ${loc.coords.latitude}, ${loc.coords.longitude}`);
       await sendLocationToBackend(loc.coords.latitude, loc.coords.longitude);
@@ -168,12 +168,12 @@ export const startBackgroundLocation = async () => {
     await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
       accuracy: Location.Accuracy.Highest,
       timeInterval: POLLING_INTERVAL_MS,
-      distanceInterval: 0,
+      distanceInterval: 10, // 10 meters
       showsBackgroundLocationIndicator: true,
       foregroundService: {
         notificationTitle: 'NearBuy is running',
         notificationBody: 'Tracking your location for geo alerts',
-        notificationColor: '#007AFF',
+        notificationColor: '#E6E6E6',
       },
     });
   }

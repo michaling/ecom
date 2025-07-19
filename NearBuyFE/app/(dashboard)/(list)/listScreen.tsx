@@ -181,7 +181,10 @@ export default function ListScreen() {
 
 
   const addNewItem = async () => {
-    if (newItemName.trim() === '') return;
+    if (newItemName.trim() === '') {
+      setIsAdding(false);
+      return;
+    } 
     const token = await Utils.getValueFor('access_token');
     try {
       const res = await axios.post(
@@ -352,7 +355,8 @@ export default function ListScreen() {
                 value={newItemName}
                 onChangeText={setNewItemName}
                 placeholder="Enter item name"
-                onSubmitEditing={addNewItem}
+                //onSubmitEditing={addNewItem}
+                onBlur={addNewItem}
                 autoFocus
               />
             )}
@@ -387,7 +391,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    paddingTop: 120,
+    paddingTop: 105,
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
   },
@@ -461,15 +465,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     width: 250,
   },
-
-  recommendationsBox: {
-    borderTopWidth: 1,
-    borderTopColor: '#ddd',
-    paddingTop: 12,
-  },
-
   recommendations: {
-    marginTop: 80,
+    marginTop: 50,
   },
   recommendTitle: {
     fontSize: 16,
@@ -495,7 +492,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   imageStyle: {
-    opacity: 0.65,
+    opacity: 0.7,
   },
   scrollContent: {
     flexGrow: 1,

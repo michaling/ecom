@@ -11,7 +11,7 @@ interface AlertCard {
   timestamp: string;
   storeName?: string;
   date?: string;
-  itemsByList: { listName: string; items: string[] }[];
+  itemsByList: { listId: string; listName: string; items: string[] }[];
 }
 
 export default function NotificationsScreen() {
@@ -43,7 +43,7 @@ export default function NotificationsScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <FlatList
         data={alerts}
         keyExtractor={(item) => item.alert_id}
