@@ -118,9 +118,21 @@ export default function ShoppingItem({ item_id, list_id, name, isChecked, onTogg
               color={deadlineAlert ? '#007AFF' : '#c2c2c2'}
             />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => {
-            setTempLocationAlert(locationAlert);
-            setShowLocationModal(true);
+          <TouchableOpacity onPress={async () => {
+              const newValue = !locationAlert;
+              setLocationAlert(newValue);
+
+              const token = await Utils.getValueFor('access_token');
+              try {
+                await axios.patch(`${Utils.currentPath}items/${item_id}/geo`, {
+                  geo_alert: newValue,
+                  list_id: list_id,
+                }, {
+                  headers: { token },
+                });
+              } catch (err) {
+                console.error('[TOGGLE GEO ALERT FAILED]', err);
+              }
           }}>
             <Ionicons
               name={locationAlert ? "location" : "location-outline"}
@@ -217,6 +229,7 @@ export default function ShoppingItem({ item_id, list_id, name, isChecked, onTogg
                     onChange={(event, selectedDate) => {
                       if (selectedDate) setTempDeadline(selectedDate);
                     }}
+                    minimumDate={new Date()}
                     style={{ backgroundColor: '#fff' }}
                   />
                 )}
@@ -392,7 +405,7 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   saveButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#B25FC3',
     padding: 10,
     borderRadius: 8,
   },

@@ -23,6 +23,7 @@ import * as Utils from '../../../utils/utils';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { FontAwesome5 } from '@expo/vector-icons';
 
 
 
@@ -155,8 +156,8 @@ export default function ListSettingsScreen() {
 
 
     <View style={[styles.container]}>
-        <View>
-        <Text style={styles.title}>Settings</Text>
+        <View style={[{alignItems: 'center'}]}>
+        <Text style={styles.title}>List Settings</Text>
         {isEditing ? (
             <TextInput
                 value={listName}
@@ -167,8 +168,12 @@ export default function ListSettingsScreen() {
             />
             ) : (
             <TouchableOpacity onPress={() => setIsEditing(true)}>
+              <View style={styles.nameRow}>
+              <FontAwesome5 name="pencil-alt" size={19} color="#332F6E" style={{ marginRight: 5 }} />
                 <Text style = {styles.subtitle}> {listName? listName : "List Name"}</Text>
+                </View>
             </TouchableOpacity>
+            
             )}
         </View>
         {/* Location-based toggle */}
@@ -197,7 +202,7 @@ export default function ListSettingsScreen() {
             {/* Deadline picker */}
             <View style={{ marginBottom: 12 }}>
               <View style={styles.toggleContainer}>
-                <Text style={styles.toggleLabel}> Deadline Alerts </Text>
+                <Text style={styles.toggleLabel}>Deadline Alerts </Text>
                 <Switch
                   value={isDeadlineEnabled}
                   onValueChange={async (val) => {
@@ -237,6 +242,7 @@ export default function ListSettingsScreen() {
                         value={deadline || new Date()}
                         mode="datetime"
                         display="spinner"
+                        minimumDate={new Date()}
                         onChange={(event, selectedDate) => {
                           if (selectedDate) {
                             setDeadline(selectedDate);
@@ -306,16 +312,16 @@ const styles = StyleSheet.create({
     //backgroundColor: "#FBF8FF",
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 40,
+    marginTop: 25,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 30,
-    textAlign: 'center',
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 30,
+    color: '#332F6E',
   },
   input: {
     borderWidth: 1,
@@ -324,8 +330,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     padding: 10,
     marginBottom: 12,
+    width: 220,
+    textAlign: 'center',
   },
-    deadlineButton: {
+  deadlineButton: {
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -335,7 +343,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     padding: 10,
-    color: '#007AFF'
+    color: '#007AFF',
+    marginTop: 10,
   },
   modalButtons: {
     flexDirection: 'row',
@@ -348,7 +357,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 20,
     marginRight: 16,
   },
 
@@ -359,8 +368,9 @@ const styles = StyleSheet.create({
 
   deleteText: {
     fontSize: 18,
-    marginLeft: 16,
+    textAlign: 'center',
     color: 'red',
+    marginTop: 40,
   },
   doneButton: {
     marginTop: 10,
@@ -396,5 +406,11 @@ const styles = StyleSheet.create({
   },
   image: {
     flex: 1,
-  }
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 50,
+
+},
 });

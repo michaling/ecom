@@ -326,6 +326,7 @@ export default function HomeScreen() {
                     value={deadline || new Date()}
                     mode="datetime"
                     display="spinner"
+                    minimumDate={new Date()}
                     onChange={(event, selectedDate) => {
                       if (selectedDate) setDeadline(selectedDate);
                     }}
@@ -366,7 +367,7 @@ export default function HomeScreen() {
 
             {/* Action buttons */}
             <View style={styles.modalButtons}>
-              <Pressable
+              <TouchableOpacity
                 onPress={() => {
                   resetForm();
                   setAddModalVisible(false);
@@ -374,9 +375,9 @@ export default function HomeScreen() {
                 style={styles.cancelButton}
               >
                 <Text style={styles.cancelText}>Cancel</Text>
-              </Pressable>
+              </TouchableOpacity>
 
-              <Pressable
+              <TouchableOpacity
                 onPress={async () => {
                   try {
                     if (!newListName.trim()) {
@@ -417,7 +418,7 @@ export default function HomeScreen() {
                 style={styles.saveButton}
               >
                 <Text style={styles.saveText}>Save</Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
           </View>
         </View>

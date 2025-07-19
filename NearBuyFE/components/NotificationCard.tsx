@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 dayjs.extend(relativeTime);
 
@@ -31,8 +31,8 @@ export default function NotificationCard({
   const iconName = isGeo ? 'location-outline' : 'time-outline';
   
   const title = isGeo
-    ? `Location Alert: ${storeName ?? ''}`
-    : `Deadline Alert: ${date ? dayjs(date).format('MMMM D') : ''}`;
+    ? `You're near ${storeName ?? ''}!`
+    : `Upcoming deadline: ${date ? dayjs(date).format('MMMM D') : ''}`;
     const message = isGeo
     ? `You have some items you can buy in ${storeName ?? 'this store'}!`
     : isOnlyListLevel
@@ -51,7 +51,7 @@ export default function NotificationCard({
       
           {itemsByList.map(({ listId, listName, items }, index) => (
             <View key={index} style={styles.listSection}>
-              <Pressable onPress={() =>
+              <TouchableOpacity onPress={() =>
                 router.push({
                   pathname: '/(dashboard)/(list)/listScreen',
                   params: {
@@ -61,7 +61,7 @@ export default function NotificationCard({
                 })
               }>
                 <Text style={styles.listName}>{listName}</Text>
-              </Pressable>
+              </TouchableOpacity>
               {items.slice(0, 3).map((item, i) => (
                 <Text key={i} style={styles.item}>• {item}</Text>
               ))}
@@ -93,11 +93,11 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   icon: {
-    marginRight: 8,
+    marginRight: 5,
   },
   title: {
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 15,
     flex: 1,
   },
   timestamp: {
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   listName: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#666',
+    color: '#007AFF',
     marginBottom: 2,
   },
   item: {
