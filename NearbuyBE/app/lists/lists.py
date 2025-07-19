@@ -162,132 +162,143 @@ def create_list(
 
 @router.get("/lists")
 def get_user_lists(user_id: str, token: str = Header(...)):
-    supabase.postgrest.auth(token)
-    rows = (
-        supabase.table("lists")
-        .select("*")
-        .eq("user_id", user_id)
-        .eq("is_deleted", False)
-        .order("last_update", desc=True)
-        .execute()
-    ).data
+    try:
+        supabase.postgrest.auth(token)
 
-    if not rows:
-        return { "lists": [], "any_geo_enabled": False }
-
-    out = []
-    any_geo = False
-
-    for lst in rows:
-        lid = lst["list_id"]
-        items = (
-            supabase.table("lists_items")
+        rows = (
+            supabase.table("lists")
             .select("*")
-            .eq("list_id", lid)
+            .eq("user_id", user_id)
             .eq("is_deleted", False)
+            .order("last_update", desc=True)
             .execute()
-            .data or []
-        )
-        suggestions = (
-            supabase.table("items_suggestions")
+        ).data
+
+        if not rows:
+            return { "lists": [], "any_geo_enabled": False }
+
+        out = []
+        any_geo = False
+
+        for lst in rows:
+            lid = lst["list_id"]
+            items = (
+                supabase.table("lists_items")
+                .select("*")
+                .eq("list_id", lid)
+                .eq("is_deleted", False)
+                .execute()
+                .data or []
+            )
+            suggestions = (
+                supabase.table("items_suggestions")
+                .select("*")
+                .eq("list_id", lid)
+                .eq("used", False)
+                .eq("rejected", False)
+                .execute()
+                .data or []
+            )
+
+            if lst.get("geo_alert"):
+                any_geo = True
+
+            if any(it.get("geo_alert") for it in items):
+                any_geo = True
+
+            unchecked_count = sum(
+                1 for it in items if not it.get("is_checked", False)
+            )
+
+            unchecked = sum(1 for i in items if not i.get("is_checked", False))
+
+            out.append({
+                "id": lid,
+                "name": lst["name"],
+                "deadline": lst["deadline"],
+                "geo_alert": lst["geo_alert"],
+                "pic_path": lst.get("pic_path"),
+                "items": items,
+                "unchecked_count": unchecked,
+                "suggested_items": suggestions
+            })
+        return {
+            "lists": out,
+            "any_geo_enabled": any_geo
+        }
+
+    except Exception as e:
+        print("[ERROR get_user_lists]", e)
+        raise HTTPException(500, "Failed to retrieve lists")
+
+@router.get("/lists/{list_id}")
+def get_list(list_id: str, token: str = Header(...)):
+    try:
+        supabase.postgrest.auth(token)
+
+        lst = (
+            supabase.table("lists")
             .select("*")
-            .eq("list_id", lid)
-            .eq("used", False)
-            .eq("rejected", False)
+            .eq("list_id", list_id)
+            .eq("is_deleted", False)
+            .single()
             .execute()
-            .data or []
+            .data
+        )
+        if not lst:
+            raise HTTPException(status_code=404, detail="List not found")
+
+        try:
+            items = (
+                supabase.table("lists_items")
+                .select("*")
+                .eq("list_id", list_id)
+                .eq("is_deleted", False)
+                .order("is_checked")
+                .execute()
+                .data
+            )
+        except Exception as e:
+            print(f"get_list items error: {e}")
+            items = (
+                supabase.table("lists_items")
+                .select("*")
+                .eq("list_id", list_id)
+                .eq("is_deleted", False)
+                .execute()
+                .data
+            )
+
+        suggestions = (
+                supabase.table("items_suggestions")
+                .select("*")
+                .eq("list_id", list_id)
+                .eq("used", False)
+                .eq("rejected", False)
+                .execute()
+                .data or []
         )
 
-        if lst.get("geo_alert"):
-            any_geo = True
+        # Get lowercase names of existing items for deduplication
+        existing_names = {item["name"].strip().lower() for item in items if item.get("name")}
 
-        if any(it.get("geo_alert") for it in items):
-            any_geo = True
+        # Filter out suggestions with duplicate names
+        filtered_suggestions = [
+            s for s in suggestions if s.get("name", "").strip().lower() not in existing_names
+        ]
 
-        unchecked_count = sum(
-            1 for it in items if not it.get("is_checked", False)
-        )
-
-        unchecked = sum(1 for i in items if not i.get("is_checked", False))
-
-        out.append({
-            "id": lid,
+        return {
             "name": lst["name"],
             "deadline": lst["deadline"],
             "geo_alert": lst["geo_alert"],
             "pic_path": lst.get("pic_path"),
             "items": items,
-            "unchecked_count": unchecked,
-            "suggested_items": suggestions
-        })
-    return {
-        "lists": out,
-        "any_geo_enabled": any_geo
-    }
+            "suggestions": filtered_suggestions
+        }
 
-
-@router.get("/lists/{list_id}")
-def get_list(list_id: str):
-    lst = (
-        supabase.table("lists")
-        .select("*")
-        .eq("list_id", list_id)
-        .eq("is_deleted", False)
-        .single()
-        .execute()
-        .data
-    )
-    if not lst:
-        raise HTTPException(status_code=404, detail="List not found")
-
-    try:
-        items = (
-            supabase.table("lists_items")
-            .select("*")
-            .eq("list_id", list_id)
-            .eq("is_deleted", False)
-            .order("is_checked")
-            .execute()
-            .data
-        )
     except Exception as e:
-        print(f"get_list items error: {e}")
-        items = (
-            supabase.table("lists_items")
-            .select("*")
-            .eq("list_id", list_id)
-            .eq("is_deleted", False)
-            .execute()
-            .data
-        )
-
-    suggestions = (
-            supabase.table("items_suggestions")
-            .select("*")
-            .eq("list_id", list_id)
-            .eq("used", False)
-            .eq("rejected", False)
-            .execute()
-            .data or []
-    )
-
-    # Get lowercase names of existing items for deduplication
-    existing_names = {item["name"].strip().lower() for item in items if item.get("name")}
-
-    # Filter out suggestions with duplicate names
-    filtered_suggestions = [
-        s for s in suggestions if s.get("name", "").strip().lower() not in existing_names
-    ]
-
-    return {
-        "name": lst["name"],
-        "deadline": lst["deadline"],
-        "geo_alert": lst["geo_alert"],
-        "pic_path": lst.get("pic_path"),
-        "items": items,
-        "suggestions": filtered_suggestions
-    }
-
+        print("[ERROR get_list]", e)
+        raise HTTPException(500, "Failed to retrieve list")
 
 # -------------------------------------------------------------------------- #
 
@@ -448,7 +459,6 @@ def update_list_deadline(list_id: str, body: dict, token: str = Header(...)):
             .execute()
         )
         old_deadline = res.data.get("deadline")
-        # old_dt = datetime.fromisoformat(old_deadline).isoformat()
 
         # Update list deadline
         supabase.table("lists").update({
@@ -463,6 +473,12 @@ def update_list_deadline(list_id: str, body: dict, token: str = Header(...)):
                 "deadline": deadline,
                 "deadline_notified": False
             }).eq("list_id", list_id).eq("deadline", old_deadline).execute()
+
+        # Also update items in the list that currently have no deadline
+        supabase.table("lists_items").update({
+            "deadline": deadline,
+            "deadline_notified": False
+        }).eq("list_id", list_id).is_("deadline", None).execute()
 
         return {"message": "Deadline updated"}
 
