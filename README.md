@@ -49,9 +49,9 @@ Pick the correct backend URL for your environment in NearBuyFE.utils and leave o
 
 at:   
 export const currentPath =
-    //'http://10.0.2.2:8001/' // for Android emulator (replace with your IP)
-    //'http://10.0.0.49:8001/' // for phone via USB / expo go app
-    //'http://localhost:8001/' // for web
+    'http://10.0.2.2:8001/' // for Android emulator (replace with your IP)
+    'http://10.0.0.49:8001/' // for phone via USB / expo go app
+    'http://localhost:8001/' // for web
 
 
 ### 2. Configure Environment Variables
