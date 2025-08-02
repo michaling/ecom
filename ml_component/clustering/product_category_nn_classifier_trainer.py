@@ -27,8 +27,8 @@ model = make_pipeline(
 model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 accuracy = metrics.accuracy_score(y_test, y_pred)
-print(f"✅ MLP Classifier accuracy: {accuracy * 100:.2f}%")
+print(f"MLP Classifier accuracy: {accuracy * 100:.2f}%")
 
 os.makedirs('saved_models', exist_ok=True)
 joblib.dump(model, 'saved_models/product_category_classifier_nn.joblib')
-print("✅ Model saved")
+print("Model saved")
