@@ -184,9 +184,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center', 
     alignItems: 'center',
-    padding: 24, 
-    //marginBottom: 20,
-    //backgroundColor: '#FAFAFA'
+    padding: 24
   },
   
   title: {
@@ -214,8 +212,8 @@ const styles = StyleSheet.create({
     width: 320,
   },
   button: {
-    backgroundColor: '#B25FC3', // 🔁 Change to your preferred color
-    borderRadius: 50,           // Fully rounded
+    backgroundColor: '#B25FC3', 
+    borderRadius: 50,    
     paddingVertical: 14,
     paddingHorizontal: 24,
     alignItems: 'center',

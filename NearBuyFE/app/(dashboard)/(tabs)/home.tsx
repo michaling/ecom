@@ -6,37 +6,11 @@ import axios from 'axios';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import {
-  Alert,
-  FlatList, Image,
-  Keyboard,
-  Modal,
-  Platform,
-  Pressable, StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-} from 'react-native';
+import {Alert, FlatList, Image, Keyboard, Modal, Platform, Pressable, StyleSheet, Switch, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View,} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Utils from '../../../utils/utils';
 
-// Ensure RTL support is disabled
-//I18nManager.allowRTL(false);
-//I18nManager.forceRTL(false);
 const IMAGE_POOL = Array.from({ length: 11 }, (_, i) => `bg${i + 1}.png`);
-
-const CARD_COLORS = [
-  '#FFE3E3', '#FFCDB3', '#FFEABE',
-  '#DAEDCE', '#C8E2FC', '#C8A2C8'
-];
-
-const getRandomPastelColor = () => {
-  const hue = Math.floor(Math.random() * 360); // Random hue
-  return `hsl(${hue}, 70%, 85%)`;              // Pastel shade
-}; 
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -88,13 +62,8 @@ export default function HomeScreen() {
       });
 
       const rawLists = res.data.lists;
+      setLists(rawLists);
       setAnyGeoEnabled(res.data.any_geo_enabled ?? false);
-
-      const listsWithColors = rawLists.map((it: any, idx: number) => ({
-        ...it,
-        color: CARD_COLORS[idx % CARD_COLORS.length],
-      }));
-      setLists(listsWithColors);
       
     } catch (err) {
       console.error('[HOME] fetch error', err);
@@ -167,7 +136,6 @@ export default function HomeScreen() {
     }, [fetchLists, fetchProfile])
   );
   
-
   const showAndroidDateTimePicker = () => {
     // First: pick date
     DateTimePickerAndroid.open({
@@ -310,7 +278,7 @@ export default function HomeScreen() {
                   value={isDeadlineEnabled}
                   onValueChange={(val) => {
                     setIsDeadlineEnabled(val);
-                    if (!val) setDeadline(null); // Clear if disabled
+                    if (!val) setDeadline(null); 
                   }}
                   trackColor={{ false: '#ccc', true: '#007AFF' }}
                   thumbColor={isDeadlineEnabled ? '#fff' : '#f4f3f4'}
@@ -439,7 +407,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FBF8FF',
-    //backgroundColor: '#FAFAFA',
     paddingHorizontal: 14,
     
   },
@@ -490,10 +457,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   toolButton: {
-    //backgroundColor: '#fff',
-    //borderColor: '#444',
-    //borderWidth: 1,
-    //borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
@@ -589,7 +552,6 @@ const styles = StyleSheet.create({
   },
   text2: {
     fontSize: 16,
-    //fontWeight: 'bold',
     color: '#332F6E',
     marginLeft: 30,
   },

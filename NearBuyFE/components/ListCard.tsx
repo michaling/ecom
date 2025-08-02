@@ -16,8 +16,7 @@ export default function ListCard({ list }: { list: any }) {
           params: {
             // Pass the list details to the list screen
             list_id:    list.id,
-            list_name: list.name,
-            list_color: list.color,
+            list_name: list.name
           },
         })
       }
@@ -68,7 +67,6 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   imageStyle: {
-    //resizeMode: 'cover',
     borderRadius: 16,
     paddingBottom: 30,
   },

@@ -23,14 +23,11 @@ interface Suggestion {
 
 export default function ListScreen() {
     /* ────────── navigation params ────────── */
-    const { list_id, list_name, list_color } = useLocalSearchParams<{
+    const { list_id, list_name} = useLocalSearchParams<{
     list_id: string;
     list_name: string;
-    list_color?: string | string[];
   }>();
   
-
-  const background = Array.isArray(list_color) ? list_color[0] : list_color;
 
     /* ────────── component state ────────── */
     const [items, setItems] = useState<Item[]>([]);
@@ -44,7 +41,6 @@ export default function ListScreen() {
     const [listDeadline, setListDeadline] = useState<string | null>(null);
     const [picPath, setPicPath] = useState<string | null>(null);
 
-    //const imageSource = imageMap[picPath ?? ''] || require('@/assets/images/default-bg.png');
     const imageSource = picPath ? imageMap[picPath] : undefined;
     
     /* ────────── helper: fetch list from BE ────────── */
@@ -263,7 +259,6 @@ export default function ListScreen() {
     <ImageBackground
           source={imageSource}
           resizeMode="cover"
-          //style={styles.imageBackground}
           style={[styles.imageBackground, { backgroundColor: 'white' }]}
           imageStyle={styles.imageStyle}
         >
@@ -280,8 +275,7 @@ export default function ListScreen() {
               pathname: '../listSettings',
               params: {
                 list_id,
-                list_name,
-                list_color: background,
+                list_name
               },
             });
           }}
@@ -346,7 +340,6 @@ export default function ListScreen() {
                 onPress={() => setIsAdding(true)}
               >
                 <AntDesign name="plus" size={30} color="#B25FC3" />
-                {/*<Text style={styles.addButtonText}>Add Item</Text> */}
               </TouchableOpacity>
             )}
             {isAdding && (
@@ -355,7 +348,6 @@ export default function ListScreen() {
                 value={newItemName}
                 onChangeText={setNewItemName}
                 placeholder="Enter item name"
-                //onSubmitEditing={addNewItem}
                 onBlur={addNewItem}
                 autoFocus
               />
@@ -446,7 +438,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#B25FC3",
     padding: 10,
-    //marginTop: 12,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -507,8 +498,7 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 4,
     flexWrap: 'wrap',
-  },
-  
+  }, 
   alertItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -516,9 +506,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    //opacity: 0.7, 
-  },
-  
+  }, 
   alertText: {
     fontSize: 12,
     color: '#333',

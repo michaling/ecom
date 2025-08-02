@@ -1,20 +1,8 @@
-// app/(tabs)/profile.tsx
-
 import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import {
-  ImageBackground,
-  Keyboard,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View
-} from 'react-native';
+import {ImageBackground, Keyboard, StyleSheet, Switch, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Utils from '../../../utils/utils';
 
@@ -25,12 +13,10 @@ export default function ProfileScreen() {
   const [locationEnabled, setLocationEnabled] = useState(true);
   const router = useRouter();
 
-
   const handleEndEditing = () => {
     setIsEditing(false);
     handleSaveName();
   };
-
 
   const handleSaveName = async () => {
     setDisplayName(tempName);
@@ -55,8 +41,6 @@ export default function ProfileScreen() {
       console.error('[LOGOUT FAILED]', err);
     }
   };
-
-
   
   useEffect(() => {
     const fetchProfile = async () => {
@@ -143,7 +127,6 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
     container: {
-      //flex: 1,
       padding: 24,
       marginHorizontal: 30,
       marginTop: 120,

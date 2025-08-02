@@ -18,7 +18,7 @@ export default function AppLayout() {
         tabBarInactiveTintColor: '#999',
         tabBarLabelStyle: { fontSize: 12 },
         tabBarStyle: {
-          paddingBottom: 3, // reduce if it's too low
+          paddingBottom: 3,
           paddingTop: 8,
           height: 70,
         },

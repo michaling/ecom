@@ -144,55 +144,6 @@ export default function ShoppingItem({ item_id, list_id, name, isChecked, onTogg
       )}
       </View>
 
-      {/* Location Modal */}
-      <Modal
-        visible={showLocationModal}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setShowLocationModal(false)}
-      >
-        <View style={styles.modalOverlayLocation}>
-          <View style={styles.modalContainerLocation}>
-            <Text style={styles.modalTitle}>{name}</Text>
-
-            <View style={styles.toggleContainer}>
-              <Text style={styles.toggleLabel}>Enable Location Alerts</Text>
-              <Switch
-                value={tempLocationAlert}
-                onValueChange={setTempLocationAlert}
-                trackColor={{ false: '#ccc', true: '#007AFF' }}
-                thumbColor={tempLocationAlert ? '#fff' : '#f4f3f4'}
-              />
-            </View>
-
-            <View style={styles.modalButtons}>
-              <Pressable onPress={() => setShowLocationModal(false)} style={styles.cancelButton}>
-                <Text style={styles.cancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable  
-                onPress={async () => {
-                  setLocationAlert(tempLocationAlert);
-                  setShowLocationModal(false);
-                
-                  const token = await Utils.getValueFor('access_token');
-                  try {
-                    await axios.patch(`${Utils.currentPath}items/${item_id}/geo`, {
-                      geo_alert: tempLocationAlert,
-                      list_id: list_id,
-                    }, {
-                      headers: { token },
-                    });
-                  } catch (err) {
-                    console.error('[UPDATE ITEM GEO ALERT FAILED]', err);
-                  }
-                }}
-              style={styles.saveButton}>
-                <Text style={styles.saveText}>Save</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       {/* Deadline Modal */}
       <Modal
@@ -293,6 +244,59 @@ export default function ShoppingItem({ item_id, list_id, name, isChecked, onTogg
         </View>
       </Modal>
 
+      
+
+      {/* Location Modal - replaced with direct button */}
+      <Modal
+        visible={showLocationModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowLocationModal(false)}
+      >
+        <View style={styles.modalOverlayLocation}>
+          <View style={styles.modalContainerLocation}>
+            <Text style={styles.modalTitle}>{name}</Text>
+
+            <View style={styles.toggleContainer}>
+              <Text style={styles.toggleLabel}>Enable Location Alerts</Text>
+              <Switch
+                value={tempLocationAlert}
+                onValueChange={setTempLocationAlert}
+                trackColor={{ false: '#ccc', true: '#007AFF' }}
+                thumbColor={tempLocationAlert ? '#fff' : '#f4f3f4'}
+              />
+            </View>
+
+            <View style={styles.modalButtons}>
+              <Pressable onPress={() => setShowLocationModal(false)} style={styles.cancelButton}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable  
+                onPress={async () => {
+                  setLocationAlert(tempLocationAlert);
+                  setShowLocationModal(false);
+                
+                  const token = await Utils.getValueFor('access_token');
+                  try {
+                    await axios.patch(`${Utils.currentPath}items/${item_id}/geo`, {
+                      geo_alert: tempLocationAlert,
+                      list_id: list_id,
+                    }, {
+                      headers: { token },
+                    });
+                  } catch (err) {
+                    console.error('[UPDATE ITEM GEO ALERT FAILED]', err);
+                  }
+                }}
+              style={styles.saveButton}>
+                <Text style={styles.saveText}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+
     </Swipeable>
   );
 }
@@ -331,7 +335,7 @@ const styles = StyleSheet.create({
   },
   modalOverlayLocation: {
     flex: 1,
-    justifyContent: 'center', // במקום 'flex-end'
+    justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
@@ -340,8 +344,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 20,
     borderRadius: 16,
-    elevation: 5, // לאנדרואיד
-    shadowColor: '#000', // לאייפון
+    elevation: 5,
+    shadowColor: '#000', 
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
@@ -350,15 +354,15 @@ const styles = StyleSheet.create({
   modalOverlayDeadline: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end', // שינוי קריטי — במקום 'center'
+    justifyContent: 'flex-end',
   },
   modalContainerDeadline: {
     backgroundColor: '#fff',
     padding: 20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    width: '100%', // פריסה רוחבית מלאה
-    minHeight: '40%', // גובה נוח לחלק תחתון
+    width: '100%',
+    minHeight: '40%',
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },

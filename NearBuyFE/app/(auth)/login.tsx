@@ -38,8 +38,6 @@ export default function LoginScreen() {
     };
   }, []);
 
-  
-
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Please fill in both fields');
@@ -114,10 +112,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    //paddingHorizontal: 24,
-    //marginBottom: 50,
-    //backgroundColor: '#FAFAFA',
+    alignItems: 'center'
   },
   title: {
     fontSize: 27,

@@ -4,19 +4,7 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import axios from 'axios';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import {
-  ImageBackground,
-  Keyboard,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View
-} from 'react-native';
+import {ImageBackground, Keyboard, Platform, Pressable, StyleSheet, Switch, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View} from 'react-native';
 import * as Utils from '../../../utils/utils';
 
 
@@ -134,7 +122,6 @@ export default function ListSettingsScreen() {
   }, []);
   
   return (   
-    
     <>
     <ImageBackground source={require('../../../assets/images/loginBG.png')} resizeMode="cover" style={styles.image}>
 
@@ -146,8 +133,6 @@ export default function ListSettingsScreen() {
     </View>
     
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        
-
 
     <View style={[styles.container]}>
         <View style={[{alignItems: 'center'}]}>
@@ -221,7 +206,6 @@ export default function ListSettingsScreen() {
               {isDeadlineEnabled && (
               <>
                 
-
                 {Platform.OS === 'ios' && (
                 <>
                     <TouchableOpacity onPress={() => setShowIOSPicker(!showIOSPicker)} style={styles.deadlineButton}>
@@ -253,8 +237,6 @@ export default function ListSettingsScreen() {
                 </>
                 )}
 
-
-
                 {Platform.OS === 'android' && (
                   <Pressable onPress={showAndroidDateTimePicker} style={styles.deadlineButton}>
                     <Text style={styles.deadlineText}>
@@ -262,7 +244,6 @@ export default function ListSettingsScreen() {
                     </Text>
                   </Pressable>
                 )}
-
 
                 {Platform.OS === 'web' && (
                   <>
@@ -288,10 +269,8 @@ export default function ListSettingsScreen() {
             </View>
             <TouchableOpacity onPress={deleteList}>
               <Text style={styles.deleteText}>Delete List</Text>
-            </TouchableOpacity>
-            
-          </View>
-          
+            </TouchableOpacity>        
+          </View>        
           </TouchableWithoutFeedback>
           </ImageBackground>
           </>
@@ -302,8 +281,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 100,
-    paddingHorizontal: 20,
-    //backgroundColor: "#FBF8FF",
+    paddingHorizontal: 20
   },
   title: {
     fontSize: 20,
@@ -332,7 +310,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
   },
-
   deadlineText: {
     fontSize: 16,
     textAlign: 'center',
@@ -346,7 +323,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 20,
   },
-
   toggleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -354,12 +330,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     marginRight: 16,
   },
-
   toggleLabel: {
     fontSize: 18,
     marginLeft: 16,
   },
-
   deleteText: {
     fontSize: 18,
     textAlign: 'center',
@@ -372,27 +346,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 10,
-  },
-  
+  }, 
   doneButtonText: {
     color: 'green',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  
   headerRow: {
     position: 'absolute',
     top: 50,
     left: 15,
     zIndex: 10,
   },
-  
   backButton: {
     padding: 6,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  
   backText: {
     fontSize: 18,
     color: '#007AFF',
@@ -405,6 +375,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 50,
-
-},
+  },
 });
