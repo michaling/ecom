@@ -1,6 +1,19 @@
 from supabase_client import supabase
 from fastapi import HTTPException
 from datetime import datetime
+import socket
+
+
+def get_local_ip():
+    """Returns the local IP address."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        return local_ip
+    except socket.error:
+        return "127.0.0.1"
 
 
 # Update the list's last_update column

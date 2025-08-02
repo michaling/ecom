@@ -199,6 +199,7 @@ def get_matching_item_names(db: Session, user_id: UUID, store_id: int) -> list[s
     )
     return [row[0] for row in matching_item_name_rows]  # e.g. ["Milk", "Eggs"]
 
+
 @router.post("/location_update")
 def location_update(req: Dict, token: str = Header(...)):
     try:
@@ -381,7 +382,6 @@ def location_update(req: Dict, token: str = Header(...)):
     except Exception as e:
         print("[ERROR location_update]", e)
         raise HTTPException(status_code=500, detail="Failed to process location update")
-
 
 
 # Tester for the deadline alerts

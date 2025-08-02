@@ -11,6 +11,7 @@ from alerts_tab.alerts_tab import router as alerts_tab_router
 from notifications.main import router as notifications_router
 from notifications.token import router as token_router
 from supabase_client import supabase
+from utils import get_local_ip
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import asyncio
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -33,11 +34,10 @@ app.include_router(token_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        #TODO
+        f"http://{get_local_ip()}:8000",
         "http://localhost:8081",
         "https://yvxcfsw-anonymous-8081.exp.direct",
         "http://yvxcfsw-anonymous-8081.exp.direct",
-        "http://10.0.0.49:8000",
     ],
     allow_credentials=True,
     allow_methods=["*"],

@@ -6,14 +6,14 @@ from datetime import datetime, timedelta
 import uuid
 import pytest
 
-#TODO
-# ensure project root is on PYTHONPATH so imports resolve
-sys.path.insert(0, os.getcwd())
-sys.path.insert(0, os.path.join(os.getcwd(), "app"))  # allow imports from app/
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+# ensure project root is on PYTHONPATH so imports resolve
+sys.path.insert(0, os.getcwd())
+sys.path.insert(0, os.path.join(os.getcwd(), "app"))  # allow imports from app/
 
 # import modules for testing
 import notifications.database as database
