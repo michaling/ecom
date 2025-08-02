@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Header, Path
-#from profile.models import
 from supabase_client import supabase
 
 router = APIRouter()
+
 
 @router.get("/profile")
 def get_profile(token: str = Header(...)):
@@ -31,6 +31,7 @@ def get_profile(token: str = Header(...)):
         print("[ERROR get_profile]", e)
         raise HTTPException(status_code=500, detail="Failed to fetch profile")
 
+
 @router.patch("/profile/display_name")
 def update_display_name(req: dict, token: str = Header(...)):
     try:
@@ -46,14 +47,15 @@ def update_display_name(req: dict, token: str = Header(...)):
 
         if not display_name:
             raise HTTPException(400, "Missing display_name")
-        supabase.table("user_profiles").update({
-            "display_name": display_name
-        }).eq("user_id", user_id).execute()
+        supabase.table("user_profiles").update({"display_name": display_name}).eq(
+            "user_id", user_id
+        ).execute()
         return {"message": "Display name updated"}
 
     except Exception as e:
         print("[ERROR update_display_name]", e)
         raise HTTPException(500, "Failed to update display name")
+
 
 @router.patch("/profile/geo_alert")
 def update_geo_alert(req: dict, token: str = Header(...)):
@@ -68,9 +70,9 @@ def update_geo_alert(req: dict, token: str = Header(...)):
         if geo_alert is None:
             raise HTTPException(400, "Missing geo_alert")
 
-        supabase.table("user_profiles").update({
-            "geo_alert": geo_alert
-        }).eq("user_id", user_id).execute()
+        supabase.table("user_profiles").update({"geo_alert": geo_alert}).eq(
+            "user_id", user_id
+        ).execute()
 
         return {"message": "Geo alert updated"}
 

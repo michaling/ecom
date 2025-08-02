@@ -30,7 +30,7 @@ from .models import (
     UserStoreProximity,
     StoreItemAvailability,
     Alert,
-    AlertsItems
+    AlertsItems,
 )
 from .utils import haversine_distance
 from .expo_push import send_expo_push
@@ -45,22 +45,6 @@ router = APIRouter()
 
 Base.metadata.create_all(bind=engine)
 
-#app = FastAPI(title="nearBuy (Expo + Notification)")
-"""
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict to your frontend domain(s)
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-"""
-
-# -------------------- Scheduler Setup --------------------
-
-
-# -------------------- 3. Authentication Stub --------------------
-# Replace with real JWT/Supabase Auth in production.
 
 def verify_token_and_get_user_id(token: str) -> Optional[UUID]:
     """
@@ -72,26 +56,32 @@ def verify_token_and_get_user_id(token: str) -> Optional[UUID]:
     except:
         return None
 
-async def get_current_user_id(
-    authorization: str = Header(None)
-) -> UUID:
+
+async def get_current_user_id(authorization: str = Header(None)) -> UUID:
     """
     Expects header: Authorization: Bearer <token>
     Returns the UUID of the logged-in user.
     """
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Bearer token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Bearer token"
+        )
     token = authorization.split(" ")[1]
     user_id = verify_token_and_get_user_id(token)
     if not user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
     return user_id
 
+
 # -------------------- 4. Pydantic Models for Requests --------------------
+
 
 class RegisterExpoTokenRequest(BaseModel):
     user_id: UUID
     expo_push_token: str
+
 
 class LocationUpdateRequest(BaseModel):
     user_id: UUID
@@ -99,7 +89,9 @@ class LocationUpdateRequest(BaseModel):
     longitude: float
     timestamp: datetime
 
+
 # -------------------- 5. Helper: get all “geo_alert” item IDs for user --------------------
+
 
 def get_user_geo_alert_item_ids(db: Session, user_id: UUID) -> list[int]:
     """
@@ -112,17 +104,19 @@ def get_user_geo_alert_item_ids(db: Session, user_id: UUID) -> list[int]:
     # Query distinct item_id from list_items where list_id in user's lists AND geo_alert=True
     items = (
         db.query(ListItem.item_id)
-          .filter(
-              ListItem.list_id.in_(user_list_ids),
-              ListItem.geo_alert == True,
-              ListItem.is_deleted == False
-          )
-          .distinct()
-          .all()
+        .filter(
+            ListItem.list_id.in_(user_list_ids),
+            ListItem.geo_alert == True,
+            ListItem.is_deleted == False,
+        )
+        .distinct()
+        .all()
     )
     return [row[0] for row in items]  # extract integers
 
+
 # -------------------- 6. Helper: map those item IDs to category IDs --------------------
+
 
 def get_category_ids_for_items(db: Session, item_ids: list[int]) -> list[int]:
     """
@@ -133,13 +127,15 @@ def get_category_ids_for_items(db: Session, item_ids: list[int]) -> list[int]:
 
     cats = (
         db.query(ItemCategory.category_id)
-          .filter(ItemCategory.item_id.in_(item_ids))
-          .distinct()
-          .all()
+        .filter(ItemCategory.item_id.in_(item_ids))
+        .distinct()
+        .all()
     )
     return [row[0] for row in cats]
 
+
 # -------------------- 7. Helper: find stores matching any of these categories --------------------
+
 
 def get_stores_for_category_ids(db: Session, category_ids: list[int]) -> list[tuple]:
     """
@@ -151,14 +147,16 @@ def get_stores_for_category_ids(db: Session, category_ids: list[int]) -> list[tu
 
     stores = (
         db.query(Store.store_id, Store.name, Store.latitude, Store.longitude)
-          .join(StoreCategory, Store.store_id == StoreCategory.store_id)
-          .filter(StoreCategory.category_id.in_(category_ids))
-          .distinct()
-          .all()
+        .join(StoreCategory, Store.store_id == StoreCategory.store_id)
+        .filter(StoreCategory.category_id.in_(category_ids))
+        .distinct()
+        .all()
     )
     return stores  # List of tuples: (id, name, lat, lon)
 
+
 # -------------------- 8. Helper: fetch item names matching a store’s categories --------------------
+
 
 def get_matching_item_names(db: Session, user_id: UUID, store_id: int) -> list[str]:
     """
@@ -173,9 +171,9 @@ def get_matching_item_names(db: Session, user_id: UUID, store_id: int) -> list[s
     # B) Get the store’s category IDs
     store_category_rows = (
         db.query(StoreCategory.category_id)
-          .filter(StoreCategory.store_id == store_id)
-          .distinct()
-          .all()
+        .filter(StoreCategory.store_id == store_id)
+        .distinct()
+        .all()
     )
     store_category_ids = [row[0] for row in store_category_rows]
     if not store_category_ids:
@@ -184,12 +182,12 @@ def get_matching_item_names(db: Session, user_id: UUID, store_id: int) -> list[s
     # C) Find item IDs that are both in user_item_ids and in store_category_ids
     matching_item_id_rows = (
         db.query(ItemCategory.item_id)
-          .filter(
-              ItemCategory.item_id.in_(user_item_ids),
-              ItemCategory.category_id.in_(store_category_ids)
-          )
-          .distinct()
-          .all()
+        .filter(
+            ItemCategory.item_id.in_(user_item_ids),
+            ItemCategory.category_id.in_(store_category_ids),
+        )
+        .distinct()
+        .all()
     )
     matching_item_ids = [row[0] for row in matching_item_id_rows]
     if not matching_item_ids:
@@ -197,39 +195,9 @@ def get_matching_item_names(db: Session, user_id: UUID, store_id: int) -> list[s
 
     # D) Fetch the names of those matching items
     matching_item_name_rows = (
-        db.query(ListItem.name)
-          .filter(ListItem.item_id.in_(matching_item_ids))
-          .all()
+        db.query(ListItem.name).filter(ListItem.item_id.in_(matching_item_ids)).all()
     )
     return [row[0] for row in matching_item_name_rows]  # e.g. ["Milk", "Eggs"]
-
-# -------------------- 9. Endpoint: Register Expo Push Token --------------------
-
-# @app.post("/register_expo_token")
-# async def register_expo_token(
-#     req: RegisterExpoTokenRequest,
-#     current_user_id: UUID = Depends(get_current_user_id),
-#     db: Session = Depends(get_db),
-# ):
-#     # 1) Ensure the body’s user_id matches the authenticated user
-#     if req.user_id != current_user_id:
-#         raise HTTPException(status_code=403, detail="Cannot register token for another user")
-#
-#     # 2) Create a new DeviceToken object (mapping to device_tokens table)
-#     device = DeviceToken(
-#         user_id=req.user_id,
-#         expo_push_token=req.expo_push_token
-#     )
-#     db.add(device)
-#     try:
-#         db.commit()
-#     except IntegrityError:
-#         db.rollback()
-#         # If token already exists for this user, ignore
-#
-#     return {"status": "ok", "detail": "Expo token registered"}
-
-# -------------------- 10. Endpoint: Location Update --------------------
 
 @router.post("/location_update")
 def location_update(req: Dict, token: str = Header(...)):
@@ -260,14 +228,16 @@ def location_update(req: Dict, token: str = Header(...)):
                 ListItem.is_deleted == False,
                 ListItem.is_checked == False,
                 (List.deadline.is_(None) | (List.deadline >= now_ts)),
-                (ListItem.deadline.is_(None) | (ListItem.deadline >= now_ts))
+                (ListItem.deadline.is_(None) | (ListItem.deadline >= now_ts)),
             )
             .all()
         )
         if not item_rows:
             return {"status": "ok", "detail": "No geo_alert items", "alerts": []}
 
-        store_rows = db.query(Store.store_id, Store.name, Store.latitude, Store.longitude).all()
+        store_rows = db.query(
+            Store.store_id, Store.name, Store.latitude, Store.longitude
+        ).all()
 
         PROXIMITY_RADIUS = 500.0
         alerts = []
@@ -277,9 +247,18 @@ def location_update(req: Dict, token: str = Header(...)):
 
             if dist <= PROXIMITY_RADIUS:
                 print(store_name, " is nearby")
-                prox = db.query(UserStoreProximity).filter_by(user_id=user_id, store_id=store_id).first()
+                prox = (
+                    db.query(UserStoreProximity)
+                    .filter_by(user_id=user_id, store_id=store_id)
+                    .first()
+                )
                 if not prox:
-                    prox = UserStoreProximity(user_id=user_id, store_id=store_id, entered_at=now_ts, notified=False)
+                    prox = UserStoreProximity(
+                        user_id=user_id,
+                        store_id=store_id,
+                        entered_at=now_ts,
+                        notified=False,
+                    )
                     db.add(prox)
                     db.commit()
                 elif not prox.notified:
@@ -291,18 +270,24 @@ def location_update(req: Dict, token: str = Header(...)):
                     if (now_ts.replace(tzinfo=None) - entered) >= timedelta(minutes=2):
                         for item in item_rows:
                             print(f" Checking availability for: {item.name}")
-                            rec = db.query(StoreItemAvailability).filter_by(item_name=item.name, store_id=store_id).first()
+                            rec = (
+                                db.query(StoreItemAvailability)
+                                .filter_by(item_name=item.name, store_id=store_id)
+                                .first()
+                            )
                             if rec:
                                 print("found availability record")
                                 if rec.prediction:
                                     available_names.append(item.name)
                             else:
-                                resp = requests.get("http://localhost:8000/check_product_availability", params={
-                                    "product": item.name,
-                                    "store": store_name
-                                })
+                                resp = requests.get(
+                                    "http://localhost:8000/check_product_availability",
+                                    params={"product": item.name, "store": store_name},
+                                )
                                 if resp.status_code != 200:
-                                    print(f"Agent call failed: {resp.status_code} {resp.text}")
+                                    print(
+                                        f"Agent call failed: {resp.status_code} {resp.text}"
+                                    )
                                     continue
                                 print("[GEO NOTIFICATIONS] Agent called successfully")
                                 result = resp.json()
@@ -315,7 +300,7 @@ def location_update(req: Dict, token: str = Header(...)):
                                     prediction=available_flag,
                                     confidence=confidence,
                                     reason=reason_text,
-                                    item_name=item.name
+                                    item_name=item.name,
                                 )
                                 db.add(new_rec)
                                 db.commit()
@@ -323,19 +308,23 @@ def location_update(req: Dict, token: str = Header(...)):
                                     available_names.append(item.name)
                     print("available_names: ", available_names)
                     if available_names:
-                        print(f"[DEBUG] MATCH! sending push for {store_name} with items: {available_names}")
-                        alerts.append({
-                            "store_id": str(store_id),
-                            "store_name": store_name,
-                            "items": available_names
-                        })
+                        print(
+                            f"[DEBUG] MATCH! sending push for {store_name} with items: {available_names}"
+                        )
+                        alerts.append(
+                            {
+                                "store_id": str(store_id),
+                                "store_name": store_name,
+                                "items": available_names,
+                            }
+                        )
 
                         now_utc = datetime.now()
                         batch = Alert(
                             user_id=user_id,
                             store_id=store_id,
                             alert_type="geo_alert",
-                            last_triggered=now_utc
+                            last_triggered=now_utc,
                         )
                         db.add(batch)
                         db.commit()
@@ -343,18 +332,26 @@ def location_update(req: Dict, token: str = Header(...)):
 
                         for item in item_rows:
                             if item.name in available_names:
-                                stmt = pg_insert(AlertsItems).values(
-                                    alert_id=batch.alert_id,
-                                    item_id=item.item_id,
-                                    list_id=item.list_id
-                                ).on_conflict_do_nothing()
+                                stmt = (
+                                    pg_insert(AlertsItems)
+                                    .values(
+                                        alert_id=batch.alert_id,
+                                        item_id=item.item_id,
+                                        list_id=item.list_id,
+                                    )
+                                    .on_conflict_do_nothing()
+                                )
                                 db.execute(stmt)
                         db.commit()
 
                         prox.notified = True
                         db.commit()
             else:
-                prox = db.query(UserStoreProximity).filter_by(user_id=user_id, store_id=store_id).first()
+                prox = (
+                    db.query(UserStoreProximity)
+                    .filter_by(user_id=user_id, store_id=store_id)
+                    .first()
+                )
                 if prox:
                     db.delete(prox)
                     db.commit()
@@ -365,12 +362,19 @@ def location_update(req: Dict, token: str = Header(...)):
                 shown = alert["items"][:3]
                 more = len(alert["items"]) - len(shown)
                 body = f"You’re near a store that may have: {', '.join(shown)}" + (
-                    f" and more from your shopping lists" if more > 0 else "")
+                    f" and more from your shopping lists" if more > 0 else ""
+                )
 
                 # Send push to all tokens for this user
-                tokens = db.query(DeviceToken.expo_push_token).filter(DeviceToken.user_id == user_id).all()
+                tokens = (
+                    db.query(DeviceToken.expo_push_token)
+                    .filter(DeviceToken.user_id == user_id)
+                    .all()
+                )
                 for (expo_token,) in tokens:
-                    send_expo_push(expo_token, title, body, {"store": alert["store_name"]})
+                    send_expo_push(
+                        expo_token, title, body, {"store": alert["store_name"]}
+                    )
 
         return {"status": "ok", "detail": "Processed location update"}
 
@@ -379,7 +383,6 @@ def location_update(req: Dict, token: str = Header(...)):
         raise HTTPException(status_code=500, detail="Failed to process location update")
 
 
-# -------------------- 11. (Optional) Admin Endpoints --------------------
 
 # Tester for the deadline alerts
 @router.get("/admin/trigger_deadline_check")
@@ -387,7 +390,7 @@ async def manual_deadline_check(
     current_user_id: UUID = Depends(get_current_user_id),  # optional auth
 ):
     """
-    Manually invoke the deadline checker (for testing). 
+    Manually invoke the deadline checker (for testing).
     In production, you might lock this down to admins only.
     """
     check_deadlines_and_notify()

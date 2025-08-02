@@ -45,8 +45,12 @@ def new_list(payload: dict) -> tuple[dict, str]:
     """POST /lists/ and GET it back as dict, also returning the list_id."""
     res = client.post("/lists/", params={"user_id": user_id}, json=payload)
     res.raise_for_status()
-    list_id = res.json()["list_id"] # This correctly gets list_id from the POST response
-    return client.get(f"/lists/{list_id}").json(), list_id # Return the GET result and the list_id
+    list_id = res.json()[
+        "list_id"
+    ]  # This correctly gets list_id from the POST response
+    return client.get(
+        f"/lists/{list_id}"
+    ).json(), list_id  # Return the GET result and the list_id
 
 
 # ───────────────────────── test cases ───────────────────────
@@ -56,7 +60,6 @@ def test_profile_true_default_inheritance():
     """
     set_global_geo(True)
 
-    # MODIFIED: Unpack the tuple here
     lst, _ = new_list(
         {
             "id": None,
@@ -81,7 +84,6 @@ def test_profile_true_list_false_and_mixed_items():
     """
     set_global_geo(True)
 
-    # MODIFIED: Unpack the tuple here
     lst, _ = new_list(
         {
             "id": None,
@@ -106,7 +108,6 @@ def test_profile_false_list_true_and_item_false():
     """
     set_global_geo(False)
 
-    # MODIFIED: Unpack the tuple here
     lst, _ = new_list(
         {
             "id": None,
@@ -131,8 +132,6 @@ def test_update_preserves_and_applies_inheritance():
     """
     set_global_geo(True)
 
-    # create first
-    # MODIFIED: Unpack the tuple here
     original_list_data, list_id = new_list(
         {
             "id": None,
@@ -165,8 +164,8 @@ def test_update_preserves_and_applies_inheritance():
 
     lst = client.get(f"/lists/{list_id}").json()
     assert lst["geo_alert"] is True
-    assert lst["items"][0]["geo_alert"] is False          # explicit
-    assert lst["items"][1]["geo_alert"] is True           # inherited
+    assert lst["items"][0]["geo_alert"] is False  # explicit
+    assert lst["items"][1]["geo_alert"] is True  # inherited
 
 
 def test_delete_and_restore_keeps_geo_flags():
@@ -190,7 +189,9 @@ def test_delete_and_restore_keeps_geo_flags():
             ],
         },
     )
-    list_id = create.json()["list_id"] # This was already directly from the POST response, so it's fine.
+    list_id = create.json()[
+        "list_id"
+    ]  # This was already directly from the POST response, so it's fine.
 
     # delete
     client.delete(f"/lists/{list_id}").raise_for_status()

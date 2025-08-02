@@ -3,26 +3,35 @@ from supabase_client import supabase
 from datetime import datetime
 from pydantic import BaseModel
 from utils import *
-from lists.models import RenameItemRequest, CheckItemRequest, DeleteItemRequest, UpdateItemGeoAlertRequest, UpdateItemDeadlineRequest
+from lists.models import (
+    RenameItemRequest,
+    CheckItemRequest,
+    DeleteItemRequest,
+    UpdateItemGeoAlertRequest,
+    UpdateItemDeadlineRequest,
+)
 
 router = APIRouter()
+
 
 # --- Check or uncheck item ---
 @router.patch("/items/{item_id}/check")
 def check_item(
-        item_id: str,
-        req: CheckItemRequest,
-        token: str = Header(...),
+    item_id: str,
+    req: CheckItemRequest,
+    token: str = Header(...),
 ):
     try:
         supabase.postgrest.auth(token)
         now = datetime.now().isoformat()
         res = (
             supabase.table("lists_items")
-            .update({
-                "is_checked": req.is_checked,
-                "checked_at": now if req.is_checked else None,
-            })
+            .update(
+                {
+                    "is_checked": req.is_checked,
+                    "checked_at": now if req.is_checked else None,
+                }
+            )
             .eq("item_id", item_id)
             .execute()
         )
@@ -41,9 +50,9 @@ def check_item(
 # --- Rename item ---
 @router.patch("/items/{item_id}/name")
 def rename_item(
-        item_id: str,
-        req: RenameItemRequest,
-        token: str = Header(...),
+    item_id: str,
+    req: RenameItemRequest,
+    token: str = Header(...),
 ):
     try:
         supabase.postgrest.auth(token)
@@ -70,9 +79,9 @@ def rename_item(
 # --- Soft delete ---
 @router.delete("/items/{item_id}")
 def delete_item(
-        item_id: str,
-        req: DeleteItemRequest,
-        token: str = Header(...),
+    item_id: str,
+    req: DeleteItemRequest,
+    token: str = Header(...),
 ):
     try:
         supabase.postgrest.auth(token)
@@ -104,9 +113,16 @@ def update_item_geo_alert(
     try:
         supabase.postgrest.auth(token)
 
-        res = supabase.table("lists_items").update({
-            "geo_alert": req.geo_alert,
-        }).eq("item_id", item_id).execute()
+        res = (
+            supabase.table("lists_items")
+            .update(
+                {
+                    "geo_alert": req.geo_alert,
+                }
+            )
+            .eq("item_id", item_id)
+            .execute()
+        )
 
         if not res.data:
             raise HTTPException(404, "Item not found or not authorised")
@@ -128,9 +144,16 @@ def update_item_deadline(
     try:
         supabase.postgrest.auth(token)
 
-        res = supabase.table("lists_items").update({
-            "deadline": req.deadline,
-        }).eq("item_id", item_id).execute()
+        res = (
+            supabase.table("lists_items")
+            .update(
+                {
+                    "deadline": req.deadline,
+                }
+            )
+            .eq("item_id", item_id)
+            .execute()
+        )
 
         if not res.data:
             raise HTTPException(404, "Item not found or not authorised")

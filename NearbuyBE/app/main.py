@@ -33,15 +33,17 @@ app.include_router(token_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        #TODO
         "http://localhost:8081",
         "https://yvxcfsw-anonymous-8081.exp.direct",
         "http://yvxcfsw-anonymous-8081.exp.direct",
-        "http://10.0.0.49:8000"
+        "http://10.0.0.49:8000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ---------------- Scheduler Setup ----------------
 async def refresh_all_recommendations():
@@ -51,10 +53,12 @@ async def refresh_all_recommendations():
         .select("list_id", "name")
         .eq("is_deleted", False)
         .execute()
-        .data or []
+        .data
+        or []
     )
     for lst in lists_data:
         fetch_and_store_recommendations(lst["name"], lst["list_id"])
+
 
 @app.on_event("startup")
 def start_scheduler():
@@ -63,7 +67,7 @@ def start_scheduler():
     scheduler.add_job(
         lambda: asyncio.create_task(refresh_all_recommendations()),
         trigger="cron",
-        hour="0,12"
+        hour="0,12",
     )
     scheduler.start()
 
@@ -75,10 +79,11 @@ def start_notification_scheduler():
         check_deadlines_and_notify,
         trigger=IntervalTrigger(hours=12),
         name="deadline notification checker",
-        replace_existing=True
+        replace_existing=True,
     )
     scheduler.start()
     app.state.notification_scheduler = scheduler
+
 
 @app.on_event("shutdown")
 def stop_notification_scheduler():

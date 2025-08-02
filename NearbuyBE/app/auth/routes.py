@@ -8,17 +8,24 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
+
 class RefreshRequest(BaseModel):
     refresh_token: str
+
 
 @router.post("/signin")
 def signin_endpoint(data: SignInData):
     try:
         user, session = sign_in(data.email, data.password)
         print(f"[LOGIN] {user.email} signed in.")
-        return {"message": "Sign-in successful", "user_id": user.id, "access_token": session.access_token}
+        return {
+            "message": "Sign-in successful",
+            "user_id": user.id,
+            "access_token": session.access_token,
+        }
     except AuthError as e:
         raise HTTPException(status_code=401, detail=str(e))
+
 
 @router.post("/signup")
 def signup_endpoint(data: SignUpData):
@@ -30,8 +37,11 @@ def signup_endpoint(data: SignUpData):
             geo_alert=data.geo_alert,
         )
         print(f"[SIGNUP] {user.email} created.")
-        return {"message": "Sign-up successful", "user_id": user.id, "access_token": session.access_token}
+        return {
+            "message": "Sign-up successful",
+            "user_id": user.id,
+            "access_token": session.access_token,
+        }
     except AuthError as e:
         print("Supabase AuthError:", e)
         raise HTTPException(status_code=400, detail=str(e))
-

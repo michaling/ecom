@@ -13,14 +13,17 @@ router = APIRouter()
 
 # ---------------------- Helpers ----------------------------------------- #
 
+
 def get_profile_geo(user_id: str) -> bool:
     """Return the user-level default (TRUE/FALSE)."""
 
-    res = (supabase.table("user_profiles")
-           .select("geo_alert")
-           .eq("user_id", user_id)
-           .single()
-           .execute())
+    res = (
+        supabase.table("user_profiles")
+        .select("geo_alert")
+        .eq("user_id", user_id)
+        .single()
+        .execute()
+    )
     # Handle case where profile might not exist or geo_alert is None
     if not res.data or res.data.get("geo_alert") is None:
         return False
@@ -45,29 +48,27 @@ def fetch_and_store_recommendations(list_name: str, list_id: int):
 
     # 1) Gather existing list items
     existing_rows = (
-        supabase
-        .table("lists_items")
+        supabase.table("lists_items")
         .select("name")
         .eq("list_id", list_id)
         .eq("is_deleted", False)
         .execute()
-        .data or []
+        .data
+        or []
     )
     existing_names = {r["name"] for r in existing_rows}
 
     # 2) Pull all suggestions for this list, then preserve those used or rejected
     all_sugs = (
-        supabase
-        .table("items_suggestions")
+        supabase.table("items_suggestions")
         .select("name, used, rejected")
         .eq("list_id", list_id)
         .execute()
-        .data or []
+        .data
+        or []
     )
     preserved_names = {
-        row["name"]
-        for row in all_sugs
-        if row.get("used") or row.get("rejected")
+        row["name"] for row in all_sugs if row.get("used") or row.get("rejected")
     }
 
     # 3) Collect fresh recommendations from the ML service
@@ -77,7 +78,7 @@ def fetch_and_store_recommendations(list_name: str, list_id: int):
             resp = requests.get(
                 f"{ml_base}/recommend_similar_products",
                 params={"product_name": prod, "top_k": 5},
-                timeout=20
+                timeout=20,
             )
             resp.raise_for_status()
             recs.update(resp.json().get("similar_products", []))
@@ -88,7 +89,7 @@ def fetch_and_store_recommendations(list_name: str, list_id: int):
         resp2 = requests.get(
             f"{ml_base}/recommend_by_list_name",
             params={"list_name": list_name},
-            timeout=20
+            timeout=20,
         )
         resp2.raise_for_status()
         recs.update(resp2.json().get("recommended_products", []))
@@ -103,13 +104,14 @@ def fetch_and_store_recommendations(list_name: str, list_id: int):
         print("nothing here!")
 
     filtered = [
-        item for item in recs
+        item
+        for item in recs
         if item not in existing_names and item not in preserved_names
     ]
 
     # 5) Delete only the old, still-pending suggestions for this list
-    (supabase
-        .table("items_suggestions")
+    (
+        supabase.table("items_suggestions")
         .delete()
         .eq("list_id", list_id)
         .eq("used", False)
@@ -122,45 +124,43 @@ def fetch_and_store_recommendations(list_name: str, list_id: int):
         payload = [{"list_id": list_id, "name": item} for item in filtered]
         supabase.table("items_suggestions").insert(payload).execute()
 
+
 # -------------------------------------------------------------------------- #
 @router.post("/lists")
-def create_list(
-    user_list: UserList,
-    user_id: str,
-    token: str = Header(...)
-):
+def create_list(user_list: UserList, user_id: str, token: str = Header(...)):
     try:
         supabase.postgrest.auth(token)
         now = datetime.now().isoformat()
         default_geo = get_profile_geo(user_id)
-        list_geo = user_list.geo_alert if user_list.geo_alert is not None else default_geo
+        list_geo = (
+            user_list.geo_alert if user_list.geo_alert is not None else default_geo
+        )
         deadline_str = convert_datetime_to_iso(user_list.deadline)
 
         res = (
             supabase.table("lists")
-            .insert({
-                "user_id": user_id,
-                "name": user_list.name,
-                "created_at": now,
-                "last_update": now,
-                "deadline": deadline_str,
-                "geo_alert": list_geo,
-                "pic_path": user_list.pic_path,
-            })
+            .insert(
+                {
+                    "user_id": user_id,
+                    "name": user_list.name,
+                    "created_at": now,
+                    "last_update": now,
+                    "deadline": deadline_str,
+                    "geo_alert": list_geo,
+                    "pic_path": user_list.pic_path,
+                }
+            )
             .execute()
         )
 
         if not res.data:
             raise HTTPException(500, "Insert failed")
-        
+
         list_id = res.data[0]["list_id"]
         # Fetch and store combined ML recommendations
         fetch_and_store_recommendations(user_list.name, list_id)
 
-        return {
-            "list_id": list_id,
-            "message": "List created with recommendations"
-        }
+        return {"list_id": list_id, "message": "List created with recommendations"}
 
     except Exception as e:
         print("[ERROR create_list]", e)
@@ -182,7 +182,7 @@ def get_user_lists(user_id: str, token: str = Header(...)):
         ).data
 
         if not rows:
-            return { "lists": [], "any_geo_enabled": False }
+            return {"lists": [], "any_geo_enabled": False}
 
         out = []
         any_geo = False
@@ -195,7 +195,8 @@ def get_user_lists(user_id: str, token: str = Header(...)):
                 .eq("list_id", lid)
                 .eq("is_deleted", False)
                 .execute()
-                .data or []
+                .data
+                or []
             )
             suggestions = (
                 supabase.table("items_suggestions")
@@ -204,7 +205,8 @@ def get_user_lists(user_id: str, token: str = Header(...)):
                 .eq("used", False)
                 .eq("rejected", False)
                 .execute()
-                .data or []
+                .data
+                or []
             )
 
             if lst.get("geo_alert"):
@@ -213,30 +215,28 @@ def get_user_lists(user_id: str, token: str = Header(...)):
             if any(it.get("geo_alert") for it in items):
                 any_geo = True
 
-            unchecked_count = sum(
-                1 for it in items if not it.get("is_checked", False)
-            )
+            unchecked_count = sum(1 for it in items if not it.get("is_checked", False))
 
             unchecked = sum(1 for i in items if not i.get("is_checked", False))
 
-            out.append({
-                "id": lid,
-                "name": lst["name"],
-                "deadline": lst["deadline"],
-                "geo_alert": lst["geo_alert"],
-                "pic_path": lst.get("pic_path"),
-                "items": items,
-                "unchecked_count": unchecked,
-                "suggested_items": suggestions
-            })
-        return {
-            "lists": out,
-            "any_geo_enabled": any_geo
-        }
+            out.append(
+                {
+                    "id": lid,
+                    "name": lst["name"],
+                    "deadline": lst["deadline"],
+                    "geo_alert": lst["geo_alert"],
+                    "pic_path": lst.get("pic_path"),
+                    "items": items,
+                    "unchecked_count": unchecked,
+                    "suggested_items": suggestions,
+                }
+            )
+        return {"lists": out, "any_geo_enabled": any_geo}
 
     except Exception as e:
         print("[ERROR get_user_lists]", e)
         raise HTTPException(500, "Failed to retrieve lists")
+
 
 @router.get("/lists/{list_id}")
 def get_list(list_id: str, token: str = Header(...)):
@@ -277,21 +277,26 @@ def get_list(list_id: str, token: str = Header(...)):
             )
 
         suggestions = (
-                supabase.table("items_suggestions")
-                .select("*")
-                .eq("list_id", list_id)
-                .eq("used", False)
-                .eq("rejected", False)
-                .execute()
-                .data or []
+            supabase.table("items_suggestions")
+            .select("*")
+            .eq("list_id", list_id)
+            .eq("used", False)
+            .eq("rejected", False)
+            .execute()
+            .data
+            or []
         )
 
         # Get lowercase names of existing items for deduplication
-        existing_names = {item["name"].strip().lower() for item in items if item.get("name")}
+        existing_names = {
+            item["name"].strip().lower() for item in items if item.get("name")
+        }
 
         # Filter out suggestions with duplicate names
         filtered_suggestions = [
-            s for s in suggestions if s.get("name", "").strip().lower() not in existing_names
+            s
+            for s in suggestions
+            if s.get("name", "").strip().lower() not in existing_names
         ]
 
         return {
@@ -300,14 +305,16 @@ def get_list(list_id: str, token: str = Header(...)):
             "geo_alert": lst["geo_alert"],
             "pic_path": lst.get("pic_path"),
             "items": items,
-            "suggestions": filtered_suggestions
+            "suggestions": filtered_suggestions,
         }
 
     except Exception as e:
         print("[ERROR get_list]", e)
         raise HTTPException(500, "Failed to retrieve list")
 
+
 # -------------------------------------------------------------------------- #
+
 
 @router.patch("/lists/{list_id}/name")
 def update_list_name(list_id: str, body: dict, token: str = Header(...)):
@@ -317,10 +324,12 @@ def update_list_name(list_id: str, body: dict, token: str = Header(...)):
         if not name:
             raise HTTPException(400, "Invalid name")
 
-        supabase.table("lists").update({
-            "name": name,
-            "last_update": datetime.now().isoformat(),
-        }).eq("list_id", list_id).execute()
+        supabase.table("lists").update(
+            {
+                "name": name,
+                "last_update": datetime.now().isoformat(),
+            }
+        ).eq("list_id", list_id).execute()
 
         return {"message": "List name updated"}
     except Exception as e:
@@ -332,8 +341,12 @@ def update_list_name(list_id: str, body: dict, token: str = Header(...)):
 @router.delete("/lists/{list_id}")
 def delete_list(list_id: str):
     now = datetime.now().isoformat()
-    supabase.table("lists").update({"is_deleted": True, "deleted_at": now}).eq("list_id", list_id).execute()
-    supabase.table("lists_items").update({"is_deleted": True, "deleted_at": now}).eq("list_id", list_id).execute()
+    supabase.table("lists").update({"is_deleted": True, "deleted_at": now}).eq(
+        "list_id", list_id
+    ).execute()
+    supabase.table("lists_items").update({"is_deleted": True, "deleted_at": now}).eq(
+        "list_id", list_id
+    ).execute()
     return {"message": "List deleted"}
 
 
@@ -341,7 +354,14 @@ def delete_list(list_id: str):
 @router.post("/lists/{list_id}/restore")
 def restore_list(list_id: str):
     now = datetime.now().isoformat()
-    lst = supabase.table("lists").select("*").eq("list_id", list_id).single().execute().data
+    lst = (
+        supabase.table("lists")
+        .select("*")
+        .eq("list_id", list_id)
+        .single()
+        .execute()
+        .data
+    )
     if not lst:
         raise HTTPException(404, "List not found")
     if not lst.get("is_deleted", False):
@@ -350,14 +370,19 @@ def restore_list(list_id: str):
     if (datetime.now() - deleted_at).days > 30:
         raise HTTPException(status_code=410, detail="Too old to restore")
 
-    supabase.table("lists").update({"is_deleted": False, "deleted_at": None, "last_update": now}).eq("list_id",
-                                                                                                     list_id).execute()
-    supabase.table("lists_items").update({"is_deleted": False, "deleted_at": None}).eq("list_id", list_id).execute()
+    supabase.table("lists").update(
+        {"is_deleted": False, "deleted_at": None, "last_update": now}
+    ).eq("list_id", list_id).execute()
+    supabase.table("lists_items").update({"is_deleted": False, "deleted_at": None}).eq(
+        "list_id", list_id
+    ).execute()
     return {"message": "List successfully restored", "list_id": list_id}
 
 
 # -------------------------------------------------------------------------- #
-def create_item_internal(list_id: str, item_name: str, token: str, geo_alert=None, deadline=None) -> dict:
+def create_item_internal(
+    list_id: str, item_name: str, token: str, geo_alert=None, deadline=None
+) -> dict:
     supabase.postgrest.auth(token)
     now = datetime.now().isoformat()
 
@@ -373,11 +398,7 @@ def create_item_internal(list_id: str, item_name: str, token: str, geo_alert=Non
     # Only send non-null values
     payload = {k: v for k, v in payload.items() if v is not None}
 
-    res = (
-        supabase.table("lists_items")
-        .insert(payload)
-        .execute()
-    )
+    res = supabase.table("lists_items").insert(payload).execute()
 
     if not res.data:
         raise HTTPException(500, "Insert failed")
@@ -389,33 +410,42 @@ def create_item_internal(list_id: str, item_name: str, token: str, geo_alert=Non
         "name": res.data[0]["name"],
     }
 
+
 @router.post("/lists/{list_id}/items")
 def create_item(list_id: str, req: CreateItemRequest, token: str = Header(...)):
     try:
-        return create_item_internal(list_id, req.item_name, token,
+        return create_item_internal(
+            list_id,
+            req.item_name,
+            token,
             geo_alert=req.geo_alert,
-            deadline=req.deadline)
+            deadline=req.deadline,
+        )
     except Exception as e:
         print("[ERROR create_item]", e)
         raise HTTPException(500, "Failed to create item")
 
+
 @router.post("/lists/{list_id}/suggestions/{suggestion_id}/accept")
 def accept_suggestion(
-    list_id: str,
-    suggestion_id: str,
-    req: CreateItemRequest,
-    token: str = Header(...)
+    list_id: str, suggestion_id: str, req: CreateItemRequest, token: str = Header(...)
 ):
     try:
         supabase.postgrest.auth(token)
         # Create item with provided name
-        result = create_item_internal(list_id, req.item_name, token,
+        result = create_item_internal(
+            list_id,
+            req.item_name,
+            token,
             geo_alert=req.geo_alert,
-            deadline=req.deadline)
+            deadline=req.deadline,
+        )
 
         # Mark suggestion as used
         print(suggestion_id)
-        supabase.table("items_suggestions").update({"used": True}).eq("suggestion_id", suggestion_id).execute()
+        supabase.table("items_suggestions").update({"used": True}).eq(
+            "suggestion_id", suggestion_id
+        ).execute()
 
         return {"message": "Suggestion accepted", "item_id": result["item_id"]}
 
@@ -423,11 +453,14 @@ def accept_suggestion(
         print("[ERROR accept_suggestion]", e)
         raise HTTPException(500, "Failed to accept suggestion")
 
+
 @router.post("/lists/{list_id}/suggestions/{suggestion_id}/reject")
 def reject_suggestion(suggestion_id: str, token: str = Header(...)):
     try:
         supabase.postgrest.auth(token)
-        supabase.table("items_suggestions").update({"rejected": True}).eq("suggestion_id", suggestion_id).execute()
+        supabase.table("items_suggestions").update({"rejected": True}).eq(
+            "suggestion_id", suggestion_id
+        ).execute()
         return {"message": "Suggestion rejected"}
     except Exception as e:
         print("[ERROR reject_suggestion]", e)
@@ -441,15 +474,18 @@ def update_list_geo_alert(list_id: str, body: dict, token: str = Header(...)):
         value = body.get("geo_alert")
         if value is None:
             raise HTTPException(400, "geo_alert missing")
-        supabase.table("lists").update({
-            "geo_alert": value,
-            "last_update": datetime.now().isoformat(),
-        }).eq("list_id", list_id).execute()
+        supabase.table("lists").update(
+            {
+                "geo_alert": value,
+                "last_update": datetime.now().isoformat(),
+            }
+        ).eq("list_id", list_id).execute()
 
         return {"message": "Geo alert updated"}
     except Exception as e:
         print("[ERROR update_list_geo_alert]", e)
         raise HTTPException(500, "Failed to update geo alert")
+
 
 @router.patch("/lists/{list_id}/deadline")
 def update_list_deadline(list_id: str, body: dict, token: str = Header(...)):
@@ -468,49 +504,44 @@ def update_list_deadline(list_id: str, body: dict, token: str = Header(...)):
         old_deadline = res.data.get("deadline")
 
         # Update list deadline
-        supabase.table("lists").update({
-            "deadline": deadline,
-            "deadline_notified": False,
-            "last_update": datetime.now().isoformat()
-        }).eq("list_id", list_id).execute()
+        supabase.table("lists").update(
+            {
+                "deadline": deadline,
+                "deadline_notified": False,
+                "last_update": datetime.now().isoformat(),
+            }
+        ).eq("list_id", list_id).execute()
 
         # Update items in this list that had the old deadline
         if old_deadline:
-            supabase.table("lists_items").update({
-                "deadline": deadline,
-                "deadline_notified": False
-            }).eq("list_id", list_id).eq("deadline", old_deadline).execute()
+            supabase.table("lists_items").update(
+                {"deadline": deadline, "deadline_notified": False}
+            ).eq("list_id", list_id).eq("deadline", old_deadline).execute()
 
         # Also update items in the list that currently have no deadline
-        supabase.table("lists_items").update({
-            "deadline": deadline,
-            "deadline_notified": False
-        }).eq("list_id", list_id).is_("deadline", None).execute()
+        supabase.table("lists_items").update(
+            {"deadline": deadline, "deadline_notified": False}
+        ).eq("list_id", list_id).is_("deadline", None).execute()
 
         return {"message": "Deadline updated"}
 
     except Exception as e:
         print("[ERROR update_list_deadline]", e)
         raise HTTPException(500, "Failed to update deadline")
-    
+
 
 @router.post("/lists/{list_id}/recommendations", status_code=204)
 def generate_recommendations_for_list(list_id: UUID):
     list_id_str = str(list_id)
-    # 1) look up the list name
-    res = supabase.table("lists") \
-        .select("name") \
-        .eq("list_id", list_id) \
-        .single() \
-        .execute()
+    res = (
+        supabase.table("lists").select("name").eq("list_id", list_id).single().execute()
+    )
 
     if not res.data:
         raise HTTPException(404, f"List {list_id} not found")
 
     list_name = res.data["name"]
 
-    # 2) call your helper
     fetch_and_store_recommendations(list_name, list_id_str)
 
-    # 3) return no-content
     return

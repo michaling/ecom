@@ -3,6 +3,7 @@ from supabase_client import supabase
 
 router = APIRouter()
 
+
 @router.post("/device_token")
 def save_device_token(req: dict, token: str = Header(...)):
     """
@@ -26,12 +27,13 @@ def save_device_token(req: dict, token: str = Header(...)):
             raise HTTPException(status_code=400, detail="Missing expo_push_token")
 
         # Insert into device_tokens
-        supabase.table("device_tokens").upsert({
-            "user_id": user_id,
-            "expo_push_token": expo_push_token,
-        },
+        supabase.table("device_tokens").upsert(
+            {
+                "user_id": user_id,
+                "expo_push_token": expo_push_token,
+            },
             on_conflict="user_id,expo_push_token",
-            ignore_duplicates=True
+            ignore_duplicates=True,
         ).execute()
 
         return {"message": "Push token stored"}

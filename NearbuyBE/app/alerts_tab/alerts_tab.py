@@ -6,6 +6,7 @@ from .models import AlertCard, ListWithItems
 
 router = APIRouter()
 
+
 @router.get("/alerts_tab")
 def get_alerts(
     token: str = Header(...),
@@ -22,13 +23,13 @@ def get_alerts(
         user_id = user.user.id
 
         alerts = (
-                supabase.table("alerts")
-                .select("alert_id, store_id, alert_type, last_triggered")
-                .eq("user_id", user_id)
-                .order("last_triggered", desc=True)
-                .execute()
-                .data
-                or []
+            supabase.table("alerts")
+            .select("alert_id, store_id, alert_type, last_triggered")
+            .eq("user_id", user_id)
+            .order("last_triggered", desc=True)
+            .execute()
+            .data
+            or []
         )
         if not alerts:
             return []
@@ -37,12 +38,12 @@ def get_alerts(
         store_ids = {a["store_id"] for a in alerts if a["store_id"]}
 
         links = (
-                supabase.table("alerts_items")
-                .select("alert_id, item_id")
-                .in_("alert_id", alert_ids)
-                .execute()
-                .data
-                or []
+            supabase.table("alerts_items")
+            .select("alert_id, item_id")
+            .in_("alert_id", alert_ids)
+            .execute()
+            .data
+            or []
         )
         alert_to_items: Dict[str, List[str]] = defaultdict(list)
         item_ids: List[str] = []
@@ -51,12 +52,12 @@ def get_alerts(
             item_ids.append(row["item_id"])
 
         items = (
-                supabase.table("lists_items")
-                .select("item_id, name, list_id, deadline")
-                .in_("item_id", item_ids or ["00000000-0000-0000-0000-000000000000"])
-                .execute()
-                .data
-                or []
+            supabase.table("lists_items")
+            .select("item_id, name, list_id, deadline")
+            .in_("item_id", item_ids or ["00000000-0000-0000-0000-000000000000"])
+            .execute()
+            .data
+            or []
         )
         item_map = {it["item_id"]: it for it in items}
         list_ids = {it["list_id"] for it in items}
@@ -64,12 +65,12 @@ def get_alerts(
         list_map = {
             l["list_id"]: l
             for l in (
-                    supabase.table("lists")
-                    .select("list_id, name, deadline")
-                    .in_("list_id", list_ids)
-                    .execute()
-                    .data
-                    or []
+                supabase.table("lists")
+                .select("list_id, name, deadline")
+                .in_("list_id", list_ids)
+                .execute()
+                .data
+                or []
             )
         }
 
@@ -80,12 +81,12 @@ def get_alerts(
             store_name_map = {
                 s["store_id"]: s["name"]
                 for s in (
-                        supabase.table("stores")
-                        .select("store_id, name")
-                        .in_("store_id", list(store_ids))
-                        .execute()
-                        .data
-                        or []
+                    supabase.table("stores")
+                    .select("store_id, name")
+                    .in_("store_id", list(store_ids))
+                    .execute()
+                    .data
+                    or []
                 )
             }
 
@@ -152,7 +153,6 @@ def get_alerts(
                     ],
                 )
             )
-        # print(result)
         return result
 
     except HTTPException:

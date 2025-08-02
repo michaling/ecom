@@ -10,44 +10,65 @@ import asyncio
 
 client = TestClient(app)
 
+
 # Fixture to clear and set up a temporary supabase-like table
 @pytest.fixture(autouse=True)
 def clear_tables(monkeypatch):
     # Monkeypatch supabase table methods to use in-memory dicts
-    data_store = {
-        "lists": [],
-        "lists_items": [],
-        "items_suggestions": []
-    }
+    data_store = {"lists": [], "lists_items": [], "items_suggestions": []}
 
     class FakeTable:
         def __init__(self, name):
             self.name = name
-        def select(self, *args, **kwargs): return self
-        def eq(self, key, value): return self
-        def delete(self): return self
+
+        def select(self, *args, **kwargs):
+            return self
+
+        def eq(self, key, value):
+            return self
+
+        def delete(self):
+            return self
+
         def insert(self, payload):
-            data_store[self.name].extend(payload if isinstance(payload, list) else [payload])
+            data_store[self.name].extend(
+                payload if isinstance(payload, list) else [payload]
+            )
+
             class Dummy:
                 data = data_store[self.name]
-                def execute(self): return self
+
+                def execute(self):
+                    return self
+
             return Dummy()
-        def single(self): return self
+
+        def single(self):
+            return self
+
         def execute(self):
             class Dummy:
                 data = data_store.get(self.name)
+
             return Dummy()
-    monkeypatch.setattr(supabase, 'table', lambda name: FakeTable(name))
+
+    monkeypatch.setattr(supabase, "table", lambda name: FakeTable(name))
     yield
+
 
 @respx.mock
 def test_create_list_and_recommendations():
     # Mock ML API response
     ml_url = "http://localhost:8000/recommend_by_list_name"
-    respx.get(ml_url).mock(return_value=Response(200, json={
-        "list_name": "Groceries",
-        "recommended_products": ["Milk", "Eggs", "Bread"]
-    }))
+    respx.get(ml_url).mock(
+        return_value=Response(
+            200,
+            json={
+                "list_name": "Groceries",
+                "recommended_products": ["Milk", "Eggs", "Bread"],
+            },
+        )
+    )
 
     # Create list payload
     payload = {
@@ -56,7 +77,7 @@ def test_create_list_and_recommendations():
             {"name": "Milk", "is_checked": False, "geo_alert": None, "deadline": None}
         ],
         "geo_alert": False,
-        "deadline": None
+        "deadline": None,
     }
     response = client.post("/lists?user_id=test_user", json=payload)
     assert response.status_code == 200
@@ -70,21 +91,26 @@ def test_create_list_and_recommendations():
     assert "Bread" in suggested_names
     assert "Milk" not in suggested_names
 
+
 @respx.mock
 def test_refresh_all_recommendations():
     # Setup existing list entries
     supabase.table("lists").insert({"list_id": 1, "name": "Party"}).execute()
-    supabase.table("lists_items").insert([
-        {"list_id": 1, "name": "Chips"},
-        {"list_id": 1, "name": "Soda"}
-    ]).execute()
+    supabase.table("lists_items").insert(
+        [{"list_id": 1, "name": "Chips"}, {"list_id": 1, "name": "Soda"}]
+    ).execute()
 
     # Mock ML response for existing list
     ml_url = "http://localhost:8000/recommend_by_list_name"
-    respx.get(ml_url).mock(return_value=Response(200, json={
-        "list_name": "Party",
-        "recommended_products": ["Chips", "Cake", "Soda"]
-    }))
+    respx.get(ml_url).mock(
+        return_value=Response(
+            200,
+            json={
+                "list_name": "Party",
+                "recommended_products": ["Chips", "Cake", "Soda"],
+            },
+        )
+    )
 
     # Call refresh job directly
     asyncio.run(lists.fetch_and_update_recommendations())

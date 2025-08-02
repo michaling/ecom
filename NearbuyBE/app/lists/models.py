@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 
+
 # List models:
 class ListItem(BaseModel):
     name: str
@@ -9,17 +10,20 @@ class ListItem(BaseModel):
     deadline: Optional[datetime] = None
     geo_alert: Optional[bool] = None
 
+
 class PartialListItem(BaseModel):
     name: Optional[str] = None
     is_checked: Optional[bool] = None
     deadline: Optional[datetime] = None
     geo_alert: Optional[bool] = None
 
+
 class UserList(BaseModel):
     name: str
     deadline: Optional[datetime] = None
     geo_alert: Optional[bool] = None
     pic_path: Optional[str] = None
+
 
 class CreateItemRequest(BaseModel):
     item_name: str
@@ -41,9 +45,11 @@ class CheckItemRequest(BaseModel):
 class DeleteItemRequest(BaseModel):
     list_id: str
 
+
 class UpdateItemGeoAlertRequest(BaseModel):
     list_id: str
     geo_alert: bool
+
 
 class UpdateItemDeadlineRequest(BaseModel):
     list_id: str
