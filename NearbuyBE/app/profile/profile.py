@@ -42,8 +42,6 @@ def update_display_name(req: dict, token: str = Header(...)):
 
         user_id = user.user.id
         display_name = req.get("display_name")
-        print("uid: ", user_id)
-        print("new name: ", display_name)
 
         if not display_name:
             raise HTTPException(400, "Missing display_name")

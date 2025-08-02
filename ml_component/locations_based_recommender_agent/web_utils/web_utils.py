@@ -2,10 +2,12 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from typing import List, Optional
 import re
+
 # At first run you will need to install browser binaries: playwright install
 from playwright.sync_api import sync_playwright
 from typing import Optional
 import requests
+
 
 def fetch_html(url: str) -> str:
     headers = {
@@ -18,6 +20,8 @@ def fetch_html(url: str) -> str:
     resp = requests.get(url, headers=headers, timeout=10)
     resp.raise_for_status()
     return resp.text
+
+
 """
 def fetch_html(url: str, timeout: int = 10000) -> Optional[str]:
     try:
@@ -61,6 +65,7 @@ def extract_text_from_html(html: str) -> str:
     text = soup.get_text(strip=True)
     return re.sub(r"\s+", " ", text)
 
+
 def extract_links_from_html(html: str, base_url: str) -> List[str]:
     """Extract and normalize internal links from a page."""
     soup = BeautifulSoup(html, "html.parser")
@@ -74,11 +79,13 @@ def extract_links_from_html(html: str, base_url: str) -> List[str]:
             links.add(clean_url(absolute))
     return list(links)
 
+
 def clean_url(url: str) -> str:
     """Remove tracking parameters and fragments from a URL."""
     parsed = urlparse(url)
     cleaned = parsed._replace(query="", fragment="").geturl()
     return cleaned
+
 
 def is_internal_url(url: str, base_url: str) -> bool:
     """Check whether a URL is internal to the given base."""

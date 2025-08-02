@@ -12,10 +12,12 @@ def add_empty_product_id_column(input_csv: str, output_csv: str):
     df = pd.read_csv(input_csv)
 
     # Insert empty 'product_id' column at position 0
-    df.insert(0, 'product_id', '')
+    df.insert(0, "product_id", "")
 
     df.to_csv(output_csv, index=False)
 
 
 # Example usage
-add_empty_product_id_column('products_with_category_id.csv', 'products_with_category_id.csv')
+add_empty_product_id_column(
+    "products_with_category_id.csv", "products_with_category_id.csv"
+)

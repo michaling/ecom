@@ -119,9 +119,7 @@ def check_deadlines_and_notify():
             deadline_str = item.deadline.strftime("%Y-%m-%d %H:%M UTC")
             body = f'Your item "{item.name}" is due on {deadline_str} (within 24 h).'
 
-            print("tokens: ", tokens)
             for (expo_token,) in tokens:
-                print("found token: ", expo_token)
                 send_expo_push(expo_token, title, body, {"item_name": item.name})
 
             # create Alert record

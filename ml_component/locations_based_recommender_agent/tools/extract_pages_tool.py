@@ -37,8 +37,8 @@ class ExtractPagesTool:
             f"Below is a list of internal URLs from the store website '{store_url}':\n\n"
             + "\n".join(sample_links)
             + "\n\nSelect the 3–5 links that are most likely to help determine if this product is sold in the store. "
-              "Prefer links that contain product listings, catalog pages, or specific product names. "
-              "Reply with one URL per line, no explanations."
+            "Prefer links that contain product listings, catalog pages, or specific product names. "
+            "Reply with one URL per line, no explanations."
         )
 
         try:

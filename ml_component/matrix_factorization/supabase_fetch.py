@@ -1,12 +1,19 @@
 from ml_component.globals import *
 import pandas as pd
 
+
 def get_stores():
     return supabase.table("stores").select("store_id", "name").execute()
 
+
 def insert_products(product_names):
     for product_name in product_names:
-        existing_product = supabase.table("products").select("product_id").eq("name", product_name).execute()
+        existing_product = (
+            supabase.table("products")
+            .select("product_id")
+            .eq("name", product_name)
+            .execute()
+        )
         if existing_product.data:
             print(f"Product '{product_name}' already exists. Skipping insert.")
         else:
@@ -26,8 +33,12 @@ def create_data_matrix():
     offset = 0
     # Fetch products in batches
     while True:
-        products_response = supabase.table("products").select("product_id", "name").range(offset,
-                                                                                          offset + batch_size - 1).execute()
+        products_response = (
+            supabase.table("products")
+            .select("product_id", "name")
+            .range(offset, offset + batch_size - 1)
+            .execute()
+        )
         # If no products are returned, break the loop
         if not products_response.data:
             break
@@ -41,10 +52,13 @@ def create_data_matrix():
     interactions = []
     for store_id in store_ids:
         for product_id in product_ids:
-            interactions.append({"product_id": product_id, "store_id": store_id, "interaction": 0})
+            interactions.append(
+                {"product_id": product_id, "store_id": store_id, "interaction": 0}
+            )
     # Create a DataFrame from the interactions list
     df = pd.DataFrame(interactions)
     # Save the DataFrame to CSV
     df.to_csv("product_store_interactions.csv", index=False)
+
 
 create_data_matrix()

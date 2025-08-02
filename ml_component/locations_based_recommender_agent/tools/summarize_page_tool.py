@@ -7,6 +7,7 @@ from ml_component.locations_based_recommender_agent.web_utils.web_utils import (
 from ml_component.globals import api_key
 import tiktoken
 
+
 class SummarizeStorePageTool:
     def __init__(self):
         self.llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, api_key=api_key)

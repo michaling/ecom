@@ -55,5 +55,5 @@ def send_expo_push(to_token: str, title: str, body: str, data: dict = None) -> b
     if resp.status_code == 200:
         return True
 
-    print("🚨 FCM v1 push failed:", resp.status_code, resp.text)
+    print("FCM v1 push failed:", resp.status_code, resp.text)
     return False

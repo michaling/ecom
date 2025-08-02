@@ -14,7 +14,7 @@ def main():
 
     while True:
         mode = input("\nSelect mode (1 or 2), or type 'exit': ").strip()
-        if mode.lower() == 'exit':
+        if mode.lower() == "exit":
             print("Goodbye!")
             break
 
@@ -36,6 +36,7 @@ def main():
 
         else:
             print("Invalid selection. Please choose '1', '2', or 'exit'.")
+
 
 if __name__ == "__main__":
     main()

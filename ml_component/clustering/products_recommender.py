@@ -7,9 +7,9 @@ import os
 
 
 class ProductRecommender:
-    def __init__(self,
-                 embedding_model_name: str = "all-mpnet-base-v2",
-                 cache_dir: str = "cache"):
+    def __init__(
+        self, embedding_model_name: str = "all-mpnet-base-v2", cache_dir: str = "cache"
+    ):
         """
         Initializes the product recommender using Supabase, classifier, and embedding model.
         """
@@ -26,7 +26,12 @@ class ProductRecommender:
 
         # Load neural network classifier using absolute path
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        classifier_path = os.path.join(base_dir, "clustering", "saved_models", "product_category_classifier_nn.joblib")
+        classifier_path = os.path.join(
+            base_dir,
+            "clustering",
+            "saved_models",
+            "product_category_classifier_nn.joblib",
+        )
         self.classifier = joblib.load(classifier_path)
         self.categories = self.classifier.classes_
 

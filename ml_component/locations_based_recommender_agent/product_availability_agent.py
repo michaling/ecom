@@ -6,9 +6,15 @@ import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-from ml_component.locations_based_recommender_agent.tools.find_store_website_tool import FindStoreWebsiteTool
-from ml_component.locations_based_recommender_agent.tools.extract_pages_tool import ExtractPagesTool
-from ml_component.locations_based_recommender_agent.tools.summarize_page_tool import SummarizeStorePageTool
+from ml_component.locations_based_recommender_agent.tools.find_store_website_tool import (
+    FindStoreWebsiteTool,
+)
+from ml_component.locations_based_recommender_agent.tools.extract_pages_tool import (
+    ExtractPagesTool,
+)
+from ml_component.locations_based_recommender_agent.tools.summarize_page_tool import (
+    SummarizeStorePageTool,
+)
 
 
 # === Agent State ===
@@ -37,17 +43,27 @@ class ResultCache:
         key = self._id(store, product)
         if key in self.results:
             return
-        embedding = self.model.encode(key, normalize_embeddings=True).astype(np.float32).reshape(1, -1)
+        embedding = (
+            self.model.encode(key, normalize_embeddings=True)
+            .astype(np.float32)
+            .reshape(1, -1)
+        )
         self.index.add(embedding)
         self.entries[str(len(self.entries))] = (store, product)
         self.results[key] = result
         print(f"[FAISS]  Cached result for: {key}")
 
-    def retrieve_similar(self, store: str, product: str, threshold: float = 0.85) -> Optional[Dict]:
+    def retrieve_similar(
+        self, store: str, product: str, threshold: float = 0.85
+    ) -> Optional[Dict]:
         key = self._id(store, product)
         if len(self.entries) == 0:
             return None
-        embedding = self.model.encode(key, normalize_embeddings=True).astype(np.float32).reshape(1, -1)
+        embedding = (
+            self.model.encode(key, normalize_embeddings=True)
+            .astype(np.float32)
+            .reshape(1, -1)
+        )
         D, I = self.index.search(embedding, k=1)
         if D[0][0] < (2 - 2 * threshold):  # cosine distance threshold
             match_store, match_product = self.entries[str(I[0][0])]
@@ -77,12 +93,12 @@ class ProductAvailabilityAgent:
             "page_urls": [],
             "current_index": 0,
             "answer": "",
-            "price": None
+            "price": None,
         }
 
     def _extract_pages_node(self, state: AgentState) -> AgentState:
         print(f"[Node] Extracting internal links for: {state['store_url']}")
-        input_str = f'{state["product"]}|||{state["store_url"]}'
+        input_str = f"{state['product']}|||{state['store_url']}"
         raw_links = self.extract_pages_tool.run(input_str)
         urls = [url.strip() for url in raw_links.splitlines() if url.strip()]
         print(f"[Node] Found top {len(urls)} links")
@@ -91,7 +107,7 @@ class ProductAvailabilityAgent:
             "page_urls": urls[:5],
             "current_index": 0,
             "answer": "",
-            "price": None
+            "price": None,
         }
 
     def _summarize_page_node(self, state: AgentState) -> AgentState:
@@ -103,26 +119,30 @@ class ProductAvailabilityAgent:
             return {**state, "answer": "False (No high confidence found in any page)"}
 
         current_url = urls[index]
-        input_str = f'{state["product"]}|||{current_url}'
+        input_str = f"{state['product']}|||{current_url}"
         print(f"[Node]  Summarizing page {index + 1}/{len(urls)}: {current_url}")
         result_str = self.summarizer_tool.run(input_str)
 
         try:
             result = json.loads(result_str)
             confidence = float(result.get("confidence", 0))
-            print(f"[Node]  LLM Response → confidence={confidence} | answer={result.get('answer')}")
+            print(
+                f"[Node]  LLM Response → confidence={confidence} | answer={result.get('answer')}"
+            )
 
             if result.get("answer") is True and confidence > 0.7:
                 price = result.get("price", None)
                 return {
                     **state,
-                    "answer": json.dumps({
-                        "answer": True,
-                        "confidence": confidence,
-                        "reason": result.get("reason", ""),
-                        "price": price
-                    }),
-                    "price": price
+                    "answer": json.dumps(
+                        {
+                            "answer": True,
+                            "confidence": confidence,
+                            "reason": result.get("reason", ""),
+                            "price": price,
+                        }
+                    ),
+                    "price": price,
                 }
 
         except Exception as e:
@@ -145,10 +165,11 @@ class ProductAvailabilityAgent:
         builder.set_entry_point("find_site")
         builder.add_edge("find_site", "extract_pages")
         builder.add_edge("extract_pages", "summarize_next")
-        builder.add_conditional_edges("summarize_next", self._continue_or_stop, {
-            "summarize_next": "summarize_next",
-            END: END
-        })
+        builder.add_conditional_edges(
+            "summarize_next",
+            self._continue_or_stop,
+            {"summarize_next": "summarize_next", END: END},
+        )
         return builder.compile()
 
     def check_product(self, product: str, store: str) -> Dict:
@@ -157,10 +178,7 @@ class ProductAvailabilityAgent:
             return cached
 
         # Run full graph
-        result = self.graph.invoke({
-            "product": product,
-            "store": store
-        })
+        result = self.graph.invoke({"product": product, "store": store})
 
         # Parse and save result
         try:
@@ -169,8 +187,10 @@ class ProductAvailabilityAgent:
             parsed = {
                 "answer": False,
                 "confidence": 0.0,
-                "reason": result["answer"].strip() if result.get("answer", "").strip() else "UNKNOWN",
-                "price": None
+                "reason": result["answer"].strip()
+                if result.get("answer", "").strip()
+                else "UNKNOWN",
+                "price": None,
             }
 
         self.cache.add(store, product, parsed)

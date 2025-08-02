@@ -4,9 +4,15 @@ from ml_component.clustering.embedding_search_engine import EmbeddingSearchEngin
 from ml_component.globals import *
 from ml_component.clustering.products_recommender import ProductRecommender
 
+
 class ListBasedRecommender:
-    def __init__(self, embedding_model_name: str = "all-mpnet-base-v2",
-                 k: int = 2, top_k_per_product: int = 1, final_m: int = 10):
+    def __init__(
+        self,
+        embedding_model_name: str = "all-mpnet-base-v2",
+        k: int = 2,
+        top_k_per_product: int = 1,
+        final_m: int = 10,
+    ):
         """
         Initializes the list-based recommender.
         :param embedding_model_name: Embedding model to use for list name similarity
@@ -21,15 +27,26 @@ class ListBasedRecommender:
         self.top_k_per_product = top_k_per_product
         self.final_m = final_m
 
-        self.list_name_engine = EmbeddingSearchEngine(model_name=self.embedding_model_name)
+        self.list_name_engine = EmbeddingSearchEngine(
+            model_name=self.embedding_model_name
+        )
 
     def _get_all_lists(self) -> List[dict]:
         response = self.supabase.table("lists").select("*").execute()
         return response.data if response.data else []
 
     def _get_list_items_names(self, list_id: str) -> List[str]:
-        response = self.supabase.table("lists_items").select("name").eq("list_id", list_id).execute()
-        return [item["name"] for item in response.data if "name" in item] if response.data else []
+        response = (
+            self.supabase.table("lists_items")
+            .select("name")
+            .eq("list_id", list_id)
+            .execute()
+        )
+        return (
+            [item["name"] for item in response.data if "name" in item]
+            if response.data
+            else []
+        )
 
     def get_similar_lists_by_name(self, input_list_name: str) -> List[dict]:
         """
@@ -74,4 +91,6 @@ class ListBasedRecommender:
                 recommendation_counter.update(similar)
 
         # Step 4: Return top-m most frequently recommended products
-        return [product for product, _ in recommendation_counter.most_common(self.final_m)]
+        return [
+            product for product, _ in recommendation_counter.most_common(self.final_m)
+        ]

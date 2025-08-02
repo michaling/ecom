@@ -97,12 +97,6 @@ def fetch_and_store_recommendations(list_name: str, list_id: int):
         print(f"[ML Error] by-name for '{list_name}': {e}")
 
     # 4) Filter out existing items and preserved suggestions
-    for item in recs:
-        print(item)
-
-    if len(recs) == 0:
-        print("nothing here!")
-
     filtered = [
         item
         for item in recs
@@ -442,7 +436,6 @@ def accept_suggestion(
         )
 
         # Mark suggestion as used
-        print(suggestion_id)
         supabase.table("items_suggestions").update({"used": True}).eq(
             "suggestion_id", suggestion_id
         ).execute()

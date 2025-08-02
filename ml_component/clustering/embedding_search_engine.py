@@ -3,6 +3,7 @@ from typing import List
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
+
 class EmbeddingSearchEngine:
     def __init__(self, model_name: str = "all-mpnet-base-v2"):
         self.model = SentenceTransformer(model_name)
