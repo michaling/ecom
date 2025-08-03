@@ -75,7 +75,7 @@ This service loads the ML model and exposes endpoints for predicting item availa
 ```bash
 
 # Start the API
-uvicorn ml_component.api.model_fastapi_server:app --reload --port 8000
+uvicorn ml_component.api.model_fastapi_server:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ## Backend Service
@@ -86,7 +86,7 @@ The FastAPI backend handles list management, user profiles, and notifications.
 
 # Start the app
 cd NearbuyBE/app
-uvicorn main:app --reload --port 8001
+uvicorn main:app --reload --host 0.0.0.0 --port 8001
 ```
 
 ## Frontend App
@@ -101,7 +101,6 @@ cd NearBuyFE
 
 # Install dependencies
 npm install
-# or yarn install
 
 # Start Expo
 npm run android
