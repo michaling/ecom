@@ -66,7 +66,7 @@ export const currentPath =
 
 ### 2. Configure Environment Variables
 
-Paste the `.env` file in the root directory.
+Paste the `.env` file in the root directory.  
 Also, Paste the `firebase-service-account.json` file in the NearBuyFE directory.
 
 ## Model Service
