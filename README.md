@@ -55,11 +55,14 @@ Pick the correct backend URL for your environment in NearBuyFE.utils and leave o
    - Physical Android device via USB
 
 at:   
+```typescript
+// choose current path to match the emulator (and change to your IP)
 export const currentPath =
-    'http://10.0.2.2:8001/' // for Android emulator (replace with your IP)
-    'http://10.0.0.49:8001/' // for phone via USB / expo go app
-    'http://localhost:8001/' // for web
-
+  //'http://172.30.124.49:8001/' // for android emulator
+  'http://10.0.0.49:8001/' // for phone via USB / expo go app
+  // 'http://localhost:8001/' // for web
+  ;
+```
 
 ### 2. Configure Environment Variables
 
