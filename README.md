@@ -86,7 +86,7 @@ The FastAPI backend handles list management, user profiles, and notifications.
 
 # Start the app
 cd NearbuyBE/app
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 8001
 ```
 
 ## Frontend App
