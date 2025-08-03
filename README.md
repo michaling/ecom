@@ -1,11 +1,16 @@
 # NearBuy
 
-NearBuy is a location-based shopping recommendation app that helps you discover items on your lists when you’re near stores where they’re available. The system consists of three main components:
+**NearBuy** is a shopping lists mobile app that sends **location-based alerts** when you're near stores that likely have items from your shopping list, with **smart items recommendations** based on community trends. 
+The system consists of three main components:
+
 
 1. **Model Service**: A machine learning API that recommends product and predicts item availability based on store data.
 2. **Backend Service**: A FastAPI application handling user lists, notifications, and integrating with Supabase.
 3. **Frontend App**: A React Native (Expo) client for users to manage lists and receive location alerts.
 
+---
+- [View the NearBuy Presentation](https://www.canva.com/design/DAGtcMcYHtw/QhOETcZOYLf4ohmHAnaDGA/view?utm_content=DAGtcMcYHtw&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h9ec9f14269)
+- [Full Project Documentation (PDF)]()
 ---
 
 ## Architecture Overview
