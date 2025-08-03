@@ -104,7 +104,7 @@ npm install
 # or yarn install
 
 # Start Expo
-npx expo run android
+npm run android
 ```
 
 * Scan the QR code for phisical mobile or press `a` to open in an emulator.
