@@ -101,7 +101,6 @@ cd NearBuyFE
 
 # Install dependencies
 npm install
-# or yarn install
 
 # Start Expo
 npx expo run android
