@@ -50,17 +50,17 @@ pip install -r requirements.txt
 
 ### 1. Local URL for Emulator / Device
 
-Pick the correct backend URL for your environment in NearBuyFE.utils and leave only that line active:
-   - Android emulator
-   - Physical Android device via USB
-
-at:   
+Run this to get your local IP:
+```batch
+for /f "tokens=2 delims=:" %a in ('ipconfig ^| findstr "IPv4"') do @echo %a
+```
+in `NearbuyFE/utils.tsx`, change the `currentPath` variable at the beginning of the file like so:
 ```typescript
 // choose current path to match the emulator (and change to your IP)
 export const currentPath =
-  //'http://172.30.124.49:8001/' // for android emulator
-  'http://10.0.0.49:8001/' // for phone via USB / expo go app
+  //'http://172.30.124.49:8001/' // for android emulator (remote IP)
   // 'http://localhost:8001/' // for web
+  'http://<your_local_ip>:8001/' // for phone via USB / expo go app
   ;
 ```
 
