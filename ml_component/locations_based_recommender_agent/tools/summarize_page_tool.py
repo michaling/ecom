@@ -4,13 +4,13 @@ from ml_component.locations_based_recommender_agent.web_utils.web_utils import (
     fetch_html,
     extract_text_from_html,
 )
-from ml_component.globals import api_key
+from ml_component.globals import OPENAI_KEY
 import tiktoken
 
 
 class SummarizeStorePageTool:
     def __init__(self):
-        self.llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, api_key=api_key)
+        self.llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, api_key=OPENAI_KEY)
         self.encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
     def truncate_to_token_limit(self, text: str, limit: int = 3000) -> str:

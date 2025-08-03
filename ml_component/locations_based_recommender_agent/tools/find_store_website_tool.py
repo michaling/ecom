@@ -1,12 +1,12 @@
 # tools/find_store_website_tool.py
 from langchain_openai import ChatOpenAI
-from ml_component.globals import api_key
+from ml_component.globals import OPENAI_KEY
 import re
 
 
 class FindStoreWebsiteTool:
     def __init__(self):
-        self.llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, api_key=api_key)
+        self.llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, api_key=OPENAI_KEY)
 
     import re
 

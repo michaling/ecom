@@ -4,12 +4,12 @@ from ml_component.locations_based_recommender_agent.web_utils.web_utils import (
     fetch_html,
     extract_links_from_html,
 )
-from ml_component.globals import api_key
+from ml_component.globals import OPENAI_KEY
 
 
 class ExtractPagesTool:
     def __init__(self):
-        self.llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, api_key=api_key)
+        self.llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, api_key=OPENAI_KEY)
 
     def run(self, input_str: str) -> str:
         """
